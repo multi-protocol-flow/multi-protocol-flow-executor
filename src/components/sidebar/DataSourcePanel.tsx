@@ -30,6 +30,9 @@ import {
   Plus,
   Pencil,
   Trash2,
+  Server,
+  Database,
+  Move,
   type LucideIcon,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -95,11 +98,13 @@ function DatasourceEntry({
   refreshToken,
   onSelectItem,
   searchKeyword,
+  isSinglePlugin = false,
 }: {
   ds: DatasourceDescription;
   refreshToken: number;
   onSelectItem: (ds: DatasourceDescription, item: DataItem, conn: DatasourceConnection) => void;
   searchKeyword?: string;
+  isSinglePlugin?: boolean;
 }) {
   const LL = getLL();
   const connections = useDatasourceStore((s) => s.connections);
@@ -122,17 +127,24 @@ function DatasourceEntry({
 
   const isConnExpanded = useCallback(
     (connId: string) => {
-      return expandedConns[connId] ?? true;
+      if (searchKeyword?.trim()) return true;
+      // 单连接时默认展开；多连接时默认不展开各数据源连接
+      const defaultExpanded = dsConnections.length === 1;
+      return expandedConns[connId] ?? defaultExpanded;
     },
-    [expandedConns],
+    [expandedConns, searchKeyword, dsConnections.length],
   );
 
-  const toggleConnExpanded = useCallback((connId: string) => {
-    setExpandedConns((prev) => ({
-      ...prev,
-      [connId]: !(prev[connId] ?? true),
-    }));
-  }, []);
+  const toggleConnExpanded = useCallback(
+    (connId: string) => {
+      const defaultExpanded = dsConnections.length === 1;
+      setExpandedConns((prev) => ({
+        ...prev,
+        [connId]: !(prev[connId] ?? defaultExpanded),
+      }));
+    },
+    [dsConnections.length],
+  );
 
   // 打开新建连接表单
   const handleStartAdd = useCallback(() => {
@@ -231,56 +243,57 @@ function DatasourceEntry({
   );
 
   return (
-    <div className="border-b border-border last:border-b-0">
-      {/* 插件级头部行 */}
-      <div className="flex items-center gap-2 px-3 py-1.5">
-        <span className="flex-1 min-w-0 truncate text-xs font-semibold text-foreground">
+    <div className={cn('last:border-b-0', !isSinglePlugin && 'border-b border-border')}>
+      {/* 插件级头部行（仅在多插件时展示；单插件时直接平铺数据源连接，去除冗余层级） */}
+      {/* 插件元信息与连接状态行 */}
+      <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-muted/20 border-b border-border/40 select-none">
+        <Database className="w-3.5 h-3.5 text-muted-foreground/70 shrink-0" />
+        <span className="flex-1 min-w-0 truncate text-[11px] font-semibold text-foreground/80 tracking-tight uppercase">
           {ds.display_name}
         </span>
         {connected ? (
-          <Badge variant="outline" className="text-emerald-600 shrink-0 text-[11px] h-5 px-1.5">
+          <Badge variant="outline" className="text-emerald-600 border-emerald-500/25 bg-emerald-500/5 shrink-0 text-[10px] h-4.5 px-1.5 font-normal">
             {dsConnections.length > 1
               ? LL.datasource.connections_count({ count: dsConnections.length })
               : LL.datasource.connected()}
           </Badge>
         ) : (
-          <Badge variant="outline" className="text-muted-foreground shrink-0 text-[11px] h-5 px-1.5">
+          <Badge variant="outline" className="text-muted-foreground shrink-0 text-[10px] h-4.5 px-1.5 font-normal">
             {LL.datasource.not_connected()}
           </Badge>
         )}
-        {connected ? (
-          <div className="flex items-center gap-1 shrink-0">
+        <div className="flex items-center gap-0.5 shrink-0">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-5 w-5 rounded text-muted-foreground hover:text-foreground"
+            onClick={handleStartAdd}
+            title={LL.datasource.add_connection()}
+          >
+            <Plus className="w-3 h-3" />
+          </Button>
+          {dsConnections.length === 1 && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-5 w-5 rounded text-muted-foreground hover:text-foreground"
+              onClick={() => handleStartEdit(dsConnections[0])}
+              title={LL.datasource.edit()}
+            >
+              <Pencil className="w-3 h-3" />
+            </Button>
+          )}
+          {!connected && (
             <Button
               variant="ghost"
               size="sm"
-              className="h-6 px-1.5 text-xs gap-1 text-muted-foreground hover:text-foreground"
+              className="h-5 px-1.5 text-[11px] shrink-0 text-muted-foreground hover:text-foreground"
               onClick={handleStartAdd}
-              title={LL.datasource.add_connection()}
             >
-              <Plus className="w-3 h-3" />
-              <span className="hidden sm:inline">{LL.datasource.add_connection()}</span>
+              {LL.datasource.configure()}
             </Button>
-            {dsConnections.length === 1 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-6 px-2 text-xs"
-                onClick={() => handleStartEdit(dsConnections[0])}
-              >
-                {LL.datasource.edit()}
-              </Button>
-            )}
-          </div>
-        ) : (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-6 px-2 text-xs shrink-0"
-            onClick={handleStartAdd}
-          >
-            {LL.datasource.configure()}
-          </Button>
-        )}
+          )}
+        </div>
       </div>
 
       {/* 新建/编辑配置表单 */}
@@ -385,13 +398,15 @@ function DatasourceEntry({
             const title = conn.name || (isSingle ? ds.display_name : `${ds.display_name} (${index + 1})`);
 
             return (
-              <div key={conn.id} className={cn(!isSingle && 'border-t border-border/50 first:border-t-0')}>
+              <div key={conn.id} className={cn(!isSingle && 'border-t border-border/40 first:border-t-0')}>
                 {/* 多连接时显示独立的连接头部行；单连接且有自定义名称时也显示连接名 */}
                 {(!isSingle || conn.name) && (
                   <div
                     className={cn(
-                      'flex items-center gap-1.5 h-8 px-2.5 rounded-md cursor-pointer select-none text-xs transition-colors',
-                      expanded ? 'bg-accent/20 hover:bg-accent/40 font-medium text-foreground' : 'hover:bg-accent/30 text-muted-foreground',
+                      'group flex items-center gap-1.5 h-7.5 px-2 rounded-md cursor-pointer select-none text-xs transition-colors my-0.5',
+                      expanded
+                        ? 'bg-accent/35 font-medium text-foreground'
+                        : 'hover:bg-accent/20 text-muted-foreground hover:text-foreground',
                     )}
                     onClick={() => toggleConnExpanded(conn.id)}
                   >
@@ -403,8 +418,9 @@ function DatasourceEntry({
                         )}
                       />
                     )}
-                    <span className="truncate flex-1">{title}</span>
-                    <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+                    <Server className="w-3.5 h-3.5 text-primary/75 shrink-0" />
+                    <span className="truncate flex-1 font-medium text-foreground/90">{title}</span>
+                    <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
                       <Button
                         variant="ghost"
                         size="icon"
@@ -431,7 +447,7 @@ function DatasourceEntry({
 
                 {/* 展开的资源树 */}
                 {expanded && (
-                  <div className={cn(!isSingle && 'pl-2')}>
+                  <div className={cn(!isSingle ? 'pl-3 ml-2 border-l border-primary/25 space-y-0.5 mb-1' : 'space-y-0.5')}>
                     {rootResources.map((resource) => (
                       <ResourceLevel
                         key={resource.id}
@@ -449,6 +465,17 @@ function DatasourceEntry({
               </div>
             );
           })}
+          {isSinglePlugin && (
+            <button
+              type="button"
+              onClick={handleStartAdd}
+              className="w-full flex items-center justify-center gap-1.5 h-7 rounded-md border border-dashed border-border/60 hover:border-primary/50 text-[11px] text-muted-foreground hover:text-foreground transition-colors my-1 cursor-pointer"
+              title={LL.datasource.add_connection()}
+            >
+              <Plus className="w-3 h-3" />
+              <span>{LL.datasource.add_connection()}</span>
+            </button>
+          )}
         </div>
       )}
     </div>
@@ -815,30 +842,30 @@ function GroupFolderItem({
       <button
         type="button"
         className={cn(
-          'w-full flex items-center gap-1.5 h-8.5 px-2.5 rounded-md text-left text-xs transition-colors select-none',
+          'w-full flex items-center gap-1.5 h-7.5 px-2 rounded-md text-left text-xs transition-colors select-none',
           isOpen
-            ? 'bg-accent/40 hover:bg-accent/60 text-foreground font-semibold'
-            : 'hover:bg-accent/50 text-foreground/85 font-medium',
+            ? 'bg-accent/30 text-foreground font-medium'
+            : 'hover:bg-accent/20 text-muted-foreground hover:text-foreground font-normal',
         )}
         onClick={() => onToggle(node.fullPath)}
       >
         {isOpen ? (
-          <ChevronDown className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+          <ChevronDown className="w-3.5 h-3.5 text-muted-foreground/80 shrink-0" />
         ) : (
-          <ChevronRight className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+          <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/80 shrink-0" />
         )}
         {isOpen ? (
-          <FolderOpen className="w-4 h-4 text-amber-500 shrink-0" />
+          <FolderOpen className="w-3.5 h-3.5 text-amber-500/90 shrink-0" />
         ) : (
-          <Folder className="w-4 h-4 text-amber-500 shrink-0" />
+          <Folder className="w-3.5 h-3.5 text-amber-500/80 shrink-0" />
         )}
-        <span className="truncate flex-1">{node.name}</span>
-        <span className="text-[11px] text-muted-foreground/75 font-mono shrink-0 tabular-nums">
+        <span className="truncate flex-1 text-[11.5px]">{node.name}</span>
+        <span className="text-[10px] text-muted-foreground/60 font-mono shrink-0 tabular-nums">
           {`(${node.totalCount})`}
         </span>
       </button>
       {isOpen && (
-        <div className="pl-3.5 ml-2 border-l border-border/40 space-y-0.5 mt-0.5">
+        <div className="pl-3 ml-1.5 border-l border-border/40 space-y-0.5 mt-0.5">
           {node.children.map((child) => (
             <GroupFolderItem
               key={child.id}
@@ -878,12 +905,17 @@ function ResourceLevel({
   searchKeyword?: string;
 }) {
   const LL = getLL();
+  const browseCache = useDatasourceStore((s) => s.browseCache);
+  const connections = useDatasourceStore((s) => s.connections);
+  const isSingleConn = useMemo(
+    () => connections.filter((c) => c.datasource_id === ds.id).length <= 1,
+    [connections, ds.id],
+  );
   const cacheKey = `${conn.id}/${resource.id}/${parentId ?? ''}`;
   const legacyCacheKey = `${ds.id}/${resource.id}/${parentId ?? ''}`;
   const cached = useDatasourceStore(
-    (s) => s.browseCache[cacheKey] ?? s.browseCache[legacyCacheKey],
+    (s) => s.browseCache[cacheKey] ?? (isSingleConn ? s.browseCache[legacyCacheKey] : undefined),
   );
-  const browseCache = useDatasourceStore((s) => s.browseCache);
   const loading = useDatasourceStore((s) => s.loading);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [groupExpanded, setGroupExpanded] = useState<Record<string, boolean>>({});
@@ -928,13 +960,32 @@ function ResourceLevel({
     }));
   }, [isSearching]);
 
+  // 如果当前层级有子资源（例如 Eolink 的 project -> api），且当前连接下仅有 1 个项目或指定了项目：
+  // 智能自动穿透，无需用户多点一次项目展开，也不显示项目文件夹包裹
+  const shouldAutoFlattenSingleItem = Boolean(resource.children != null && items.length === 1);
+
+  useEffect(() => {
+    if (shouldAutoFlattenSingleItem && items[0]) {
+      const singleItem = items[0];
+      const childCacheKey = `${conn.id}/${resource.children}/${singleItem.id}`;
+      const legacyChildCacheKey = `${ds.id}/${resource.children}/${singleItem.id}`;
+      const cachedChild = browseCache[childCacheKey] ?? (isSingleConn ? browseCache[legacyChildCacheKey] : undefined);
+      if (!cachedChild) {
+        useDatasourceStore
+          .getState()
+          .browse(ds.id, resource.children!, singleItem.id, false, conn.id)
+          .catch(() => {});
+      }
+    }
+  }, [shouldAutoFlattenSingleItem, items, conn.id, resource.children, ds.id, browseCache]);
+
   return (
     <div>
-      {/* 资源层级头（仅顶层展示；子级作为分组内容渲染） */}
-      {parentId === null && (
-        <div className="px-2.5 pt-2 pb-1 text-xs font-semibold text-muted-foreground/80 uppercase tracking-wider flex items-center gap-1">
+      {/* 资源层级头（仅在存在多个项目且未穿透时展示；单项目自动穿透时不展示多余的 label） */}
+      {parentId === null && !shouldAutoFlattenSingleItem && items.length > 1 && (
+        <div className="px-2 pt-1.5 pb-0.5 text-[10px] font-medium text-muted-foreground/60 uppercase tracking-wider flex items-center gap-1 select-none">
           <span className="truncate">{resource.label}</span>
-          {loading && !cached && <Loader2 className="w-3 h-3 animate-spin shrink-0" />}
+          {loading && !cached && <Loader2 className="w-2.5 h-2.5 animate-spin shrink-0" />}
         </div>
       )}
       {/* 叶子节点按多级嵌套分组展示 */}
@@ -952,11 +1003,28 @@ function ResourceLevel({
             isSearching={isSearching}
           />
         ))
+      ) : shouldAutoFlattenSingleItem && items[0] ? (
+        <ResourceLevel
+          ds={ds}
+          conn={conn}
+          resource={
+            ds.resources.find((r) => r.id === resource.children) ?? {
+              id: resource.children!,
+              label: '',
+              children: null,
+              leaf: true,
+            }
+          }
+          parentId={items[0].id}
+          refreshToken={refreshToken}
+          onSelectItem={onSelectItem}
+          searchKeyword={searchKeyword}
+        />
       ) : resource.children != null ? (
         items.map((item) => {
           const childCacheKey = `${conn.id}/${resource.children}/${item.id}`;
           const legacyChildCacheKey = `${ds.id}/${resource.children}/${item.id}`;
-          const cachedChildren = browseCache[childCacheKey] ?? browseCache[legacyChildCacheKey];
+          const cachedChildren = browseCache[childCacheKey] ?? (isSingleConn ? browseCache[legacyChildCacheKey] : undefined);
           const hasMatchingChildren = cachedChildren?.some((child) =>
             matchItem(child, searchKeyword ?? '', item.name),
           );
@@ -978,10 +1046,10 @@ function ResourceLevel({
                 type="button"
                 title={item.extra.length > 0 ? `${item.name}\n${item.extra.map((kv) => `${kv.label}: ${kv.value}`).join(' · ')}` : item.name}
                 className={cn(
-                  'w-full flex items-center gap-1.5 h-8.5 px-2.5 rounded-md text-left text-xs transition-colors select-none',
+                  'w-full flex items-center gap-1.5 h-7.5 px-2 rounded-md text-left text-xs transition-colors select-none',
                   isExpanded
-                    ? 'bg-accent/40 hover:bg-accent/60 text-foreground font-semibold'
-                    : 'hover:bg-accent/50 text-foreground/85 font-medium',
+                    ? 'bg-accent/30 text-foreground font-medium'
+                    : 'hover:bg-accent/20 text-muted-foreground hover:text-foreground font-normal',
                 )}
                 onClick={() => {
                   const next = !isExpanded;
@@ -997,19 +1065,19 @@ function ResourceLevel({
                 }}
               >
                 {isExpanded ? (
-                  <ChevronDown className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                  <ChevronDown className="w-3.5 h-3.5 text-muted-foreground/80 shrink-0" />
                 ) : (
-                  <ChevronRight className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                  <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/80 shrink-0" />
                 )}
                 {isExpanded ? (
-                  <FolderOpen className="w-4 h-4 text-primary shrink-0" />
+                  <FolderOpen className="w-3.5 h-3.5 text-primary shrink-0" />
                 ) : (
-                  <Folder className="w-4 h-4 text-primary shrink-0" />
+                  <Folder className="w-3.5 h-3.5 text-primary shrink-0" />
                 )}
-                <span className="truncate flex-1">{item.name}</span>
+                <span className="truncate flex-1 text-[11.5px]">{item.name}</span>
               </button>
               {isExpanded && (
-                <div className="pl-3.5 ml-2 border-l border-border/40 space-y-0.5 mt-0.5">
+                <div className="pl-3 ml-1.5 border-l border-border/40 space-y-0.5 mt-0.5">
                   <ResourceLevel
                     ds={ds}
                     conn={conn}
@@ -1119,26 +1187,26 @@ function ItemRow({
       onDragStart={handleDragStart}
       onClick={() => onSelect(ds, item, conn)}
       title={tooltipText}
-      className="group flex items-center gap-2 h-8 px-2.5 cursor-pointer hover:bg-accent/60 rounded-md select-none transition-colors"
+      className="group flex items-center gap-1.5 h-7.5 px-2 cursor-pointer hover:bg-accent/50 rounded-md select-none transition-colors"
     >
-      <Icon className={cn('w-4 h-4 shrink-0', PROTOCOL_COLOR_MAP[item.protocol] ?? 'text-slate-500')} />
+      <Icon className={cn('w-3.5 h-3.5 shrink-0', PROTOCOL_COLOR_MAP[item.protocol] ?? 'text-slate-500')} />
       {item.method && (
-        <Badge variant="secondary" className="h-4.5 px-1.5 text-[10px] font-mono shrink-0 leading-none">
+        <Badge variant="secondary" className="h-4 px-1 text-[9px] font-mono shrink-0 leading-none rounded-[3px]">
           {item.method}
         </Badge>
       )}
-      <span className="min-w-0 truncate text-xs text-foreground/90 group-hover:text-foreground flex-1">{item.name}</span>
+      <span className="min-w-0 truncate text-[11.5px] text-foreground/85 group-hover:text-foreground flex-1">{item.name}</span>
       <Button
         variant="ghost"
         size="icon"
-        className="h-6 w-6 shrink-0 text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+        className="h-5 w-5 shrink-0 text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity"
         onClick={(e) => {
           e.stopPropagation();
           onSelect(ds, item, conn);
         }}
         title={LL.datasource.view_detail()}
       >
-        <Eye className="w-3.5 h-3.5" />
+        <Eye className="w-3 h-3" />
       </Button>
     </div>
   );
@@ -1152,6 +1220,7 @@ export function DataSourcePanel() {
   const [refreshToken, setRefreshToken] = useState(0);
   const [searchKeyword, setSearchKeyword] = useState('');
 
+  const isSinglePlugin = descriptions.length === 1;
   // 弹窗状态：选中的数据源与条目
   const [selectedItemState, setSelectedItemState] = useState<{
     ds: DatasourceDescription;
@@ -1180,8 +1249,8 @@ export function DataSourcePanel() {
 
   return (
     <div className="flex flex-col h-full min-h-0" data-testid="datasource-panel">
-      {/* 搜索栏 + 刷新按钮 */}
-      <div className="flex items-center gap-1.5 px-3 py-1.5 border-b border-border">
+      {/* 搜索栏 + 状态徽标 + 刷新按钮 */}
+      <div className="flex items-center gap-1.5 px-2.5 py-1.5 border-b border-border/50 shrink-0">
         <div className="relative flex-1">
           <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
           <input
@@ -1214,21 +1283,16 @@ export function DataSourcePanel() {
         </Button>
       </div>
 
-      {/* 提示条（拖拽提示） */}
-      <div className="px-3 py-1 border-b border-border flex items-center justify-between text-[11px] text-muted-foreground">
-        <span>{LL.datasource.drag_hint()}</span>
-      </div>
-
       {/* 错误横幅（browse/validate 失败；认证失效提示重新配置） */}
       {error && (
-        <div className="px-3 py-1.5 bg-destructive/10 border-b border-destructive/20">
+        <div className="px-2.5 py-1.5 bg-destructive/10 border-b border-destructive/20 shrink-0">
           <p className="text-xs text-destructive">{error}</p>
           <p className="text-xs text-muted-foreground">{LL.datasource.auth_failed()}</p>
         </div>
       )}
 
       {/* 数据源列表 */}
-      <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin">
+      <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin px-1 py-1">
         {descriptions.length === 0 && !loading && (
           <div className="px-3 py-3 text-xs text-muted-foreground">
             {LL.datasource.no_datasources()}
@@ -1241,8 +1305,15 @@ export function DataSourcePanel() {
             refreshToken={refreshToken}
             onSelectItem={handleSelectItem}
             searchKeyword={searchKeyword}
+            isSinglePlugin={isSinglePlugin}
           />
         ))}
+      </div>
+
+      {/* 底部操作指引 */}
+      <div className="px-2.5 py-1 border-t border-border/50 bg-muted/20 flex items-center gap-1.5 text-[10px] text-muted-foreground/75 select-none shrink-0">
+        <Move className="w-2.5 h-2.5 shrink-0 opacity-60" />
+        <span className="truncate">{LL.datasource.drag_hint()}</span>
       </div>
       <DatasourceItemDetailDialog
         open={Boolean(selectedItemState)}

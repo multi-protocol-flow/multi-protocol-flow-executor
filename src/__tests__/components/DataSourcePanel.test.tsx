@@ -534,7 +534,7 @@ describe('DataSourcePanel', () => {
       config: { space_id: '202' },
       created_at: '2026-08-06T00:00:00Z',
     };
-
+    vi.mocked(loadConnections).mockResolvedValue([connSpace1, connSpace2]);
     useDatasourceStore.setState({
       descriptions: [mockDatasource],
       connections: [connSpace1, connSpace2],
@@ -549,6 +549,10 @@ describe('DataSourcePanel', () => {
       expect(screen.getByText('2 个连接')).toBeInTheDocument();
       expect(screen.getByText('支付空间')).toBeInTheDocument();
       expect(screen.getByText('用户空间')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText('支付空间'));
+    await waitFor(() => {
       expect(screen.getByText('用户模块')).toBeInTheDocument();
     });
   });
