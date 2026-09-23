@@ -52,6 +52,8 @@ interface FlowListState {
   setSortOrder: (order: 'asc' | 'desc') => void;
   /** 切换文件夹展开/折叠 */
   toggleFolder: (folderPath: string) => void;
+  /** 批量展开指定的文件夹路径 */
+  expandFolders: (folderPaths: string[]) => void;
   /** 重置状态 */
   reset: () => void;
 
@@ -146,6 +148,18 @@ export const useFlowListStore = create<FlowListState>((set, get) => ({
         next.add(folderPath);
       }
       return { expandedFolders: next };
+    }),
+  expandFolders: (folderPaths) =>
+    set((state) => {
+      let changed = false;
+      const next = new Set(state.expandedFolders);
+      for (const p of folderPaths) {
+        if (!next.has(p)) {
+          next.add(p);
+          changed = true;
+        }
+      }
+      return changed ? { expandedFolders: next } : state;
     }),
 
   reset: () => set(initialState),

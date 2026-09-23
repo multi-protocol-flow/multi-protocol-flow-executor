@@ -528,3 +528,35 @@ describe('UIStore - resetPanels 完整测试', () => {
     expect(state.showConfirmDialog).toBe(true);
   });
 });
+
+describe('UIStore - revealFlowInList 与 locateFlowTarget', () => {
+  beforeEach(() => {
+    useUIStore.getState().resetPanels();
+  });
+
+  it('revealFlowInList 展开侧边栏与流程列表并设置目标与时间戳', () => {
+    useUIStore.setState({
+      isFlowListPanelOpen: false,
+      isFlowListCollapsed: true,
+      locateFlowTarget: null,
+    });
+
+    useUIStore.getState().revealFlowInList({ uuid: 'flow-123', filePath: '/test/flow.mpf' });
+
+    const state = useUIStore.getState();
+    expect(state.isFlowListPanelOpen).toBe(true);
+    expect(state.isFlowListCollapsed).toBe(false);
+    expect(state.locateFlowTarget).not.toBeNull();
+    expect(state.locateFlowTarget?.uuid).toBe('flow-123');
+    expect(state.locateFlowTarget?.filePath).toBe('/test/flow.mpf');
+    expect(typeof state.locateFlowTarget?.timestamp).toBe('number');
+  });
+
+  it('resetPanels 会重置 locateFlowTarget 为 null', () => {
+    useUIStore.getState().revealFlowInList({ uuid: 'flow-123' });
+    expect(useUIStore.getState().locateFlowTarget).not.toBeNull();
+
+    useUIStore.getState().resetPanels();
+    expect(useUIStore.getState().locateFlowTarget).toBeNull();
+  });
+});

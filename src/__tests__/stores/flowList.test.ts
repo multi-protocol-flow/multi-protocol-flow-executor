@@ -207,6 +207,24 @@ describe('FlowListStore', () => {
       expect(useFlowListStore.getState().sortOrder).toBe('desc');
     });
   });
+  describe('expandFolders 与 toggleFolder', () => {
+    it('toggleFolder 切换单个文件夹的展开折叠', () => {
+      expect(useFlowListStore.getState().expandedFolders.has('folderA')).toBe(false);
+      useFlowListStore.getState().toggleFolder('folderA');
+      expect(useFlowListStore.getState().expandedFolders.has('folderA')).toBe(true);
+      useFlowListStore.getState().toggleFolder('folderA');
+      expect(useFlowListStore.getState().expandedFolders.has('folderA')).toBe(false);
+    });
+
+    it('expandFolders 批量展开文件夹路径', () => {
+      useFlowListStore.getState().expandFolders(['dir1', 'dir1/dir2', 'dir3']);
+      const folders = useFlowListStore.getState().expandedFolders;
+      expect(folders.has('dir1')).toBe(true);
+      expect(folders.has('dir1/dir2')).toBe(true);
+      expect(folders.has('dir3')).toBe(true);
+    });
+  });
+
 
   describe('reset', () => {
     it('重置所有状态到初始值', () => {

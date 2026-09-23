@@ -79,6 +79,7 @@ export {
   selectEnvironmentManagerContext,
   selectShowExportFlowDialog,
   selectExportFlowTarget,
+  selectLocateFlowTarget,
 } from './ui';
 
 // UI types

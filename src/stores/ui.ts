@@ -85,6 +85,8 @@ interface UIState {
   connectionsPanelHeight: number;
   /** 变量抽屉是否打开 */
   isVariableDrawerOpen: boolean;
+  /** 定位流程的目标信息（包含 uuid 或 filePath，以及更新时间戳） */
+  locateFlowTarget: { uuid?: string; filePath?: string; timestamp: number } | null;
 
   // ===== 模态框状态 =====
   /** 是否显示新建流程对话框 */
@@ -257,6 +259,8 @@ interface UIState {
   /** 切换变量抽屉状态 */
   toggleVariableDrawer: () => void;
 
+  /** 在流程列表中定位并高亮流程（若未指定目标则定位当前活跃流程） */
+  revealFlowInList: (target?: { uuid?: string; filePath?: string }) => void;
   // ===== 布局 Actions =====
   /** 设置侧边栏宽度 */
   setSidebarWidth: (width: number) => void;
@@ -339,6 +343,7 @@ const initialState = {
   connectionsPanelHeight: 150,
   isVariableDrawerOpen: false,
 
+  locateFlowTarget: null,
   // 模态框状态
   showNewFlowDialog: false,
   newFlowDialogFolderPath: '',
@@ -384,7 +389,7 @@ const initialState = {
   flowTabDisplayMode: loadTabDisplayMode(),
 };
 
-export const useUIStore = create<UIState>((set) => ({
+export const useUIStore = create<UIState>((set, get) => ({
   ...initialState,
 
   // ===== 面板 Actions =====
@@ -527,6 +532,21 @@ export const useUIStore = create<UIState>((set) => ({
       isFlowListCollapsed: !state.isFlowListCollapsed,
     })),
 
+  revealFlowInList: (target) => {
+    const state = get();
+    if (!state.isFlowListPanelOpen) {
+      startLayoutTransition(220);
+    }
+    set({
+      isFlowListPanelOpen: true,
+      isFlowListCollapsed: false,
+      locateFlowTarget: {
+        uuid: target?.uuid,
+        filePath: target?.filePath,
+        timestamp: Date.now(),
+      },
+    });
+  },
   toggleConnectionsPanelCollapsed: () =>
     set((state) => ({
       isConnectionsPanelCollapsed: !state.isConnectionsPanelCollapsed,
@@ -637,6 +657,7 @@ export const useUIStore = create<UIState>((set) => ({
       showPluginSettingsDialog: false,
       flowTabDisplayMode: loadTabDisplayMode(),
       flowConflict: null,
+      locateFlowTarget: null,
     }),
 }));
 
@@ -694,3 +715,6 @@ export const selectShowExportFlowDialog = (state: UIState) =>
 /** 选择导出流程目标对象 */
 export const selectExportFlowTarget = (state: UIState) =>
   state.exportFlowTarget;
+/** 选择定位流程目标 */
+export const selectLocateFlowTarget = (state: UIState) =>
+  state.locateFlowTarget;
