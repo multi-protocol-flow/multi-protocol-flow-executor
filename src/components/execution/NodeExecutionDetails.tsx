@@ -76,8 +76,8 @@ export function NodeExecutionDetails({ report, className }: NodeExecutionDetails
       {/* 顶栏 Header：分层自适应排版，确保在任意窄宽度下永不重叠 */}
       <div className="w-full flex flex-col gap-2 px-3.5 py-2.5 bg-muted/40 border-b border-border/50">
         {/* 第一行：节点状态 + 名称 + 类型标签 + 耗时 + 快捷复制 */}
-        <div className="flex items-center justify-between gap-2 min-w-0 w-full">
-          <div className="flex items-center gap-2 min-w-0 flex-1">
+        <div className="flex flex-wrap items-center justify-between gap-y-1.5 gap-x-2 min-w-0 w-full">
+          <div className="flex flex-wrap items-center gap-2 min-w-0 flex-1">
             {/* 状态图标 */}
             {isRunning ? (
               <Loader2 className="w-4 h-4 text-blue-500 animate-spin shrink-0" />
@@ -120,7 +120,7 @@ export function NodeExecutionDetails({ report, className }: NodeExecutionDetails
           </div>
 
           {/* 右侧：耗时 + 复制节点名 */}
-          <div className="flex items-center gap-1.5 shrink-0">
+          <div className="flex items-center gap-1.5 shrink-0 ml-auto">
             <div className="flex items-center gap-1 text-xs text-muted-foreground font-mono">
               <Clock className="w-3.5 h-3.5 shrink-0" />
               <span>{report.duration_ms}ms</span>
@@ -136,7 +136,7 @@ export function NodeExecutionDetails({ report, className }: NodeExecutionDetails
         </div>
 
         {/* 第二行：操作控制栏（Tab 切换 + 完整报告复制） */}
-        <div className="flex items-center justify-between gap-2 w-full pt-1.5 border-t border-border/30">
+        <div className="flex flex-wrap items-center justify-between gap-2 w-full pt-1.5 border-t border-border/30">
           <div className="inline-flex h-7 items-center p-0.5 bg-muted/70 rounded-lg border border-border/40 shrink-0">
             <button
               type="button"
@@ -172,7 +172,7 @@ export function NodeExecutionDetails({ report, className }: NodeExecutionDetails
             label={ll.execution.report.copy_node_report()}
             title={ll.execution.report.copy_node_report()}
             size="xs"
-            className="h-7 px-2 shrink-0 text-xs"
+            className="h-7 px-2 shrink-0 text-xs ml-auto"
           />
         </div>
       </div>

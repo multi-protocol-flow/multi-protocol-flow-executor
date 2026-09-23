@@ -77,11 +77,11 @@ export function ErrorSection({ error, nodeName, nodeType }: ErrorSectionProps) {
   return (
     <div className="rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 overflow-hidden">
       {/* 错误头部 */}
-      <div className="p-2.5 bg-red-100/50 dark:bg-red-900/30 border-b border-red-200 dark:border-red-800 flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2 min-w-0">
+      <div className="p-2.5 bg-red-100/50 dark:bg-red-900/30 border-b border-red-200 dark:border-red-800 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center gap-2 min-w-0 flex-1">
           <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400 shrink-0" />
           {nodeName && (
-            <div className="flex items-center gap-1 min-w-0">
+            <div className="flex items-center gap-1 min-w-0 max-w-[200px]">
               <span className="text-xs font-semibold text-red-900 dark:text-red-200 truncate select-text cursor-text">
                 {nodeName}
               </span>
@@ -107,13 +107,13 @@ export function ErrorSection({ error, nodeName, nodeType }: ErrorSectionProps) {
         </div>
 
         {/* 操作区：复制错误报告 + AI 诊断 */}
-        <div className="flex items-center gap-1.5 shrink-0">
+        <div className="flex items-center gap-1.5 shrink-0 ml-auto">
           <CopyButton
             value={fullErrorReport}
             label={ll.execution.viewers.copy_error_report()}
             title={ll.execution.viewers.copy_error_report()}
             size="xs"
-            className="bg-background/90 text-red-700 dark:text-red-300 border-red-300/80 dark:border-red-700/80 hover:bg-background"
+            className="bg-background/90 text-red-700 dark:text-red-300 border-red-300/80 dark:border-red-700/80 hover:bg-background shrink-0"
           />
           <button
             type="button"
@@ -140,14 +140,14 @@ export function ErrorSection({ error, nodeName, nodeType }: ErrorSectionProps) {
       {/* 堆栈跟踪（可折叠） */}
       {error.stack_trace && (
         <details className="border-t border-red-200 dark:border-red-800">
-          <summary className="p-2 text-xs text-red-500 dark:text-red-400 cursor-pointer hover:bg-red-100/50 dark:hover:bg-red-900/30 select-none flex items-center justify-between">
+          <summary className="p-2 text-xs text-red-500 dark:text-red-400 cursor-pointer hover:bg-red-100/50 dark:hover:bg-red-900/30 select-none flex flex-wrap items-center justify-between gap-1">
             <span>{getLL().execution.viewers.stack_trace()}</span>
             <CopyButton
               value={error.stack_trace}
               label={ll.execution.viewers.copy_stack_trace()}
               title={ll.execution.viewers.copy_stack_trace()}
               size="xs"
-              className="bg-background/80 text-red-700 dark:text-red-300 border-red-300/60 hover:bg-background"
+              className="bg-background/80 text-red-700 dark:text-red-300 border-red-300/60 hover:bg-background shrink-0"
             />
           </summary>
           <pre className="p-2 text-xs text-red-600 dark:text-red-300 bg-red-100/50 dark:bg-red-900/30 overflow-x-auto max-h-48 whitespace-pre-wrap break-all select-text cursor-text">
