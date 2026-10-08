@@ -8244,6 +8244,82 @@ type RootTranslation = {
 		 * 确​定​要​删​除​此​数​据​源​连​接​吗​？
 		 */
 		delete_connection_confirm: string
+		/**
+		 * 分​组
+		 */
+		group: string
+		/**
+		 * 规​范​版​本
+		 */
+		spec_version: string
+		/**
+		 * 已​废​弃
+		 */
+		deprecated: string
+		/**
+		 * 是
+		 */
+		yes: string
+		/**
+		 * 否
+		 */
+		no: string
+		/**
+		 * 接​口
+		 */
+		api_resource: string
+		/**
+		 * 项​目
+		 */
+		project_resource: string
+		/**
+		 * 集​合
+		 */
+		collection_resource: string
+		/**
+		 * 请​求
+		 */
+		request_resource: string
+		/**
+		 * 工​作​空​间
+		 */
+		workspace_resource: string
+		/**
+		 * 文​档
+		 */
+		document_resource: string
+		/**
+		 * 文​档​地​址​ ​(​U​R​L​)
+		 */
+		field_url: string
+		/**
+		 * 文​件​路​径
+		 */
+		field_file_path: string
+		/**
+		 * 请​求​头​ ​(​J​S​O​N​)
+		 */
+		field_headers: string
+		/**
+		 * 服​务​根​地​址
+		 */
+		field_base_url: string
+		/**
+		 * A​P​I​ ​密​钥
+		 */
+		field_api_key: string
+		/**
+		 * 空​间​ ​I​D
+		 */
+		field_space_id: string
+		/**
+		 * 项​目​ ​I​D
+		 */
+		field_project_id: string
+		/**
+		 * 工​作​空​间​ ​I​D
+		 */
+		field_workspace_id: string
 	}
 	flow: {
 		/**
@@ -22768,6 +22844,82 @@ export type TranslationFunctions = {
 		 * 确定要删除此数据源连接吗？
 		 */
 		delete_connection_confirm: () => LocalizedString
+		/**
+		 * 分组
+		 */
+		group: () => LocalizedString
+		/**
+		 * 规范版本
+		 */
+		spec_version: () => LocalizedString
+		/**
+		 * 已废弃
+		 */
+		deprecated: () => LocalizedString
+		/**
+		 * 是
+		 */
+		yes: () => LocalizedString
+		/**
+		 * 否
+		 */
+		no: () => LocalizedString
+		/**
+		 * 接口
+		 */
+		api_resource: () => LocalizedString
+		/**
+		 * 项目
+		 */
+		project_resource: () => LocalizedString
+		/**
+		 * 集合
+		 */
+		collection_resource: () => LocalizedString
+		/**
+		 * 请求
+		 */
+		request_resource: () => LocalizedString
+		/**
+		 * 工作空间
+		 */
+		workspace_resource: () => LocalizedString
+		/**
+		 * 文档
+		 */
+		document_resource: () => LocalizedString
+		/**
+		 * 文档地址 (URL)
+		 */
+		field_url: () => LocalizedString
+		/**
+		 * 文件路径
+		 */
+		field_file_path: () => LocalizedString
+		/**
+		 * 请求头 (JSON)
+		 */
+		field_headers: () => LocalizedString
+		/**
+		 * 服务根地址
+		 */
+		field_base_url: () => LocalizedString
+		/**
+		 * API 密钥
+		 */
+		field_api_key: () => LocalizedString
+		/**
+		 * 空间 ID
+		 */
+		field_space_id: () => LocalizedString
+		/**
+		 * 项目 ID
+		 */
+		field_project_id: () => LocalizedString
+		/**
+		 * 工作空间 ID
+		 */
+		field_workspace_id: () => LocalizedString
 	}
 	flow: {
 		/**
