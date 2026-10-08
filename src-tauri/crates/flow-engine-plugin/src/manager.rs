@@ -506,4 +506,141 @@ mod tests {
         assert_eq!(val_res["valid"], false);
         assert!(val_res["message"].is_string());
     }
+
+    /// 测试真实 Rust openapi 数据源插件 describe 与双数据源注册
+    #[tokio::test]
+    async fn describe_openapi_datasource_plugin() {
+        let openapi_dir =
+            PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../../plugins/openapi");
+        if !openapi_dir.exists() {
+            return;
+        }
+        let parent_dir = openapi_dir.parent().expect("parent dir");
+        let mut manager = PluginManager::new(parent_dir.to_path_buf());
+        manager.describe_timeout = Duration::from_secs(10);
+
+        let registrations = manager.scan_and_describe().await;
+        let openapi_reg = registrations.iter().find(|r| r.name == "openapi");
+        let openapi_reg =
+            openapi_reg.unwrap_or_else(|| panic!("openapi plugin must describe successfully"));
+        assert_eq!(openapi_reg.datasources.len(), 2);
+        assert!(openapi_reg.datasources.iter().any(|d| d.id == "openapi"));
+        assert!(openapi_reg
+            .datasources
+            .iter()
+            .any(|d| d.id == "openapi_file"));
+
+        // 确认 manager 已注册双 datasource
+        let datasources = manager.list_datasources();
+        assert!(datasources.iter().any(|d| d.id == "openapi"));
+        assert!(datasources.iter().any(|d| d.id == "openapi_file"));
+        assert_eq!(
+            manager.datasource_index.get("openapi").map(String::as_str),
+            Some("openapi")
+        );
+        assert_eq!(
+            manager
+                .datasource_index
+                .get("openapi_file")
+                .map(String::as_str),
+            Some("openapi")
+        );
+    }
+
+    /// 测试通过 `manager.datasource_call` 与 openapi 插件进行端到端通信
+    #[tokio::test]
+    async fn datasource_call_openapi_plugin_roundtrip() {
+        let openapi_dir =
+            PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../../plugins/openapi");
+        if !openapi_dir.exists() {
+            return;
+        }
+        let parent_dir = openapi_dir.parent().expect("parent dir");
+        let mut manager = PluginManager::new(parent_dir.to_path_buf());
+        manager.scan_and_describe().await;
+
+        // 1. 测试 validate_config 失败（不存在的文件）
+        let inv_res = manager
+            .datasource_call(
+                "openapi_file",
+                "validate_config",
+                serde_json::json!({"config": {"file_path": "/non_existent_file.yaml"}}),
+            )
+            .await
+            .expect("validate_config call");
+        assert_eq!(inv_res["valid"], false);
+
+        // 2. 创建临时 OpenAPI 规范并测试 validate_config, browse 与 get_templates
+        let mut temp_file = std::env::temp_dir();
+        temp_file.push("mpe_manager_openapi_test.yaml");
+        let yaml_spec = r#"
+openapi: "3.0.0"
+info:
+  title: Host Integration Test API
+  version: "1.0.0"
+servers:
+  - url: "https://api.integration.com"
+paths:
+  /items/{itemId}:
+    get:
+      tags:
+        - "Items/Catalog"
+      summary: "Query item"
+      parameters:
+        - name: "itemId"
+          in: "path"
+          required: true
+          schema:
+            type: "string"
+      responses:
+        '200':
+          description: "OK"
+"#;
+        std::fs::write(&temp_file, yaml_spec).expect("write temp yaml");
+        let valid_config = serde_json::json!({"file_path": temp_file.to_string_lossy()});
+
+        let val_res = manager
+            .datasource_call(
+                "openapi_file",
+                "validate_config",
+                serde_json::json!({"config": valid_config}),
+            )
+            .await
+            .expect("validate_config call");
+        assert_eq!(val_res["valid"], true);
+
+        // 3. browse
+        let browse_res = manager
+            .datasource_call(
+                "openapi_file",
+                "browse",
+                serde_json::json!({"config": valid_config, "resource_id": "api"}),
+            )
+            .await
+            .expect("browse call");
+        let items = browse_res.as_array().expect("items array");
+        assert_eq!(items.len(), 1);
+        assert_eq!(items[0]["name"], "Query item");
+        assert_eq!(items[0]["method"], "GET");
+        let item_id = items[0]["id"].as_str().expect("item id");
+
+        // 4. get_templates
+        let tpl_res = manager
+            .datasource_call(
+                "openapi_file",
+                "get_templates",
+                serde_json::json!({"config": valid_config, "item_ids": [item_id]}),
+            )
+            .await
+            .expect("get_templates call");
+        let tpls = tpl_res.as_array().expect("templates array");
+        assert_eq!(tpls.len(), 1);
+        assert_eq!(tpls[0]["type_id"], "http:request");
+        assert_eq!(
+            tpls[0]["data"]["url"],
+            "https://api.integration.com/items/{{itemId}}"
+        );
+
+        let _ = std::fs::remove_file(temp_file);
+    }
 }
