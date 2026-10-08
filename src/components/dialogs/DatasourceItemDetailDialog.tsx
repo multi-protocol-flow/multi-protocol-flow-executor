@@ -338,14 +338,32 @@ export function DatasourceItemDetailDialog({
               <div className="space-y-1.5">
                 <span className="text-xs font-semibold text-muted-foreground">{LL.datasource.extra_properties()}</span>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {(detailItem?.extra ?? item.extra).map((ext, idx) => (
-                    <div key={idx} className="p-2 rounded-md border border-border bg-muted/20 text-xs">
-                      <div className="text-[10px] text-muted-foreground">{ext.label}</div>
-                      <div className="font-medium text-foreground mt-0.5 truncate" title={ext.value}>
-                        {ext.value}
+                  {(detailItem?.extra ?? item.extra).map((ext, idx) => {
+                    const localizedLabel =
+                      ext.label === '分组' || ext.label === 'Group' || ext.label === 'group'
+                        ? LL.datasource.group()
+                        : ext.label === '规范版本' || ext.label === 'Spec Version'
+                        ? LL.datasource.spec_version()
+                        : ext.label === '已废弃' || ext.label === 'Deprecated'
+                        ? LL.datasource.deprecated()
+                        : ext.label;
+
+                    const localizedValue =
+                      ext.value === '是' || ext.value === 'Yes'
+                        ? LL.datasource.yes()
+                        : ext.value === '否' || ext.value === 'No'
+                        ? LL.datasource.no()
+                        : ext.value;
+
+                    return (
+                      <div key={idx} className="p-2 rounded-md border border-border bg-muted/20 text-xs">
+                        <div className="text-[10px] text-muted-foreground">{localizedLabel}</div>
+                        <div className="font-medium text-foreground mt-0.5 truncate" title={localizedValue}>
+                          {localizedValue}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}

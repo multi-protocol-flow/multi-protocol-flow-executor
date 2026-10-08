@@ -40,6 +40,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { getLL } from '@/i18n/i18n-lazy';
+import type { TranslationFunctions } from '@/i18n/i18n-types';
 import { useDatasourceStore } from '@/stores';
 import { datasourceValidateConfig } from '@/services/tauri/datasource';
 import { DatasourceItemDetailDialog } from '@/components/dialogs/DatasourceItemDetailDialog';
@@ -90,6 +91,51 @@ interface ConfigSchema {
 
 function formatErrorMessage(e: unknown): string {
   return e instanceof Error ? e.message : String(e);
+}
+function getFieldLabel(key: string, rawTitle: string | undefined, LL: TranslationFunctions): string {
+  switch (key) {
+    case 'url':
+      return LL.datasource.field_url();
+    case 'file_path':
+      return LL.datasource.field_file_path();
+    case 'headers':
+      return LL.datasource.field_headers();
+    case 'base_url':
+      return LL.datasource.field_base_url();
+    case 'api_key':
+      return LL.datasource.field_api_key();
+    case 'space_id':
+      return LL.datasource.field_space_id();
+    case 'project_id':
+      return LL.datasource.field_project_id();
+    case 'workspace_id':
+      return LL.datasource.field_workspace_id();
+    default:
+      return rawTitle ?? key;
+  }
+}
+
+function getFieldPlaceholder(key: string, rawTitle: string | undefined): string {
+  switch (key) {
+    case 'url':
+      return 'https://petstore.swagger.io/v2/swagger.json';
+    case 'file_path':
+      return 'path/to/spec.json, *.yaml';
+    case 'headers':
+      return '{"Authorization": "Bearer token"}';
+    case 'base_url':
+      return 'https://api.example.com';
+    case 'api_key':
+      return 'X-Api-Key / Token';
+    case 'space_id':
+      return 'Space ID';
+    case 'project_id':
+      return 'Project ID';
+    case 'workspace_id':
+      return 'Workspace ID';
+    default:
+      return rawTitle ?? key;
+  }
 }
 
 /** 单个数据源插件：管理该插件下的多个数据源连接实例及各连接的浏览树 */
@@ -183,12 +229,15 @@ function DatasourceEntry({
   // 删除连接
   const handleDeleteConnection = useCallback(
     async (connId: string) => {
+      if (!window.confirm(LL.datasource.delete_connection_confirm())) {
+        return;
+      }
       await useDatasourceStore.getState().deleteConnection(connId);
       if (activeFormMode === connId) {
         setActiveFormMode(null);
       }
     },
-    [activeFormMode],
+    [LL, activeFormMode],
   );
 
   // 保存连接
@@ -332,23 +381,27 @@ function DatasourceEntry({
             ? (() => {
                 const schema = ds.config_schema as ConfigSchema;
                 const properties = schema.properties ?? {};
-                return Object.entries(properties).map(([key, prop]) => (
-                  <label key={key} className="block space-y-1">
-                    <span className="text-xs text-muted-foreground">
-                      {prop.title ?? key}
-                      {schema.required?.includes(key) && (
-                        <span className="text-destructive ml-0.5">*</span>
-                      )}
-                    </span>
-                    <Input
-                      type={prop.format === 'password' ? 'password' : 'text'}
-                      value={configValues[key] ?? ''}
-                      placeholder={prop.title ?? key}
-                      onChange={(e) => handleConfigChange(key, e.target.value)}
-                      className="h-7 text-xs"
-                    />
-                  </label>
-                ));
+                return Object.entries(properties).map(([key, prop]) => {
+                  const label = getFieldLabel(key, prop.title, LL);
+                  const placeholder = getFieldPlaceholder(key, prop.title);
+                  return (
+                    <label key={key} className="block space-y-1">
+                      <span className="text-xs text-muted-foreground truncate block">
+                        {label}
+                        {schema.required?.includes(key) && (
+                          <span className="text-destructive ml-0.5">*</span>
+                        )}
+                      </span>
+                      <Input
+                        type={prop.format === 'password' ? 'password' : 'text'}
+                        value={configValues[key] ?? ''}
+                        placeholder={placeholder}
+                        onChange={(e) => handleConfigChange(key, e.target.value)}
+                        className="h-7 text-xs"
+                      />
+                    </label>
+                  );
+                });
               })()
             : null}
 
@@ -396,11 +449,12 @@ function DatasourceEntry({
             const isSingle = dsConnections.length === 1;
             const expanded = isConnExpanded(conn.id);
             const title = conn.name || (isSingle ? ds.display_name : `${ds.display_name} (${index + 1})`);
+            const hasHeader = !isSingle || Boolean(conn.name);
 
             return (
               <div key={conn.id} className={cn(!isSingle && 'border-t border-border/40 first:border-t-0')}>
                 {/* 多连接时显示独立的连接头部行；单连接且有自定义名称时也显示连接名 */}
-                {(!isSingle || conn.name) && (
+                {hasHeader && (
                   <div
                     className={cn(
                       'group flex items-center gap-1.5 h-7.5 px-2 rounded-md cursor-pointer select-none text-xs transition-colors my-0.5',
@@ -410,14 +464,12 @@ function DatasourceEntry({
                     )}
                     onClick={() => toggleConnExpanded(conn.id)}
                   >
-                    {!isSingle && (
-                      <ChevronRight
-                        className={cn(
-                          'w-3.5 h-3.5 shrink-0 text-muted-foreground transition-transform',
-                          expanded && 'rotate-90',
-                        )}
-                      />
-                    )}
+                    <ChevronRight
+                      className={cn(
+                        'w-3.5 h-3.5 shrink-0 text-muted-foreground transition-transform',
+                        expanded && 'rotate-90',
+                      )}
+                    />
                     <Server className="w-3.5 h-3.5 text-primary/75 shrink-0" />
                     <span className="truncate flex-1 font-medium text-foreground/90">{title}</span>
                     <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
@@ -430,24 +482,22 @@ function DatasourceEntry({
                       >
                         <Pencil className="w-3 h-3" />
                       </Button>
-                      {!isSingle && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="w-5 h-5 text-muted-foreground hover:text-destructive"
-                          title={LL.datasource.delete_connection()}
-                          onClick={() => handleDeleteConnection(conn.id)}
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </Button>
-                      )}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="w-5 h-5 text-muted-foreground hover:text-destructive"
+                        title={LL.datasource.delete_connection()}
+                        onClick={() => handleDeleteConnection(conn.id)}
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
                     </div>
                   </div>
                 )}
 
                 {/* 展开的资源树 */}
                 {expanded && (
-                  <div className={cn(!isSingle ? 'pl-3 ml-2 border-l border-primary/25 space-y-0.5 mb-1' : 'space-y-0.5')}>
+                  <div className={cn(hasHeader ? 'pl-3 ml-2 border-l border-primary/25 space-y-0.5 mb-1' : 'space-y-0.5')}>
                     {rootResources.map((resource) => (
                       <ResourceLevel
                         key={resource.id}
@@ -962,7 +1012,8 @@ function ResourceLevel({
 
   // 如果当前层级有子资源（例如 Eolink 的 project -> api），且当前连接下仅有 1 个项目或指定了项目：
   // 智能自动穿透，无需用户多点一次项目展开，也不显示项目文件夹包裹
-  const shouldAutoFlattenSingleItem = Boolean(resource.children != null && items.length === 1);
+  // 统一采用目录树展开交互（与 Eolink / Postman 一致），保留文件夹及折叠箭头
+  const shouldAutoFlattenSingleItem = false;
 
   useEffect(() => {
     if (shouldAutoFlattenSingleItem && items[0]) {
@@ -984,7 +1035,32 @@ function ResourceLevel({
       {/* 资源层级头（仅在存在多个项目且未穿透时展示；单项目自动穿透时不展示多余的 label） */}
       {parentId === null && !shouldAutoFlattenSingleItem && items.length > 1 && (
         <div className="px-2 pt-1.5 pb-0.5 text-[10px] font-medium text-muted-foreground/60 uppercase tracking-wider flex items-center gap-1 select-none">
-          <span className="truncate">{resource.label}</span>
+          <span className="truncate">
+            {(() => {
+              const idLower = resource.id.toLowerCase();
+              const label = resource.label;
+              const labelLower = label.toLowerCase();
+              if (idLower === 'api' || label === '接口' || labelLower === 'apis' || labelLower === 'api') {
+                return LL.datasource.api_resource();
+              }
+              if (idLower === 'project' || label === '项目' || labelLower === 'projects' || labelLower === 'project') {
+                return LL.datasource.project_resource();
+              }
+              if (idLower === 'collection' || label === '集合' || labelLower === 'collections' || labelLower === 'collection') {
+                return LL.datasource.collection_resource();
+              }
+              if (idLower === 'request' || label === '请求' || labelLower === 'requests' || labelLower === 'request') {
+                return LL.datasource.request_resource();
+              }
+              if (idLower === 'workspace' || label === '工作空间' || labelLower === 'workspaces' || labelLower === 'workspace') {
+                return LL.datasource.workspace_resource();
+              }
+              if (idLower === 'document' || idLower === 'spec' || label === '文档' || labelLower === 'document' || labelLower === 'spec') {
+                return LL.datasource.document_resource();
+              }
+              return label;
+            })()}
+          </span>
           {loading && !cached && <Loader2 className="w-2.5 h-2.5 animate-spin shrink-0" />}
         </div>
       )}
