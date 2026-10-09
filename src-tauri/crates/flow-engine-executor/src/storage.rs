@@ -1999,35 +1999,32 @@ pub fn rename_folder(
 
 /// 移动流程到指定文件夹
 ///
-/// 将指定 UUID 的流程文件移动到目标文件夹。
+/// 将指定 UUID 或相对/绝对路径的流程文件移动到目标文件夹。
 /// `target_folder_path` 为相对于 `flows_dir` 的目标路径，空字符串表示根目录。
 pub fn move_flow_to_folder(
-    uuid: &str,
+    uuid_or_path: &str,
     flows_dir: &Path,
     target_folder_path: &str,
 ) -> Result<(), String> {
-    // 找到原始文件
-    let mut mpf_files = Vec::new();
-    collect_mpf_files(flows_dir, &mut mpf_files)?;
+    // 1. 尝试直接按路径定位（优先基于 flows_dir 的相对路径，其次绝对路径）
+    let candidate_relative = flows_dir.join(uuid_or_path);
+    let candidate_direct = Path::new(uuid_or_path);
 
-    let source_path = mpf_files
-        .iter()
-        .find(|path| {
-            if let Ok(content) = fs::read_to_string(path) {
-                if let Ok(meta) = deserialize_flow_file_meta(&content) {
-                    return meta.flow.uuid == uuid;
-                }
-            }
-            false
-        })
-        .ok_or_else(|| format!("Flow not found: {}", uuid))?
-        .clone();
+    let source_path = if candidate_relative.is_file() {
+        candidate_relative
+    } else if candidate_direct.is_file() {
+        candidate_direct.to_path_buf()
+    } else {
+        // 2. 回退：按流程内部 UUID 定位
+        find_flow_path_by_uuid(uuid_or_path, flows_dir)?
+    };
 
-    // 计算目标路径
-    let target_dir = if target_folder_path.is_empty() {
+    // 计算目标路径（安全清理首尾斜杠，避免被 Path::join 解析为绝对根路径）
+    let clean_target_folder = target_folder_path.trim_matches(['/', '\\']);
+    let target_dir = if clean_target_folder.is_empty() {
         flows_dir.to_path_buf()
     } else {
-        flows_dir.join(target_folder_path)
+        flows_dir.join(clean_target_folder)
     };
 
     // 确保目标目录存在
@@ -2060,9 +2057,33 @@ pub fn move_flow_to_folder(
         ));
     }
 
-    // 移动文件
-    fs::rename(&source_path, &target_path)
-        .map_err(|e| format!("failed to move flow file: {}", e))?;
+    // 移动文件（优先原子重命名，跨文件系统时回退至 copy + remove）
+    if let Err(rename_err) = fs::rename(&source_path, &target_path) {
+        fs::copy(&source_path, &target_path).map_err(|copy_err| {
+            format!(
+                "failed to move flow file: rename failed ({}), copy fallback failed ({})",
+                rename_err, copy_err
+            )
+        })?;
+        if let Err(rm_err) = fs::remove_file(&source_path) {
+            let _ = fs::remove_file(&target_path);
+            return Err(format!(
+                "failed to remove source flow file after copy: {}",
+                rm_err
+            ));
+        }
+    }
+
+    // 缓存失效与更新
+    invalidate_flow_metadata_cache(&source_path);
+    invalidate_flow_metadata_cache(&target_path);
+
+    if let Ok(content) = fs::read_to_string(&target_path) {
+        if let Ok(meta) = deserialize_flow_file_meta(&content) {
+            let mut uuid_cache = UUID_PATH_CACHE.lock().unwrap_or_else(|e| e.into_inner());
+            uuid_cache.insert(meta.flow.uuid, target_path);
+        }
+    }
 
     Ok(())
 }
@@ -3153,6 +3174,55 @@ mod tests {
             .err()
             .unwrap_or_else(|| panic!("expected Err, got Ok"))
             .contains("Flow not found"));
+    }
+
+    /// 测试 `move_flow_to_folder` 移动流程（支持相对路径与 UUID 两种传参方式）
+    #[test]
+    fn test_move_flow_to_folder() {
+        use tempfile::TempDir;
+
+        let temp_dir = TempDir::new().unwrap_or_else(|e| panic!("创建临时目录Failed: {e}"));
+        let flows_dir = temp_dir.path();
+
+        // 1. 创建流程
+        let flow1 = create_test_flow("flow-move-1", "待移动流程1");
+        let flow2 = create_test_flow("flow-move-2", "待移动流程2");
+        save_flow_file(&flow1, flows_dir).unwrap_or_else(|e| panic!("保存 flow1 Failed: {e}"));
+        save_flow_file(&flow2, flows_dir).unwrap_or_else(|e| panic!("保存 flow2 Failed: {e}"));
+
+        // 2. 按相对路径移动 flow1 到目标子文件夹 "target-sub"
+        let list = list_flow_files(flows_dir).unwrap_or_else(|e| panic!("列出Failed: {e}"));
+        let flow1_meta = list.iter().find(|m| m.name == "待移动流程1").unwrap();
+        assert_eq!(flow1_meta.uuid, "待移动流程1.mpf");
+
+        move_flow_to_folder(&flow1_meta.uuid, flows_dir, "target-sub")
+            .unwrap_or_else(|e| panic!("按相对路径移动Failed: {e}"));
+
+        let flow1_new_path = flows_dir.join("target-sub").join("待移动流程1.mpf");
+        assert!(flow1_new_path.is_file(), "文件应已移动至 target-sub");
+        assert!(!flows_dir.join("待移动流程1.mpf").exists(), "根目录下原文件应已移除");
+
+        // 3. 按内部 UUID 移动 flow2 到目标子文件夹
+        move_flow_to_folder("flow-move-2", flows_dir, "target-sub")
+            .unwrap_or_else(|e| panic!("按 UUID 移动Failed: {e}"));
+
+        let flow2_new_path = flows_dir.join("target-sub").join("待移动流程2.mpf");
+        assert!(flow2_new_path.is_file(), "文件应已移动至 target-sub");
+
+        // 4. 再次移回根目录（target_folder_path = ""）
+        move_flow_to_folder("target-sub/待移动流程1.mpf", flows_dir, "")
+            .unwrap_or_else(|e| panic!("移回根目录Failed: {e}"));
+        assert!(flows_dir.join("待移动流程1.mpf").is_file());
+
+        // 5. 目标文件夹同名冲突检查
+        let conflict_flow = create_test_flow("flow-move-conflict", "待移动流程1");
+        let conflict_path = flows_dir.join("target-sub").join("待移动流程1.mpf");
+        save_flow_file_with_meta_and_path(&conflict_flow, flows_dir, None, Some(&conflict_path))
+            .unwrap_or_else(|e| panic!("创建冲突文件Failed: {e}"));
+
+        let err = move_flow_to_folder("待移动流程1.mpf", flows_dir, "target-sub");
+        assert!(err.is_err(), "同名文件已存在时应报错");
+        assert!(err.unwrap_err().contains("already exists in the target folder"));
     }
 
     /// 测试 `save_flow_file` 更新已有流程（同 UUID 覆盖写入）

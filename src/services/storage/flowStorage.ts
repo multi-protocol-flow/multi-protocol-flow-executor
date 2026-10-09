@@ -246,7 +246,7 @@ export const flowStorage = {
       const { renameFolder: mock } = await import('./flowStorage.mock');
       return await mock(folderPath, newName);
     } catch (err) {
-      notifyError(getLL().flow.rename_folder_failed?.() ?? 'Failed to rename folder', err, {
+      notifyError(getLL().flow.rename_folder_failed(), err, {
         category: 'FlowStorage',
       });
       throw err;
@@ -264,7 +264,7 @@ export const flowStorage = {
       const { moveFlowToFolder: mock } = await import('./flowStorage.mock');
       return await mock(uuid, targetFolderPath);
     } catch (err) {
-      notifyError(getLL().flow.move_flow_failed?.() ?? 'Failed to move flow', err, {
+      notifyError(getLL().flow.move_flow_failed(), err, {
         category: 'FlowStorage',
         flowUuid: uuid,
       });
@@ -283,7 +283,7 @@ export const flowStorage = {
       const { moveFolder: mock } = await import('./flowStorage.mock');
       return await mock(sourceFolderPath, targetFolderPath);
     } catch (err) {
-      notifyError(getLL().flow.move_folder_failed?.() ?? 'Failed to move folder', err, {
+      notifyError(getLL().flow.move_folder_failed(), err, {
         category: 'FlowStorage',
       });
       throw err;
