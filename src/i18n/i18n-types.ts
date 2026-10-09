@@ -14131,6 +14131,14 @@ type RootTranslation = {
 			 * 此​提​示​词​将​在​每​次​向​大​模​型​发​送​请​求​时​附​加​在​ ​M​P​E​ ​基​础​系​统​指​令​之​后​生​效​。
 			 */
 			custom_system_prompt_tip: string
+			/**
+			 * 高​风​险​操​作​完​全​信​任​模​式
+			 */
+			trust_mode_label: string
+			/**
+			 * 开​启​后​ ​A​I​ ​执​行​清​空​画​布​、​批​量​删​除​、​终​端​命​令​等​高​风​险​操​作​时​将​直​接​执​行​，​不​再​弹​窗​等​待​人​工​确​认​。​适​合​长​流​程​复​杂​任​务​全​自​动​推​进​。
+			 */
+			trust_mode_desc: string
 		}
 		confirm_card: {
 			/**
@@ -14145,6 +14153,14 @@ type RootTranslation = {
 			 * 确​认​执​行
 			 */
 			approve: string
+			/**
+			 * 完​全​信​任​并​执​行
+			 */
+			trust_all: string
+			/**
+			 * 批​准​当​前​操​作​并​完​全​信​任​后​续​高​风​险​操​作​，​不​再​中​断​询​问
+			 */
+			trust_all_tip: string
 			/**
 			 * 用​户​已​批​准​执​行
 			 */
@@ -14611,6 +14627,22 @@ type RootTranslation = {
 			 * 开​启​后​ ​A​I​ ​将​自​主​连​续​调​用​工​具​直​至​任​务​目​标​达​成​或​手​动​中​止
 			 */
 			auto_execute_tip: string
+			/**
+			 * 完​全​信​任
+			 */
+			trust_mode: string
+			/**
+			 * 开​启​后​完​全​信​任​ ​A​I​，​自​动​批​准​并​执​行​所​有​高​风​险​操​作​（​如​清​空​画​布​、​批​量​删​除​、​终​端​命​令​等​）​，​无​需​每​次​手​动​确​认
+			 */
+			trust_mode_tip: string
+			/**
+			 * 完​全​信​任​模​式​生​效​中​：​高​风​险​操​作​将​自​动​执​行
+			 */
+			trust_mode_active_hint: string
+			/**
+			 * 恢​复​人​工​确​认
+			 */
+			disable_trust_mode: string
 			/**
 			 * 关​联​本​地​项​目
 			 */
@@ -28582,6 +28614,14 @@ export type TranslationFunctions = {
 			 * 此提示词将在每次向大模型发送请求时附加在 MPE 基础系统指令之后生效。
 			 */
 			custom_system_prompt_tip: () => LocalizedString
+			/**
+			 * 高风险操作完全信任模式
+			 */
+			trust_mode_label: () => LocalizedString
+			/**
+			 * 开启后 AI 执行清空画布、批量删除、终端命令等高风险操作时将直接执行，不再弹窗等待人工确认。适合长流程复杂任务全自动推进。
+			 */
+			trust_mode_desc: () => LocalizedString
 		}
 		confirm_card: {
 			/**
@@ -28596,6 +28636,14 @@ export type TranslationFunctions = {
 			 * 确认执行
 			 */
 			approve: () => LocalizedString
+			/**
+			 * 完全信任并执行
+			 */
+			trust_all: () => LocalizedString
+			/**
+			 * 批准当前操作并完全信任后续高风险操作，不再中断询问
+			 */
+			trust_all_tip: () => LocalizedString
 			/**
 			 * 用户已批准执行
 			 */
@@ -29041,6 +29089,22 @@ export type TranslationFunctions = {
 			 * 开启后 AI 将自主连续调用工具直至任务目标达成或手动中止
 			 */
 			auto_execute_tip: () => LocalizedString
+			/**
+			 * 完全信任
+			 */
+			trust_mode: () => LocalizedString
+			/**
+			 * 开启后完全信任 AI，自动批准并执行所有高风险操作（如清空画布、批量删除、终端命令等），无需每次手动确认
+			 */
+			trust_mode_tip: () => LocalizedString
+			/**
+			 * 完全信任模式生效中：高风险操作将自动执行
+			 */
+			trust_mode_active_hint: () => LocalizedString
+			/**
+			 * 恢复人工确认
+			 */
+			disable_trust_mode: () => LocalizedString
 			/**
 			 * 关联本地项目
 			 */

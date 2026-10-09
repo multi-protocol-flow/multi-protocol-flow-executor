@@ -9,6 +9,7 @@ import type {
   AISession,
   AIWorkspaceContext,
   AIToolCall,
+  AIPendingAction,
 } from '@/types/ai';
 import { getLL } from '@/i18n/i18n-lazy';
 import { useSettingsStore } from './settings';
@@ -30,6 +31,7 @@ const DEFAULT_PANEL_WIDTH = 380;
 const PANEL_FLOATING_KEY = 'mpe-ai-panel-floating';
 const PANEL_FLOATING_POS_KEY = 'mpe-ai-panel-floating-pos';
 const AUTO_EXECUTE_KEY = 'mpe-ai-auto-execute-to-goal';
+const ALWAYS_TRUST_HIGH_RISK_KEY = 'mpe-ai-always-trust-high-risk';
 
 function getStoredPanelWidth(): number {
   try {
@@ -83,6 +85,14 @@ function getStoredAutoExecute(): boolean {
     return true;
   }
 }
+function getStoredAlwaysTrustHighRisk(): boolean {
+  try {
+    return localStorage.getItem(ALWAYS_TRUST_HIGH_RISK_KEY) === 'true';
+  } catch {
+    return false;
+  }
+}
+
 
 // 用于控制整个会话任务生命周期的 AbortController (用户显式点击"停止生成"时触发)
 let sessionAbortController: AbortController | null = null;
@@ -113,6 +123,10 @@ export interface AIActions {
   setAutoExecuteToGoal: (auto: boolean) => void;
   /** 切换自主执行到底模式 */
   toggleAutoExecuteToGoal: () => void;
+  /** 设置是否开启完全信任模式 */
+  setAlwaysTrustHighRisk: (trust: boolean) => void;
+  /** 切换完全信任模式 */
+  toggleAlwaysTrustHighRisk: () => void;
   // ===== 会话管理 =====
   /** 初始化加载所有历史会话列表 */
   initSessions: () => Promise<void>;
@@ -139,8 +153,8 @@ export interface AIActions {
   sendMessage: (prompt: string, images?: string[]) => Promise<void>;
   /** 发送中途纠偏/补充指令 (正在生成时插话纠正，无需中断整个任务) */
   steerGeneration: (prompt: string, images?: string[]) => Promise<void>;
-  /** 响应高风险操作确认或拒绝 */
-  resolvePendingAction: (actionId: string, approved: boolean) => Promise<void>;
+  /** 响应高风险操作确认或拒绝 (可附带完全信任后续所有操作) */
+  resolvePendingAction: (actionId: string, approved: boolean, trustAll?: boolean) => Promise<void>;
   /** 重试上一条发送失败的消息 (清理错误状态并重新触发 ReAct 循环) */
   retryLastMessage: () => Promise<void>;
   /** 重置（测试隔离） */
@@ -163,6 +177,7 @@ const initialState: AIState = {
   isFloating: getStoredFloating(),
   floatingPosition: getStoredFloatingPos(),
   autoExecuteToGoal: getStoredAutoExecute(),
+  alwaysTrustHighRisk: getStoredAlwaysTrustHighRisk(),
   error: null,
 };
 
@@ -249,6 +264,31 @@ export const useAIStore = create<AIStore>((set, get) => ({
     }
     set({ autoExecuteToGoal: next });
   },
+  setAlwaysTrustHighRisk: (trust: boolean) => {
+    try {
+      localStorage.setItem(ALWAYS_TRUST_HIGH_RISK_KEY, String(trust));
+    } catch {
+      // 忽略
+    }
+    set({ alwaysTrustHighRisk: trust });
+    if (trust) {
+      for (const [id, resolver] of pendingResolvers.entries()) {
+        resolver(true);
+        pendingResolvers.delete(id);
+      }
+      set((state) => ({
+        pendingActions: state.pendingActions.map((act) =>
+          act.status === 'pending' ? { ...act, status: 'approved' } : act,
+        ),
+      }));
+    }
+  },
+
+  toggleAlwaysTrustHighRisk: () => {
+    const next = !get().alwaysTrustHighRisk;
+    get().setAlwaysTrustHighRisk(next);
+  },
+
 
   setSessionWorkspace: (ws: AIWorkspaceContext | null) => {
     set({ activeWorkspace: ws });
@@ -551,20 +591,41 @@ export const useAIStore = create<AIStore>((set, get) => ({
     }
   },
 
-  resolvePendingAction: async (actionId: string, approved: boolean) => {
+  resolvePendingAction: async (actionId: string, approved: boolean, trustAll = false) => {
+    if (trustAll) {
+      try {
+        localStorage.setItem(ALWAYS_TRUST_HIGH_RISK_KEY, 'true');
+      } catch {
+        // 忽略
+      }
+      set({ alwaysTrustHighRisk: true });
+    }
+
     const resolver = pendingResolvers.get(actionId);
     if (resolver) {
       resolver(approved);
       pendingResolvers.delete(actionId);
     }
 
-    set((state) => ({
-      pendingActions: state.pendingActions.map((act) =>
-        act.id === actionId
-          ? { ...act, status: approved ? 'approved' : 'rejected' }
-          : act,
-      ),
-    }));
+    if (trustAll && approved) {
+      for (const [id, otherResolver] of pendingResolvers.entries()) {
+        otherResolver(true);
+        pendingResolvers.delete(id);
+      }
+      set((state) => ({
+        pendingActions: state.pendingActions.map((act) =>
+          act.status === 'pending' ? { ...act, status: 'approved' } : act,
+        ),
+      }));
+    } else {
+      set((state) => ({
+        pendingActions: state.pendingActions.map((act) =>
+          act.id === actionId
+            ? { ...act, status: approved ? 'approved' : 'rejected' }
+            : act,
+        ),
+      }));
+    }
   },
 
   sendMessage: async (prompt: string, images?: string[]) => {
@@ -914,7 +975,10 @@ export const useAIStore = create<AIStore>((set, get) => ({
           let toolOutputStr = '';
 
           // 检查是否为高风险操作
-          if (isHighRiskTool(tc.function.name, parsedArgs)) {
+          const isHighRisk = isHighRiskTool(tc.function.name, parsedArgs);
+          const needsConfirmation = isHighRisk && !get().alwaysTrustHighRisk;
+
+          if (needsConfirmation) {
             const pendingAction = createPendingAction(tc, parsedArgs);
 
             set((s) => ({
@@ -949,7 +1013,16 @@ export const useAIStore = create<AIStore>((set, get) => ({
               });
             }
           } else {
-            // 普通安全工具，直接执行
+            // 普通安全工具，或开启完全信任模式下的高风险操作直接执行
+            if (isHighRisk) {
+              const pendingAction: AIPendingAction = {
+                ...createPendingAction(tc, parsedArgs),
+                status: 'approved',
+              };
+              set((s) => ({
+                pendingActions: [...s.pendingActions, pendingAction],
+              }));
+            }
             try {
               const toolResult = await dispatchToolCall(
                 tc.function.name,
@@ -1065,6 +1138,7 @@ export const useAIStore = create<AIStore>((set, get) => ({
       isFloating: getStoredFloating(),
       floatingPosition: getStoredFloatingPos(),
       autoExecuteToGoal: getStoredAutoExecute(),
+      alwaysTrustHighRisk: getStoredAlwaysTrustHighRisk(),
     });
   },
 }));

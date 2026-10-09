@@ -3,7 +3,7 @@
  */
 
 import { useState } from 'react';
-import { Check, X, ShieldAlert } from 'lucide-react';
+import { Check, X, ShieldAlert, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAIStore } from '@/stores/ai';
 import { getLL } from '@/i18n/i18n-lazy';
@@ -26,6 +26,15 @@ export function AIConfirmCard({ action }: AIConfirmCardProps) {
       setIsProcessing(false);
     }
   };
+  const handleTrustAll = async () => {
+    setIsProcessing(true);
+    try {
+      await resolvePendingAction(action.id, true, true);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
 
   const handleReject = async () => {
     setIsProcessing(true);
@@ -75,12 +84,23 @@ export function AIConfirmCard({ action }: AIConfirmCardProps) {
           </Button>
           <Button
             size="sm"
-            className="h-7 text-xs bg-amber-600 hover:bg-amber-700 text-white"
+            variant="outline"
+            className="h-7 text-xs border-amber-500/40 hover:bg-amber-500/15 text-amber-700 dark:text-amber-300"
             onClick={handleApprove}
             disabled={isProcessing}
           >
             <Check className="mr-1 h-3 w-3" />
             {ll.ai.confirm_card.approve()}
+          </Button>
+          <Button
+            size="sm"
+            className="h-7 text-xs bg-amber-600 hover:bg-amber-700 text-white font-medium"
+            onClick={handleTrustAll}
+            disabled={isProcessing}
+            title={ll.ai.confirm_card.trust_all_tip()}
+          >
+            <ShieldCheck className="mr-1 h-3.5 w-3.5" />
+            {ll.ai.confirm_card.trust_all()}
           </Button>
         </div>
       ) : (

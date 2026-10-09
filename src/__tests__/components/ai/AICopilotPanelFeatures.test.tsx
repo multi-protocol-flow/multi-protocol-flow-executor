@@ -171,4 +171,35 @@ describe('AICopilotPanel UI & Execution Enhancements', () => {
     // 验证消息列表上方渲染了补充要求徽章
     expect(screen.getByText(ll.ai.copilot.steer_badge())).toBeInTheDocument();
   });
+
+  it('5. 完全信任模式 (Trust Mode) 开关切换与提示横幅', async () => {
+    const ll = getLL();
+    await act(async () => {
+      useAIStore.setState({ isCopilotOpen: true, alwaysTrustHighRisk: false });
+    });
+
+    const { rerender } = render(<AICopilotPanel />);
+
+    const trustBtn = screen.getByTitle(ll.ai.copilot.trust_mode_tip());
+    expect(trustBtn).toBeInTheDocument();
+    expect(screen.queryByText(ll.ai.copilot.trust_mode_active_hint())).not.toBeInTheDocument();
+
+    // 点击开启完全信任模式
+    await act(async () => {
+      fireEvent.click(trustBtn);
+    });
+    expect(useAIStore.getState().alwaysTrustHighRisk).toBe(true);
+
+    rerender(<AICopilotPanel />);
+    // 出现生效横幅与禁用按钮
+    expect(screen.getByText(ll.ai.copilot.trust_mode_active_hint())).toBeInTheDocument();
+    const disableBtn = screen.getByText(ll.ai.copilot.disable_trust_mode());
+    expect(disableBtn).toBeInTheDocument();
+
+    // 点击禁用按钮
+    await act(async () => {
+      fireEvent.click(disableBtn);
+    });
+    expect(useAIStore.getState().alwaysTrustHighRisk).toBe(false);
+  });
 });

@@ -172,6 +172,72 @@ describe('aiStore', () => {
     store.toggleAutoExecuteToGoal();
     expect(useAIStore.getState().autoExecuteToGoal).toBe(true);
   });
+  it('完全信任模式 (alwaysTrustHighRisk) 状态切换与自动批准挂起操作', async () => {
+    const store = useAIStore.getState();
+    expect(store.alwaysTrustHighRisk).toBe(false);
+
+    useAIStore.setState({
+      pendingActions: [
+        {
+          id: 'action-1',
+          toolCallId: 'tc-1',
+          toolName: 'clear_canvas',
+          args: {},
+          description: '清空画布',
+          status: 'pending',
+          createdAt: Date.now(),
+        },
+        {
+          id: 'action-2',
+          toolCallId: 'tc-2',
+          toolName: 'delete_nodes',
+          args: { node_uuids: ['n1'] },
+          description: '删除节点',
+          status: 'pending',
+          createdAt: Date.now(),
+        },
+      ],
+    });
+
+    store.setAlwaysTrustHighRisk(true);
+    expect(useAIStore.getState().alwaysTrustHighRisk).toBe(true);
+    expect(useAIStore.getState().pendingActions.every((a) => a.status === 'approved')).toBe(true);
+
+    store.toggleAlwaysTrustHighRisk();
+    expect(useAIStore.getState().alwaysTrustHighRisk).toBe(false);
+  });
+
+  it('resolvePendingAction 传入 trustAll=true 时同时批准当前操作并开启完全信任模式', async () => {
+    useAIStore.setState({
+      alwaysTrustHighRisk: false,
+      pendingActions: [
+        {
+          id: 'action-1',
+          toolCallId: 'tc-1',
+          toolName: 'clear_canvas',
+          args: {},
+          description: '清空画布',
+          status: 'pending',
+          createdAt: Date.now(),
+        },
+        {
+          id: 'action-2',
+          toolCallId: 'tc-2',
+          toolName: 'delete_nodes',
+          args: { node_uuids: ['n1'] },
+          description: '删除节点',
+          status: 'pending',
+          createdAt: Date.now(),
+        },
+      ],
+    });
+
+    await useAIStore.getState().resolvePendingAction('action-1', true, true);
+    expect(useAIStore.getState().alwaysTrustHighRisk).toBe(true);
+    expect(useAIStore.getState().pendingActions[0].status).toBe('approved');
+    expect(useAIStore.getState().pendingActions[1].status).toBe('approved');
+  });
+
 
   it('中途纠偏 steerGeneration 正常插入纠偏消息并重置待确认高风险状态', async () => {
     useAIStore.setState({

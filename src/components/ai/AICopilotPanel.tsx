@@ -30,6 +30,7 @@ import {
   Zap,
   AlertCircle,
   Folder,
+  ShieldCheck,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -71,6 +72,9 @@ export function AICopilotPanel() {
     setFloating,
     setFloatingPosition,
     toggleAutoExecuteToGoal,
+    alwaysTrustHighRisk,
+    setAlwaysTrustHighRisk,
+    toggleAlwaysTrustHighRisk,
     setCopilotOpen,
     setSessionWorkspace,
     selectWorkspaceFolder,
@@ -650,6 +654,46 @@ export function AICopilotPanel() {
                 </span>
               )}
             </button>
+            {/* 完全信任模式 Switch 开关 */}
+            <button
+              type="button"
+              role="switch"
+              aria-checked={alwaysTrustHighRisk}
+              className={`flex items-center gap-1.5 h-7 rounded-md text-[11px] font-medium border transition-colors cursor-pointer select-none shrink-0 ${
+                effectiveWidth < 380 ? 'px-1.5' : 'px-2'
+              } ${
+                alwaysTrustHighRisk
+                  ? 'bg-amber-500/10 border-amber-500/35 text-amber-600 dark:bg-amber-950/40 dark:border-amber-600/40 dark:text-amber-300'
+                  : 'bg-muted/40 border-border/80 text-muted-foreground hover:bg-muted/60 dark:bg-zinc-900/60 dark:border-zinc-800'
+              }`}
+              onClick={toggleAlwaysTrustHighRisk}
+              title={ll.ai.copilot.trust_mode_tip()}
+            >
+              <ShieldCheck
+                className={`h-3.5 w-3.5 shrink-0 transition-transform ${
+                  alwaysTrustHighRisk
+                    ? 'text-amber-600 dark:text-amber-400 scale-105'
+                    : 'text-muted-foreground/70'
+                }`}
+              />
+              <span
+                className={`${
+                  effectiveWidth < 460 ? 'sr-only' : 'inline font-medium'
+                } ${alwaysTrustHighRisk ? 'text-amber-700 dark:text-amber-300 font-semibold' : 'text-muted-foreground'}`}
+              >
+                {ll.ai.copilot.trust_mode()}
+              </span>
+              {effectiveWidth >= 360 && (
+                <span className="pointer-events-none inline-flex items-center" aria-hidden="true">
+                  <Switch
+                    checked={alwaysTrustHighRisk}
+                    tabIndex={-1}
+                    variant="amber"
+                    className="scale-75 origin-center"
+                  />
+                </span>
+              )}
+            </button>
             {isFloating ? (
               <Button
                 size="icon"
@@ -706,6 +750,22 @@ export function AICopilotPanel() {
             </Button>
           </div>
         </header>
+            {/* 完全信任模式生效横幅提示 */}
+            {alwaysTrustHighRisk && (
+              <div className="flex items-center justify-between px-3 py-1 bg-amber-500/10 border-b border-amber-500/20 text-[11px] text-amber-700 dark:text-amber-300 shrink-0">
+                <div className="flex items-center gap-1.5 truncate">
+                  <ShieldCheck className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                  <span className="truncate">{ll.ai.copilot.trust_mode_active_hint()}</span>
+                </div>
+                <button
+                  type="button"
+                  className="text-[10px] text-amber-600 dark:text-amber-400 hover:underline shrink-0 ml-2 font-medium cursor-pointer"
+                  onClick={() => setAlwaysTrustHighRisk(false)}
+                >
+                  {ll.ai.copilot.disable_trust_mode()}
+                </button>
+              </div>
+            )}
 
         {/* 消息列表区域 (不透明背景，独立滚动并添加 min-h-0 防止撑开父容器) */}
         <div

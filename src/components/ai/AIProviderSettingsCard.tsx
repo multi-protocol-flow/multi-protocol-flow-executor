@@ -18,6 +18,7 @@ import {
   Zap,
   ChevronDown,
   ChevronUp,
+  ShieldCheck,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,6 +29,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { useSettingsStore } from '@/stores/settings';
 import { testConnection, fetchModels } from '@/services/ai/openaiClient';
+import { useAIStore } from '@/stores/ai';
 import { getLL } from '@/i18n/i18n-lazy';
 import type { AIProviderConfig } from '@/types/ai';
 const PRESETS: Array<{
@@ -65,6 +67,7 @@ const PRESETS: Array<{
 export function AIProviderSettingsCard({ className }: { className?: string } = {}) {
   const ll = getLL();
   const settings = useSettingsStore();
+  const { alwaysTrustHighRisk, setAlwaysTrustHighRisk } = useAIStore();
 
   const [editingProvider, setEditingProvider] = useState<AIProviderConfig | null>(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -624,6 +627,28 @@ export function AIProviderSettingsCard({ className }: { className?: string } = {
             </p>
           </div>
         )}
+      </div>
+
+      {/* 高风险操作完全信任模式设置 */}
+      <div className="rounded-lg border border-border/60 bg-muted/10 p-3 text-xs space-y-1.5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
+            <span className="font-medium text-foreground">
+              {ll.ai.settings.trust_mode_label()}
+            </span>
+          </div>
+          <Switch
+            id="ai-trust-mode-toggle"
+            checked={alwaysTrustHighRisk}
+            onCheckedChange={(val) => setAlwaysTrustHighRisk(val)}
+            variant="amber"
+            aria-label={ll.ai.settings.trust_mode_label()}
+          />
+        </div>
+        <p className="text-[11px] text-muted-foreground leading-relaxed">
+          {ll.ai.settings.trust_mode_desc()}
+        </p>
       </div>
     </div>
   );
