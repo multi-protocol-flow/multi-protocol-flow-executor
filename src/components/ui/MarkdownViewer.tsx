@@ -2,7 +2,7 @@
  * MarkdownViewer - 轻量级 Markdown 渲染组件
  * 基于 react-markdown + remark-gfm，内置表格横向滚动与代码块一键复制
  */
-import { useState, useCallback, isValidElement } from 'react';
+import { useState, useCallback, isValidElement, memo } from 'react';
 import type { ComponentPropsWithoutRef, ReactNode } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -79,7 +79,39 @@ const proseClass = cn(
 const compactClass =
   'prose-p:my-1 prose-headings:mb-2 prose-headings:mt-3 prose-ul:my-1 prose-ol:my-1 prose-li:my-0';
 
-export function MarkdownViewer({
+const REMARK_PLUGINS = [remarkGfm];
+
+const MARKDOWN_COMPONENTS = {
+  pre: ({ children, ...props }: ComponentPropsWithoutRef<'pre'>) => {
+    const rawCode = extractTextContent(children);
+    return (
+      <div className="relative my-2 overflow-hidden rounded-md border border-border/60 bg-muted/40 text-xs">
+        <div className="flex items-center justify-between px-2.5 py-1 bg-muted/50 border-b border-border/40 text-[10px] text-muted-foreground font-mono">
+          <span>Code</span>
+          <CodeBlockCopyButton text={rawCode} />
+        </div>
+        <pre
+          {...props}
+          className="p-2.5 overflow-x-auto max-w-full text-xs font-mono leading-relaxed bg-transparent border-0 m-0"
+        >
+          {children}
+        </pre>
+      </div>
+    );
+  },
+  table: ({ children, ...props }: ComponentPropsWithoutRef<'table'>) => (
+    <div className="my-2 overflow-x-auto max-w-full rounded border border-border/50">
+      <table
+        {...props}
+        className="w-full text-left border-collapse text-xs my-0"
+      >
+        {children}
+      </table>
+    </div>
+  ),
+};
+
+export const MarkdownViewer = memo(function MarkdownViewer({
   content,
   compact = false,
   className,
@@ -91,39 +123,11 @@ export function MarkdownViewer({
   return (
     <div className={cn(proseClass, compact && compactClass, className)}>
       <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
-        components={{
-          pre: ({ children, ...props }: ComponentPropsWithoutRef<'pre'>) => {
-            const rawCode = extractTextContent(children);
-            return (
-              <div className="relative my-2 overflow-hidden rounded-md border border-border/60 bg-muted/40 text-xs">
-                <div className="flex items-center justify-between px-2.5 py-1 bg-muted/50 border-b border-border/40 text-[10px] text-muted-foreground font-mono">
-                  <span>Code</span>
-                  <CodeBlockCopyButton text={rawCode} />
-                </div>
-                <pre
-                  {...props}
-                  className="p-2.5 overflow-x-auto max-w-full text-xs font-mono leading-relaxed bg-transparent border-0 m-0"
-                >
-                  {children}
-                </pre>
-              </div>
-            );
-          },
-          table: ({ children, ...props }: ComponentPropsWithoutRef<'table'>) => (
-            <div className="my-2 overflow-x-auto max-w-full rounded border border-border/50">
-              <table
-                {...props}
-                className="w-full text-left border-collapse text-xs my-0"
-              >
-                {children}
-              </table>
-            </div>
-          ),
-        }}
+        remarkPlugins={REMARK_PLUGINS}
+        components={MARKDOWN_COMPONENTS}
       >
         {content}
       </ReactMarkdown>
     </div>
   );
-}
+});
