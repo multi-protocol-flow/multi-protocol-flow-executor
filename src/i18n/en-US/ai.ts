@@ -110,6 +110,7 @@ const ai = {
 
   copilot: {
     title: 'MPE AI Copilot',
+    more_actions: 'More options',
     clear_history: 'Clear History',
     close: 'Close Sidebar',
     no_active_provider: 'No Active AI Provider',
@@ -161,8 +162,6 @@ const ai = {
     dock_to_right: 'Dock to right',
     undock_panel: 'Undock (Floating window)',
     drag_to_move: 'Drag header to move (drag to right edge to dock)',
-    auto_execute: 'Run to End',
-    auto_execute_tip: 'When enabled, AI autonomously chains tool calls until goal is achieved or manually stopped',
     trust_mode: 'Full Trust',
     trust_mode_tip: 'When enabled, fully trust AI and automatically approve and execute all high-risk actions without manual confirmation',
     trust_mode_active_hint: 'Full Trust mode active: high-risk actions will execute automatically',

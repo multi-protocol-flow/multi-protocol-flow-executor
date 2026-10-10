@@ -110,6 +110,7 @@ const ai = {
 
   copilot: {
     title: 'MPE 全域 AI 助手',
+    more_actions: '更多操作',
     clear_history: '清空对话历史',
     close: '收起侧边栏',
     no_active_provider: '未配置生效的 AI Provider',
@@ -161,8 +162,6 @@ const ai = {
     dock_to_right: '吸附至右侧',
     undock_panel: '脱离吸附 (浮动窗口)',
     drag_to_move: '按住拖拽移动窗口 (拖动至右侧可重新吸附)',
-    auto_execute: '执行到底',
-    auto_execute_tip: '开启后 AI 将自主连续调用工具直至任务目标达成或手动中止',
     trust_mode: '完全信任',
     trust_mode_tip: '开启后完全信任 AI，自动批准并执行所有高风险操作（如清空画布、批量删除、终端命令等），无需每次手动确认',
     trust_mode_active_hint: '完全信任模式生效中：高风险操作将自动执行',

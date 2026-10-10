@@ -14406,6 +14406,10 @@ type RootTranslation = {
 			 */
 			title: string
 			/**
+			 * 更​多​操​作
+			 */
+			more_actions: string
+			/**
 			 * 清​空​对​话​历​史
 			 */
 			clear_history: string
@@ -14619,14 +14623,6 @@ type RootTranslation = {
 			 * 按​住​拖​拽​移​动​窗​口​ ​(​拖​动​至​右​侧​可​重​新​吸​附​)
 			 */
 			drag_to_move: string
-			/**
-			 * 执​行​到​底
-			 */
-			auto_execute: string
-			/**
-			 * 开​启​后​ ​A​I​ ​将​自​主​连​续​调​用​工​具​直​至​任​务​目​标​达​成​或​手​动​中​止
-			 */
-			auto_execute_tip: string
 			/**
 			 * 完​全​信​任
 			 */
@@ -29017,6 +29013,10 @@ export type TranslationFunctions = {
 			 */
 			title: () => LocalizedString
 			/**
+			 * 更多操作
+			 */
+			more_actions: () => LocalizedString
+			/**
 			 * 清空对话历史
 			 */
 			clear_history: () => LocalizedString
@@ -29220,14 +29220,6 @@ export type TranslationFunctions = {
 			 * 按住拖拽移动窗口 (拖动至右侧可重新吸附)
 			 */
 			drag_to_move: () => LocalizedString
-			/**
-			 * 执行到底
-			 */
-			auto_execute: () => LocalizedString
-			/**
-			 * 开启后 AI 将自主连续调用工具直至任务目标达成或手动中止
-			 */
-			auto_execute_tip: () => LocalizedString
 			/**
 			 * 完全信任
 			 */
