@@ -74,31 +74,21 @@ describe('contextBuilder', () => {
       expect(prompt).toContain('NO `null` literal');
     });
 
-    it('包含透明可解释自主执行规划原则', () => {
+    it('包含目标驱动自主执行与完工原则', () => {
       const prompt = buildSystemPrompt();
-      expect(prompt).toContain('TRANSPARENT PLANNING FIRST');
-      expect(prompt).toContain('已为您规划');
+      expect(prompt).toContain('Goal-Driven Autonomous Execution Protocol');
+      expect(prompt).toContain('ACTION-FIRST AGENT PARADIGM');
+      expect(prompt).toContain('CONTINUOUS EXECUTION UNTIL GOAL ATTAINED');
+      expect(prompt).toContain('DISTINGUISHING ACTION VS INQUIRY');
+      expect(prompt).toContain('GENUINE CLARIFICATION VS HESITATION');
+      expect(prompt).toContain('SELF-HEALING & ERROR RECOVERY');
+      expect(prompt).toContain('FINAL SUMMARY UPON COMPLETION');
     });
 
     it('追加用户自定义 System Prompt', () => {
       const custom = 'Always use camelCase for variables.';
       const prompt = buildSystemPrompt(custom);
       expect(prompt).toContain(custom);
-    });
-
-    it('开启自主执行到底模式时包含 AUTONOMOUS EXECUTION 核心指令', () => {
-      const prompt = buildSystemPrompt(undefined, true);
-      expect(prompt).toContain('AUTONOMOUS EXECUTION MODE IS CURRENTLY ACTIVE');
-      expect(prompt).toContain('执行到底');
-      expect(prompt).toContain('DEEP INTENT COMPREHENSION');
-      expect(prompt).toContain('SELF-HEALING & ERROR RECOVERY');
-    });
-
-    it('未开启自主模式时不输出 AUTONOMOUS EXECUTION 专有段落', () => {
-      const prompt = buildSystemPrompt(undefined, false);
-      expect(prompt).not.toContain('AUTONOMOUS EXECUTION MODE IS CURRENTLY ACTIVE');
-      // 但依然包含通用的执行到底与工具使用原则
-      expect(prompt).toContain('Autonomous End-to-End Execution Protocol');
     });
   });
 

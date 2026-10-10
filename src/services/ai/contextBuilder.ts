@@ -16,7 +16,6 @@ import type { AIMessage } from '@/types/ai';
  */
 export function buildSystemPrompt(
   customSystemPrompt?: string,
-  autoExecuteToGoal: boolean = true,
 ): string {
   const parts: string[] = [];
   parts.push(
@@ -260,16 +259,17 @@ When a flow execution fails or the user reports errors/issues:
    - Propose 1 to 3 concrete repair directions (e.g. Direction A: modify node configuration parameters; Direction B: insert a prerequisite step like authentication/token extraction; Direction C: adjust assertion rules or error tolerance).
    - **EXPLICITLY ASK THE USER**:
      "是否需要我帮您修复？您倾向于按哪个方向修复？" (Do you want me to repair this? Which repair direction do you prefer?)
-   - If the user has already explicitly commanded you to fix it (e.g. "帮我修复", "fix it") or if Autonomous Mode ("执行到底") is active with an obvious deterministic single fix, proceed with the fix directly and clearly state what you changed and why.
+   - If the user has already explicitly commanded you to fix it (e.g. "帮我修复", "fix it") or if there is an obvious deterministic single fix, proceed with the fix directly and clearly state what you changed and why.
 3. **EXECUTE THE REPAIR**:
    - Use \`update_node_config\`, \`connect_nodes\`, \`add_node\`, or other tools to apply the agreed-upon corrections.
 4. **VERIFY THE FIX**:
    - Offer to re-run the flow via \`run_flow\` to confirm the error is eliminated.
 
-### 6. Autonomous End-to-End Execution Protocol ("执行到底"透明可解释自主执行核心原则):
-- **DEEP INTENT COMPREHENSION & TRANSPARENT PLANNING FIRST**: Understand the complete end-to-end user goal before taking action. Precede your tool calls with 1-2 concise, clear sentences in natural language explaining your design thinking, architectural intent, or plan (e.g., "已为您规划包含用户认证、Token 提取与列表查询的 3 节点链路，即将创建并自动排版连线..."). Never ask redundant permission or stop before executing—output your brief plan AND invoke the required tools in the same turn!
-- **ACTION-ORIENTED (NO UNNECESSARY DELAYS)**: Always call tools directly in the same turn as your intent explanation. Do NOT output a plan and wait for user confirmation unless the action is high-risk or the user's intent is genuinely ambiguous. Informational questions (e.g., "What is SSE?") should be answered in clear text without tool calls.
-- **CONTINUE UNTIL COMPLETION (NEVER STOP HALFWAY)**: If a task requires multiple steps, continue invoking subsequent tools across turns until the ENTIRE goal is accomplished.
+### 6. Goal-Driven Autonomous Execution Protocol (智能体目标驱动自主执行与完工原则):
+- **ACTION-FIRST AGENT PARADIGM**: When the user requests workflow operations (create, configure, connect, test, debug, layout, orchestrate workflows), act as a decisive autonomous agent. Precede your tool calls with 1-2 concise sentences explaining your architectural intent, and invoke the required tools in the same turn without hesitation. Do NOT just output a textual plan and wait for confirmation.
+- **CONTINUOUS EXECUTION UNTIL GOAL ATTAINED**: If a task requires multiple steps (e.g. discover endpoints -> batch create pipeline -> configure variables -> auto layout -> run flow verification), continuously chain subsequent tools across turns until the entire user goal is accomplished.
+- **DISTINGUISHING ACTION VS INQUIRY**: If the user asks an informational, architectural, or conceptual question (e.g. "What is SSE?", "Explain the difference between TCP and UDP"), answer purely with clear, structured text without invoking workflow mutation tools.
+- **GENUINE CLARIFICATION VS HESITATION**: Only pause to ask the user when you genuinely lack essential external business parameters that cannot be inferred from the workspace or specifications (e.g. secret credentials, production endpoints). Never pause merely to ask "Should I continue?" or "Would you like me to proceed?" when the path forward is clear.
 - **SELF-HEALING & ERROR RECOVERY**: If a tool returns an error or failure, analyze the error details, adjust parameters, and recover automatically.
 - **FINAL SUMMARY UPON COMPLETION**: Once and only once all tools have finished executing and the task is accomplished, provide a concise, friendly summary in natural language explaining what was created, configured, or updated. Never return an empty response after completing execution.
 
@@ -280,11 +280,6 @@ You have access to 'run_terminal_command' to execute shell commands in the user'
 - **Working Directory**: The tool automatically defaults 'cwd' to the active workspace project root if omitted.
 - **Output Capping**: Output is capped at 32KB to conserve context. Prefer targeted commands when checking logs or files.`
   );
-  if (autoExecuteToGoal) {
-    parts.push(
-      `### Autonomous Mode Status:\n**AUTONOMOUS EXECUTION MODE IS CURRENTLY ACTIVE ("执行到底"模式开启)**. The user wants you to drive the task all the way to completion. Continue chaining tools across turns until the full objective is achieved or user confirmation is strictly required.`
-    );
-  }
   const activeWorkspace = useAIStore.getState().activeWorkspace;
   if (activeWorkspace) {
     parts.push(

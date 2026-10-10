@@ -36,7 +36,6 @@ const PANEL_WIDTH_KEY = 'mpe-ai-panel-width';
 const DEFAULT_PANEL_WIDTH = 380;
 const PANEL_FLOATING_KEY = 'mpe-ai-panel-floating';
 const PANEL_FLOATING_POS_KEY = 'mpe-ai-panel-floating-pos';
-const AUTO_EXECUTE_KEY = 'mpe-ai-auto-execute-to-goal';
 const ALWAYS_TRUST_HIGH_RISK_KEY = 'mpe-ai-always-trust-high-risk';
 
 function getStoredPanelWidth(): number {
@@ -83,14 +82,6 @@ function getStoredFloatingPos(): { x: number; y: number; width: number; height: 
   return { x: defaultX, y: defaultY, width: defaultWidth, height: defaultHeight };
 }
 
-function getStoredAutoExecute(): boolean {
-  try {
-    const val = localStorage.getItem(AUTO_EXECUTE_KEY);
-    return val === null ? true : val === 'true';
-  } catch {
-    return true;
-  }
-}
 function getStoredAlwaysTrustHighRisk(): boolean {
   try {
     return localStorage.getItem(ALWAYS_TRUST_HIGH_RISK_KEY) === 'true';
@@ -125,10 +116,6 @@ export interface AIActions {
   toggleFloating: () => void;
   /** 更新浮动面板位置与尺寸 */
   setFloatingPosition: (pos: Partial<{ x: number; y: number; width: number; height: number }>) => void;
-  /** 设置是否开启自主执行到底模式 */
-  setAutoExecuteToGoal: (auto: boolean) => void;
-  /** 切换自主执行到底模式 */
-  toggleAutoExecuteToGoal: () => void;
   /** 设置是否开启完全信任模式 */
   setAlwaysTrustHighRisk: (trust: boolean) => void;
   /** 切换完全信任模式 */
@@ -184,7 +171,6 @@ const initialState: AIState = {
   panelWidth: getStoredPanelWidth(),
   isFloating: getStoredFloating(),
   floatingPosition: getStoredFloatingPos(),
-  autoExecuteToGoal: getStoredAutoExecute(),
   alwaysTrustHighRisk: getStoredAlwaysTrustHighRisk(),
   error: null,
   isCompacting: false,
@@ -254,24 +240,6 @@ export const useAIStore = create<AIStore>((set, get) => ({
     set({ floatingPosition: updated });
   },
 
-  setAutoExecuteToGoal: (auto: boolean) => {
-    try {
-      localStorage.setItem(AUTO_EXECUTE_KEY, String(auto));
-    } catch {
-      // 忽略
-    }
-    set({ autoExecuteToGoal: auto });
-  },
-
-  toggleAutoExecuteToGoal: () => {
-    const next = !get().autoExecuteToGoal;
-    try {
-      localStorage.setItem(AUTO_EXECUTE_KEY, String(next));
-    } catch {
-      // 忽略
-    }
-    set({ autoExecuteToGoal: next });
-  },
   setAlwaysTrustHighRisk: (trust: boolean) => {
     try {
       localStorage.setItem(ALWAYS_TRUST_HIGH_RISK_KEY, String(trust));
@@ -902,13 +870,9 @@ export const useAIStore = create<AIStore>((set, get) => ({
 
     await persistCurrentSession();
 
-    const autoExecute = get().autoExecuteToGoal;
     const tools = getAllAIToolDefinitions();
-    const MAX_REACT_ITERATIONS = autoExecute ? 30 : 12;
+    const MAX_REACT_ITERATIONS = 20;
     let iteration = 0;
-
-    const ACTION_KEYWORDS_REGEX = /(创建|新建|添加|生成|构建|排版|布局|执行|运行|测试|调试|修复|修改|更新|删除|配置|连线|连接|清理|清空|编排|流程|节点|create|build|add|generate|layout|run|execute|test|debug|fix|update|modify|delete|clear|connect|pipeline|flow)/i;
-    const isActionPrompt = ACTION_KEYWORDS_REGEX.test(trimmedPrompt);
 
     try {
       while (iteration < MAX_REACT_ITERATIONS) {
@@ -919,7 +883,7 @@ export const useAIStore = create<AIStore>((set, get) => ({
         const iterationSignal = currentIterationAbortController.signal;
 
         // 构建最新的全局 System Prompt + 运行时动态快照
-        const systemPromptText = `${buildSystemPrompt(settings.aiCustomSystemPrompt, autoExecute)}\n\n${buildActiveStateSummary()}`;
+        const systemPromptText = `${buildSystemPrompt(settings.aiCustomSystemPrompt)}\n\n${buildActiveStateSummary()}`;
         const systemMessage: AIMessage = {
           id: `sys_${Date.now()}`,
           role: 'system',
@@ -1086,34 +1050,8 @@ export const useAIStore = create<AIStore>((set, get) => ({
         }
         await persistCurrentSession();
 
-        // 如果没有触发 Tool Calls
+        // 如果没有触发 Tool Calls，任务已自然完成或模型向用户做出说明/提问
         if (!result.tool_calls || result.tool_calls.length === 0) {
-          const contentText = result.content || '';
-          const ASK_USER_CONFIRM_REGEX =
-            /(是否需要我|请问是否|您倾向于|确认后再|需要我帮您|要继续吗|要不要我|是否继续|是否帮您|would you like me to|should i proceed|do you want me to)/i;
-          const isAskingForPermission = ASK_USER_CONFIRM_REGEX.test(contentText);
-
-          // 如果开启了"执行到底"模式：
-          // 1. 首轮仅输出方案规划未调工具；
-          // 2. 或多轮执行中途模型停下来反问用户是否继续执行
-          if (
-            autoExecute &&
-            ((isActionPrompt && iteration === 1) || (isAskingForPermission && iteration <= 8))
-          ) {
-            const nudgeMessage: AIMessage = {
-              id: `msg_${Date.now()}_system_nudge`,
-              role: 'user',
-              content:
-                '[System Directive: "执行到底"模式已开启。无需停下向用户索取权限或询问是否继续，请直接选择最优方案调用相关工具继续执行后续步骤，直到目标完全达成。若已全部完成则请给出最终简要总结。]',
-              timestamp: Date.now(),
-            };
-            set((s) => ({
-              messages: [...s.messages, nudgeMessage],
-            }));
-            await persistCurrentSession();
-            continue;
-          }
-
           set({ agentStatus: 'idle' });
           break;
         }
@@ -1297,7 +1235,6 @@ export const useAIStore = create<AIStore>((set, get) => ({
       ...initialState,
       isFloating: getStoredFloating(),
       floatingPosition: getStoredFloatingPos(),
-      autoExecuteToGoal: getStoredAutoExecute(),
       alwaysTrustHighRisk: getStoredAlwaysTrustHighRisk(),
     });
   },

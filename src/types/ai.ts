@@ -260,8 +260,6 @@ export interface AIState {
   isFloating: boolean;
   /** 浮动窗口坐标与尺寸 { x, y, width, height } */
   floatingPosition: { x: number; y: number; width: number; height: number };
-  /** 是否开启自主执行到底模式 (目标达成或中断前持续推进) */
-  autoExecuteToGoal: boolean;
   /** 是否开启完全信任模式 (高风险操作无需每次手动确认直接推进执行) */
   alwaysTrustHighRisk: boolean;
   /** 错误信息 */

@@ -161,17 +161,6 @@ describe('aiStore', () => {
     expect(clampedPos.height).toBe(300);
   });
 
-  it('自主执行到底模式状态切换', () => {
-    const store = useAIStore.getState();
-    // 默认开启自主执行到底模式
-    expect(store.autoExecuteToGoal).toBe(true);
-
-    store.setAutoExecuteToGoal(false);
-    expect(useAIStore.getState().autoExecuteToGoal).toBe(false);
-
-    store.toggleAutoExecuteToGoal();
-    expect(useAIStore.getState().autoExecuteToGoal).toBe(true);
-  });
   it('完全信任模式 (alwaysTrustHighRisk) 状态切换与自动批准挂起操作', async () => {
     const store = useAIStore.getState();
     expect(store.alwaysTrustHighRisk).toBe(false);
