@@ -14715,6 +14715,145 @@ type RootTranslation = {
 			 * 与​ ​A​I​ ​供​应​商​通​信​过​程​中​发​生​异​常​，​可​点​击​重​试​或​查​看​下​方​技​术​详​情​。
 			 */
 			error_diag_general: string
+			/**
+			 * 压​缩​上​下​文
+			 */
+			command_compact: string
+			/**
+			 * 总​结​并​归​档​冗​长​历​史​，​释​放​上​下​文​窗​口
+			 */
+			command_compact_desc: string
+			/**
+			 * 清​空​对​话​历​史
+			 */
+			command_clear: string
+			/**
+			 * 清​空​当​前​会​话​所​有​消​息​记​录
+			 */
+			command_clear_desc: string
+			/**
+			 * 诊​断​流​程​报​错
+			 */
+			command_diagnose: string
+			/**
+			 * 分​析​当​前​流​程​执​行​异​常​并​提​出​修​复​建​议
+			 */
+			command_diagnose_desc: string
+			/**
+			 * 审​查​流​程​规​范
+			 */
+			command_review: string
+			/**
+			 * 审​查​当​前​画​布​节​点​拓​扑​与​连​线​完​整​性
+			 */
+			command_review_desc: string
+			/**
+			 * 帮​助​信​息
+			 */
+			command_help: string
+			/**
+			 * 查​看​所​有​可​用​的​快​捷​斜​杠​指​令
+			 */
+			command_help_desc: string
+			/**
+			 * 正​在​总​结​并​压​缩​对​话​上​下​文​.​.​.
+			 */
+			compact_running: string
+			/**
+			 * 已​成​功​压​缩​会​话​历​史
+			 */
+			compact_success: string
+			/**
+			 * 当​前​会​话​内​容​较​少​，​暂​无​需​压​缩
+			 */
+			compact_no_need: string
+			/**
+			 * A​I​ ​正​在​生​成​或​执​行​工​具​中​，​请​等​待​完​成​后​再​压​缩​上​下​文
+			 */
+			compact_blocked_generating: string
+			/**
+			 * 已​压​缩​ ​{​c​o​u​n​t​}​ ​条​历​史​消​息
+			 * @param {number} count
+			 */
+			compact_card_title: RequiredParams<'count'>
+			/**
+			 * 释​放​约​ ​{​t​o​k​e​n​s​}​ ​t​o​k​e​n​s
+			 * @param {number} tokens
+			 */
+			compact_card_tokens: RequiredParams<'tokens'>
+			/**
+			 * 查​看​已​归​档​记​录
+			 */
+			compact_card_view_archived: string
+			/**
+			 * 收​起​已​归​档​记​录
+			 */
+			compact_card_hide_archived: string
+			/**
+			 * 压​缩​上​下​文​ ​(​/​c​o​m​p​a​c​t​)
+			 */
+			compact_button_tip: string
+			/**
+			 * A​I​ ​C​o​p​i​l​o​t​ ​快​捷​斜​杠​指​令
+			 */
+			command_help_title: string
+			/**
+			 * 在​输​入​框​中​输​入​ ​/​ ​即​可​呼​出​快​捷​指​令​菜​单​：
+			 */
+			command_help_intro: string
+			/**
+			 * `​/​c​o​m​p​a​c​t​`​ ​(​或​ ​`​/​s​u​m​m​a​r​i​z​e​`​)​ ​-​ ​总​结​并​归​档​旧​历​史​，​大​幅​节​省​上​下​文​ ​T​o​k​e​n
+			 */
+			command_help_compact: string
+			/**
+			 * `​/​c​l​e​a​r​`​ ​(​或​ ​`​/​r​e​s​e​t​`​)​ ​-​ ​清​空​当​前​会​话​消​息
+			 */
+			command_help_clear: string
+			/**
+			 * `​/​d​i​a​g​n​o​s​e​`​ ​(​或​ ​`​/​f​i​x​`​)​ ​-​ ​深​度​诊​断​最​近​一​次​失​败​的​流​程​节​点
+			 */
+			command_help_diagnose: string
+			/**
+			 * `​/​r​e​v​i​e​w​`​ ​(​或​ ​`​/​a​u​d​i​t​`​)​ ​-​ ​审​查​当​前​画​布​流​程​结​构​与​端​口​连​线
+			 */
+			command_help_review: string
+			/**
+			 * `​/​h​e​l​p​`​ ​-​ ​展​示​本​帮​助​说​明
+			 */
+			command_help_help: string
+			/**
+			 * 快​捷​指​令​ ​(​S​l​a​s​h​ ​C​o​m​m​a​n​d​s​)
+			 */
+			slash_commands_title: string
+			/**
+			 * ↑​↓​ ​切​换​ ​·​ ​E​n​t​e​r​ ​执​行
+			 */
+			slash_commands_hint: string
+			/**
+			 * 展​开​摘​要
+			 */
+			compact_card_expand_summary: string
+			/**
+			 * 收​起​摘​要
+			 */
+			compact_card_collapse_summary: string
+			/**
+			 * 结​构​化​会​话​状​态​快​照
+			 */
+			compact_card_snapshot_badge: string
+			/**
+			 * 上​下​文​压​缩​未​能​返​回​有​效​内​容​，​请​稍​后​重​试
+			 */
+			compact_empty_error: string
+			/**
+			 * 请​全​面​审​查​当​前​画​布​上​的​流​程​拓​扑​（​当​前​共​ ​{​n​o​d​e​C​o​u​n​t​}​ ​个​节​点​，​{​c​o​n​n​C​o​u​n​t​}​ ​条​连​线​）​：​
+		​1​.​ ​检​查​是​否​存​在​孤​立​节​点​、​端​口​连​线​错​误​（​如​协​议​节​点​缺​少​ ​t​r​u​e​/​f​a​l​s​e​ ​路​由​）​；​
+		​2​.​ ​检​查​关​键​ ​H​T​T​P​/​脚​本​步​骤​是​否​有​断​言​验​证​与​错​误​分​支​处​理​；​
+		​3​.​ ​对​节​点​的​命​名​、​D​A​G​ ​执​行​流​序​与​自​动​布​局​给​出​优​化​建​议​。
+			 * @param {number} connCount
+			 * @param {number} nodeCount
+			 */
+			prompt_review_flow: RequiredParams<'connCount' | 'nodeCount'>
 		}
 		spotlight: {
 			/**
@@ -29177,6 +29316,141 @@ export type TranslationFunctions = {
 			 * 与 AI 供应商通信过程中发生异常，可点击重试或查看下方技术详情。
 			 */
 			error_diag_general: () => LocalizedString
+			/**
+			 * 压缩上下文
+			 */
+			command_compact: () => LocalizedString
+			/**
+			 * 总结并归档冗长历史，释放上下文窗口
+			 */
+			command_compact_desc: () => LocalizedString
+			/**
+			 * 清空对话历史
+			 */
+			command_clear: () => LocalizedString
+			/**
+			 * 清空当前会话所有消息记录
+			 */
+			command_clear_desc: () => LocalizedString
+			/**
+			 * 诊断流程报错
+			 */
+			command_diagnose: () => LocalizedString
+			/**
+			 * 分析当前流程执行异常并提出修复建议
+			 */
+			command_diagnose_desc: () => LocalizedString
+			/**
+			 * 审查流程规范
+			 */
+			command_review: () => LocalizedString
+			/**
+			 * 审查当前画布节点拓扑与连线完整性
+			 */
+			command_review_desc: () => LocalizedString
+			/**
+			 * 帮助信息
+			 */
+			command_help: () => LocalizedString
+			/**
+			 * 查看所有可用的快捷斜杠指令
+			 */
+			command_help_desc: () => LocalizedString
+			/**
+			 * 正在总结并压缩对话上下文...
+			 */
+			compact_running: () => LocalizedString
+			/**
+			 * 已成功压缩会话历史
+			 */
+			compact_success: () => LocalizedString
+			/**
+			 * 当前会话内容较少，暂无需压缩
+			 */
+			compact_no_need: () => LocalizedString
+			/**
+			 * AI 正在生成或执行工具中，请等待完成后再压缩上下文
+			 */
+			compact_blocked_generating: () => LocalizedString
+			/**
+			 * 已压缩 {count} 条历史消息
+			 */
+			compact_card_title: (arg: { count: number }) => LocalizedString
+			/**
+			 * 释放约 {tokens} tokens
+			 */
+			compact_card_tokens: (arg: { tokens: number }) => LocalizedString
+			/**
+			 * 查看已归档记录
+			 */
+			compact_card_view_archived: () => LocalizedString
+			/**
+			 * 收起已归档记录
+			 */
+			compact_card_hide_archived: () => LocalizedString
+			/**
+			 * 压缩上下文 (/compact)
+			 */
+			compact_button_tip: () => LocalizedString
+			/**
+			 * AI Copilot 快捷斜杠指令
+			 */
+			command_help_title: () => LocalizedString
+			/**
+			 * 在输入框中输入 / 即可呼出快捷指令菜单：
+			 */
+			command_help_intro: () => LocalizedString
+			/**
+			 * `/compact` (或 `/summarize`) - 总结并归档旧历史，大幅节省上下文 Token
+			 */
+			command_help_compact: () => LocalizedString
+			/**
+			 * `/clear` (或 `/reset`) - 清空当前会话消息
+			 */
+			command_help_clear: () => LocalizedString
+			/**
+			 * `/diagnose` (或 `/fix`) - 深度诊断最近一次失败的流程节点
+			 */
+			command_help_diagnose: () => LocalizedString
+			/**
+			 * `/review` (或 `/audit`) - 审查当前画布流程结构与端口连线
+			 */
+			command_help_review: () => LocalizedString
+			/**
+			 * `/help` - 展示本帮助说明
+			 */
+			command_help_help: () => LocalizedString
+			/**
+			 * 快捷指令 (Slash Commands)
+			 */
+			slash_commands_title: () => LocalizedString
+			/**
+			 * ↑↓ 切换 · Enter 执行
+			 */
+			slash_commands_hint: () => LocalizedString
+			/**
+			 * 展开摘要
+			 */
+			compact_card_expand_summary: () => LocalizedString
+			/**
+			 * 收起摘要
+			 */
+			compact_card_collapse_summary: () => LocalizedString
+			/**
+			 * 结构化会话状态快照
+			 */
+			compact_card_snapshot_badge: () => LocalizedString
+			/**
+			 * 上下文压缩未能返回有效内容，请稍后重试
+			 */
+			compact_empty_error: () => LocalizedString
+			/**
+			 * 请全面审查当前画布上的流程拓扑（当前共 {nodeCount} 个节点，{connCount} 条连线）：
+		1. 检查是否存在孤立节点、端口连线错误（如协议节点缺少 true/false 路由）；
+		2. 检查关键 HTTP/脚本步骤是否有断言验证与错误分支处理；
+		3. 对节点的命名、DAG 执行流序与自动布局给出优化建议。
+			 */
+			prompt_review_flow: (arg: { connCount: number, nodeCount: number }) => LocalizedString
 		}
 		spotlight: {
 			/**
