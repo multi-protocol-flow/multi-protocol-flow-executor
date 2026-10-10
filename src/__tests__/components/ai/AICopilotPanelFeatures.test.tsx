@@ -4,10 +4,12 @@ import { AICopilotPanel } from '@/components/ai/AICopilotPanel';
 import { useAIStore } from '@/stores/ai';
 import { useSettingsStore } from '@/stores/settings';
 import { getLL } from '@/i18n/i18n-lazy';
+import { aiSessionStorage } from '@/services/storage/aiSessionStorage';
 
 describe('AICopilotPanel UI & Execution Enhancements', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     window.HTMLElement.prototype.scrollIntoView = vi.fn();
+    await aiSessionStorage.clearAllSessions();
     useAIStore.getState().reset();
     useSettingsStore.setState({
       aiProviders: [
@@ -201,5 +203,157 @@ describe('AICopilotPanel UI & Execution Enhancements', () => {
       fireEvent.click(disableBtn);
     });
     expect(useAIStore.getState().alwaysTrustHighRisk).toBe(false);
+  });
+
+  it('6. 输入 / 弹出斜杠指令浮层菜单，支持点击与选择执行', async () => {
+    await act(async () => {
+      useAIStore.setState({ isCopilotOpen: true });
+    });
+
+    render(<AICopilotPanel />);
+    const textarea = screen.getByPlaceholderText(getLL().ai.copilot.input_placeholder());
+
+    // 用户在输入框中输入 '/'
+    await act(async () => {
+      fireEvent.change(textarea, { target: { value: '/' } });
+    });
+
+    // 快捷指令弹层显示
+    expect(screen.getByText(getLL().ai.copilot.slash_commands_title())).toBeInTheDocument();
+    expect(screen.getByText('/compact')).toBeInTheDocument();
+    expect(screen.getByText('/clear')).toBeInTheDocument();
+    expect(screen.getByText('/help')).toBeInTheDocument();
+
+    // 点击 /help 指令项执行
+    const helpBtn = screen.getByText('/help').closest('button');
+    expect(helpBtn).toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.click(helpBtn!);
+    });
+
+    // 消息列表中应注入 help 说明消息
+    const messages = useAIStore.getState().messages;
+    expect(messages.length).toBeGreaterThanOrEqual(1);
+    expect(messages[0].content).toContain('/compact');
+  });
+
+  it('7. 渲染上下文压缩卡片并可切换查看已归档的原始记录', async () => {
+    const testMessages = [
+      {
+        id: 'archived-1',
+        role: 'user' as const,
+        content: '第一轮历史提问',
+        isArchived: true,
+        timestamp: 1000,
+      },
+      {
+        id: 'archived-2',
+        role: 'assistant' as const,
+        content: '第一轮历史回答',
+        isArchived: true,
+        timestamp: 2000,
+      },
+      {
+        id: 'summary-1',
+        role: 'assistant' as const,
+        content: '### 会话状态摘要\n- 已完成步骤：已配置HTTP节点',
+        isSummary: true,
+        compactMeta: {
+          compressedMessageCount: 2,
+          originalTokenEstimate: 120,
+          timestamp: 3000,
+        },
+        timestamp: 3000,
+      },
+      {
+        id: 'recent-1',
+        role: 'user' as const,
+        content: '第二轮最新提问',
+        timestamp: 4000,
+      },
+    ];
+
+    await aiSessionStorage.saveSession({
+      id: 'session-with-compact',
+      title: '压缩测试',
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      messages: testMessages,
+    });
+
+    await act(async () => {
+      useAIStore.setState({
+        isCopilotOpen: true,
+        currentSessionId: 'session-with-compact',
+        messages: testMessages,
+      });
+    });
+
+    render(<AICopilotPanel />);
+
+    // 验证渲染了压缩卡片标题与 Token 统计
+    expect(screen.getByText(getLL().ai.copilot.compact_card_title({ count: 2 }))).toBeInTheDocument();
+    expect(screen.getByText(getLL().ai.copilot.compact_card_tokens({ tokens: 120 }))).toBeInTheDocument();
+    expect(screen.getByText(/已配置HTTP节点/)).toBeInTheDocument();
+
+    // 默认情况下，已归档的具体消息折叠未展开
+    expect(screen.queryByText('第一轮历史提问')).not.toBeInTheDocument();
+
+    // 点击展开查看归档记录
+    const viewArchivedBtn = screen.getByText(new RegExp(getLL().ai.copilot.compact_card_view_archived()));
+    await act(async () => {
+      fireEvent.click(viewArchivedBtn);
+    });
+
+    // 展开后显示已归档的原始提问
+    expect(screen.getByText('第一轮历史提问')).toBeInTheDocument();
+    expect(screen.getByText('第一轮历史回答')).toBeInTheDocument();
+  });
+
+  it('8. 消息多于 2 条时头部工具栏显示压缩上下文按钮', async () => {
+    const ll = getLL();
+    await act(async () => {
+      useAIStore.setState({
+        isCopilotOpen: true,
+        messages: [
+          { id: '1', role: 'user', content: 'msg 1', timestamp: 1 },
+          { id: '2', role: 'assistant', content: 'msg 2', timestamp: 2 },
+          { id: '3', role: 'user', content: 'msg 3', timestamp: 3 },
+        ],
+      });
+    });
+
+    render(<AICopilotPanel />);
+
+    const compactBtn = screen.getByTitle(ll.ai.copilot.compact_button_tip());
+    expect(compactBtn).toBeInTheDocument();
+  });
+
+  it('9. 侧边栏反复展开与收起，Hook 调用顺序与数量严格一致，无 Rendered more hooks 异常', async () => {
+    // 初始关闭状态
+    useAIStore.setState({ isCopilotOpen: false });
+    const { rerender } = render(<AICopilotPanel />);
+
+    // 展开面板
+    await act(async () => {
+      useAIStore.setState({ isCopilotOpen: true });
+    });
+    rerender(<AICopilotPanel />);
+    expect(screen.getByRole('complementary')).toBeInTheDocument();
+
+    // 收起面板
+    await act(async () => {
+      useAIStore.setState({ isCopilotOpen: false });
+    });
+    rerender(<AICopilotPanel />);
+    expect(screen.queryByRole('complementary')).not.toBeInTheDocument();
+
+    // 再次展开面板
+    await act(async () => {
+      useAIStore.setState({ isCopilotOpen: true });
+    });
+    rerender(<AICopilotPanel />);
+    expect(screen.getByRole('complementary')).toBeInTheDocument();
   });
 });

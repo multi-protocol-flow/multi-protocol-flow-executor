@@ -8,3 +8,4 @@ export { AIProviderSettingsCard } from './AIProviderSettingsCard';
 export { AIConfirmCard } from './AIConfirmCard';
 export { AIToolCallItem } from './AIToolCallItem';
 export { AIErrorMessageCard } from './AIErrorMessageCard';
+export { AICompactedMessageCard } from './AICompactedMessageCard';

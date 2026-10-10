@@ -31,6 +31,7 @@ import {
   AlertCircle,
   Folder,
   ShieldCheck,
+  Archive,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -44,6 +45,8 @@ import { useExecutionStore } from '@/stores/execution';
 import { AIToolCallItem } from './AIToolCallItem';
 import { AIConfirmCard } from './AIConfirmCard';
 import { AIErrorMessageCard } from './AIErrorMessageCard';
+import { AICompactedMessageCard } from './AICompactedMessageCard';
+import { findMatchingSlashCommands } from '@/services/ai/slashCommands';
 import { formatToolTitle } from '@/services/ai/toolTitleFormatter';
 import {
   compressAndConvertToBase64,
@@ -86,6 +89,8 @@ export function AICopilotPanel() {
     sendMessage,
     stopGeneration,
     clearMessages,
+    isCompacting,
+    compactHistory,
   } = useAIStore();
   const { aiProviders, activeAiProviderId } = useSettingsStore();
   const openSettingsDialog = useUIStore((s) => s.openSettingsDialog);
@@ -105,7 +110,17 @@ export function AICopilotPanel() {
 
   // 拖拽拉伸宽度状态
   const [isResizing, setIsResizing] = useState(false);
+  // 斜杠指令选中索引
+  const [selectedCommandIndex, setSelectedCommandIndex] = useState(0);
 
+  const matchingCommands =
+    inputPrompt.startsWith('/') && !inputPrompt.includes(' ')
+      ? findMatchingSlashCommands(inputPrompt)
+      : [];
+
+  useEffect(() => {
+    setSelectedCommandIndex(0);
+  }, [inputPrompt]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -331,6 +346,35 @@ export function AICopilotPanel() {
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (matchingCommands.length > 0) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setSelectedCommandIndex((prev) => (prev + 1) % matchingCommands.length);
+        return;
+      }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setSelectedCommandIndex(
+          (prev) => (prev - 1 + matchingCommands.length) % matchingCommands.length,
+        );
+        return;
+      }
+      if ((e.key === 'Enter' || e.key === 'Tab') && !e.shiftKey) {
+        e.preventDefault();
+        const selectedCmd = matchingCommands[selectedCommandIndex];
+        if (selectedCmd) {
+          setInputPrompt('');
+          selectedCmd.run('');
+          return;
+        }
+      }
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setInputPrompt('');
+        return;
+      }
+    }
+
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
@@ -727,6 +771,23 @@ export function AICopilotPanel() {
               <Plus className="h-4 w-4" />
             </Button>
 
+            {/* 上下文压缩按钮 */}
+            {messages.length > 2 && (
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-7 w-7 text-muted-foreground hover:text-indigo-500 hover:bg-indigo-500/10 transition-colors"
+                onClick={() => compactHistory()}
+                disabled={isCompacting || isGenerating}
+                title={ll.ai.copilot.compact_button_tip()}
+              >
+                {isCompacting ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin text-indigo-500" />
+                ) : (
+                  <Archive className="h-3.5 w-3.5" />
+                )}
+              </Button>
+            )}
             {messages.length > 0 && (
               <Button
                 size="icon"
@@ -840,165 +901,216 @@ export function AICopilotPanel() {
             </div>
           )}
 
-          {/* 消息对话气泡 */}
-          {messages.map((msg: AIMessage) => {
-            if (msg.role === 'system') return null;
+          {/* 消息对话气泡与上下文压缩卡片 */}
+          {(() => {
+            const renderNormalMessage = (msg: AIMessage) => {
+              if (msg.role === 'system') return null;
 
-            if (msg.role === 'user') {
-              return (
-                <div key={msg.id} className="flex justify-end gap-2 pl-6">
-                  <div className="max-w-[88%] space-y-1.5">
-                    {/* 用户附加的图片展示 */}
-                    {msg.images && msg.images.length > 0 && (
-                      <div className="flex flex-wrap justify-end gap-1.5">
-                        {msg.images.map((imgSrc, idx) => (
-                          <button
-                            key={idx}
-                            type="button"
-                            className="overflow-hidden rounded-lg border border-primary/30 max-w-[180px] max-h-[140px] hover:opacity-90 transition-opacity cursor-zoom-in"
-                            onClick={() => setPreviewImageUrl(imgSrc)}
-                          >
-                            <img
-                              src={imgSrc}
-                              alt={`Upload ${idx + 1}`}
-                              className="w-full h-full object-cover rounded-lg"
-                            />
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                    {msg.isCorrection && (
-                      <div className="flex items-center justify-end gap-1 text-[10px] text-amber-500 font-medium pb-0.5">
-                        <Zap className="h-2.5 w-2.5 fill-current" />
-                        <span>{ll.ai.copilot.steer_badge()}</span>
-                      </div>
-                    )}
-
-                    {msg.content && (
-                      <div className="rounded-2xl rounded-tr-sm bg-primary px-3.5 py-2 text-primary-foreground text-xs shadow-xs break-words whitespace-pre-wrap overflow-hidden max-w-full">
-                        {msg.content}
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/20 text-primary mt-0.5">
-                    <User className="h-3.5 w-3.5" />
-                  </div>
-                </div>
-              );
-            }
-
-            if (msg.role === 'assistant') {
-              if (msg.status === 'error') {
+              if (msg.role === 'user') {
                 return (
-                  <div key={msg.id} className="flex justify-start gap-2 pr-4">
-                    <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-destructive/10 text-destructive mt-0.5">
-                      <AlertCircle className="h-3.5 w-3.5" />
+                  <div key={msg.id} className="flex justify-end gap-2 pl-6">
+                    <div className="max-w-[88%] space-y-1.5">
+                      {/* 用户附加的图片展示 */}
+                      {msg.images && msg.images.length > 0 && (
+                        <div className="flex flex-wrap justify-end gap-1.5">
+                          {msg.images.map((imgSrc, idx) => (
+                            <button
+                              key={idx}
+                              type="button"
+                              className="overflow-hidden rounded-lg border border-primary/30 max-w-[180px] max-h-[140px] hover:opacity-90 transition-opacity cursor-zoom-in"
+                              onClick={() => setPreviewImageUrl(imgSrc)}
+                            >
+                              <img
+                                src={imgSrc}
+                                alt={`Upload ${idx + 1}`}
+                                className="w-full h-full object-cover rounded-lg"
+                              />
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      {msg.isCorrection && (
+                        <div className="flex items-center justify-end gap-1 text-[10px] text-amber-500 font-medium pb-0.5">
+                          <Zap className="h-2.5 w-2.5 fill-current" />
+                          <span>{ll.ai.copilot.steer_badge()}</span>
+                        </div>
+                      )}
+
+                      {msg.content && (
+                        <div className="rounded-2xl rounded-tr-sm bg-primary px-3.5 py-2 text-primary-foreground text-xs shadow-xs break-words whitespace-pre-wrap overflow-hidden max-w-full">
+                          {msg.content}
+                        </div>
+                      )}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <AIErrorMessageCard message={msg} />
+                    <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/20 text-primary mt-0.5">
+                      <User className="h-3.5 w-3.5" />
                     </div>
                   </div>
                 );
               }
 
-              const isStreamingThis = activeStreamingMessageId === msg.id;
-              const hasContent = Boolean(msg.content && msg.content.trim().length > 0);
-              const hasThought = Boolean(msg.thought && msg.thought.trim().length > 0);
-              const hasToolCalls = Boolean(msg.tool_calls && msg.tool_calls.length > 0);
+              if (msg.role === 'assistant') {
+                if (msg.status === 'error') {
+                  return (
+                    <div key={msg.id} className="flex justify-start gap-2 pr-4">
+                      <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-destructive/10 text-destructive mt-0.5">
+                        <AlertCircle className="h-3.5 w-3.5" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <AIErrorMessageCard message={msg} />
+                      </div>
+                    </div>
+                  );
+                }
 
-              // 既无正文、又无思考、又无工具调用，且当前没有处于流式中：绝对不渲染多余的空白头像！
-              if (!hasContent && !hasThought && !hasToolCalls && !isStreamingThis) {
-                return null;
+                const isStreamingThis = activeStreamingMessageId === msg.id;
+                const hasContent = Boolean(msg.content && msg.content.trim().length > 0);
+                const hasThought = Boolean(msg.thought && msg.thought.trim().length > 0);
+                const hasToolCalls = Boolean(msg.tool_calls && msg.tool_calls.length > 0);
+
+                // 既无正文、又无思考、又无工具调用，且当前没有处于流式中：绝对不渲染多余的空白头像！
+                if (!hasContent && !hasThought && !hasToolCalls && !isStreamingThis) {
+                  return null;
+                }
+
+                const isLatestAssistant = msg.id === latestAssistantMsgId;
+                const thoughtOpen =
+                  openThoughts[msg.id] !== undefined
+                    ? openThoughts[msg.id]
+                    : (isStreamingThis || (isGenerating && isLatestAssistant));
+
+                return (
+                  <div key={msg.id} className="flex justify-start gap-2 pr-4">
+                    <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary mt-0.5">
+                      <Bot className="h-3.5 w-3.5" />
+                    </div>
+
+                    <div className="flex-1 space-y-2 min-w-0">
+                      {/* 深度思考过程展示 (DeepSeek R1 / Reasoning) */}
+                      {msg.thought && (
+                        <div className="rounded border border-border/60 bg-muted/30 text-xs overflow-hidden">
+                          <button
+                            type="button"
+                            className="flex w-full items-center gap-1.5 px-2.5 py-1.5 text-left text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                            onClick={() => toggleThought(msg.id)}
+                          >
+                            <Brain className="h-3 w-3 text-indigo-500 shrink-0" />
+                            <span className="font-medium text-[11px] truncate min-w-0 flex-1">
+                              {ll.ai.copilot.thought_process()}
+                              {isStreamingThis && (
+                                <span className="ml-1.5 text-[10px] text-primary animate-pulse font-normal">
+                                  ({ll.ai.copilot.thinking()})
+                                </span>
+                              )}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground/70 font-mono mr-1">
+                              {msg.thought.length} 字
+                            </span>
+                            {thoughtOpen ? (
+                              <ChevronDown className="h-3 w-3 ml-auto shrink-0" />
+                            ) : (
+                              <ChevronRight className="h-3 w-3 ml-auto shrink-0" />
+                            )}
+                          </button>
+                          {thoughtOpen && (
+                            <div
+                              ref={isStreamingThis ? activeStreamingThoughtRef : undefined}
+                              className="border-t border-border/40 p-2 text-[11px] font-mono text-muted-foreground/90 whitespace-pre-wrap break-words bg-background/40 max-h-48 overflow-y-auto [contain:content]"
+                            >
+                              {msg.thought}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* 正文内容渲染（放在工具调用前，保证意图和方案规划先于工具卡片呈现） */}
+                      {msg.content ? (
+                        <div className="rounded-2xl rounded-tl-sm bg-muted/40 p-3 border border-border/40 text-foreground text-xs leading-relaxed break-words">
+                          <MarkdownViewer content={msg.content} compact />
+                        </div>
+                      ) : isStreamingThis && !msg.thought && (!msg.tool_calls || msg.tool_calls.length === 0) ? (
+                        <div className="flex items-center gap-1.5 text-muted-foreground py-1">
+                          <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+                          <span className="text-xs">{ll.ai.copilot.thinking()}</span>
+                        </div>
+                      ) : null}
+
+                      {/* 工具调用项展示 */}
+                      {msg.tool_calls && msg.tool_calls.length > 0 && (
+                        <div className="space-y-1">
+                          {msg.tool_calls.map((tc) => {
+                            const toolMsg = messages.find(
+                              (m) => m.role === 'tool' && m.tool_call_id === tc.id,
+                            );
+                            const resultStr = tc.output ?? toolMsg?.content;
+                            return (
+                              <AIToolCallItem
+                                key={tc.id}
+                                toolCall={tc}
+                                result={resultStr}
+                                isExecuted={!isStreamingThis && resultStr !== undefined}
+                              />
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
               }
 
-              const isLatestAssistant = msg.id === latestAssistantMsgId;
-              const thoughtOpen =
-                openThoughts[msg.id] !== undefined
-                  ? openThoughts[msg.id]
-                  : (isStreamingThis || (isGenerating && isLatestAssistant));
+              return null;
+            };
 
-              return (
-                <div key={msg.id} className="flex justify-start gap-2 pr-4">
-                  <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary mt-0.5">
-                    <Bot className="h-3.5 w-3.5" />
-                  </div>
+            const elements: React.ReactNode[] = [];
+            let pendingArchived: AIMessage[] = [];
 
-                  <div className="flex-1 space-y-2 min-w-0">
-                    {/* 深度思考过程展示 (DeepSeek R1 / Reasoning) */}
-                    {msg.thought && (
-                      <div className="rounded border border-border/60 bg-muted/30 text-xs overflow-hidden">
-                        <button
-                          type="button"
-                          className="flex w-full items-center gap-1.5 px-2.5 py-1.5 text-left text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
-                          onClick={() => toggleThought(msg.id)}
-                        >
-                          <Brain className="h-3 w-3 text-indigo-500 shrink-0" />
-                          <span className="font-medium text-[11px] truncate min-w-0 flex-1">
-                            {ll.ai.copilot.thought_process()}
-                            {isStreamingThis && (
-                              <span className="ml-1.5 text-[10px] text-primary animate-pulse font-normal">
-                                ({ll.ai.copilot.thinking()})
-                              </span>
-                            )}
-                          </span>
-                          <span className="text-[10px] text-muted-foreground/70 font-mono mr-1">
-                            {msg.thought.length} 字
-                          </span>
-                          {thoughtOpen ? (
-                            <ChevronDown className="h-3 w-3 ml-auto shrink-0" />
-                          ) : (
-                            <ChevronRight className="h-3 w-3 ml-auto shrink-0" />
-                          )}
-                        </button>
-                        {thoughtOpen && (
-                          <div
-                            ref={isStreamingThis ? activeStreamingThoughtRef : undefined}
-                            className="border-t border-border/40 p-2 text-[11px] font-mono text-muted-foreground/90 whitespace-pre-wrap break-words bg-background/40 max-h-48 overflow-y-auto [contain:content]"
-                          >
-                            {msg.thought}
-                          </div>
-                        )}
-                      </div>
-                    )}
+            for (let i = 0; i < messages.length; i++) {
+              const msg = messages[i];
+              if (msg.role === 'system') continue;
 
-                    {/* 正文内容渲染（放在工具调用前，保证意图和方案规划先于工具卡片呈现） */}
-                    {msg.content ? (
-                      <div className="rounded-2xl rounded-tl-sm bg-muted/40 p-3 border border-border/40 text-foreground text-xs leading-relaxed break-words">
-                        <MarkdownViewer content={msg.content} compact />
-                      </div>
-                    ) : isStreamingThis && !msg.thought && (!msg.tool_calls || msg.tool_calls.length === 0) ? (
-                      <div className="flex items-center gap-1.5 text-muted-foreground py-1">
-                        <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
-                        <span className="text-xs">{ll.ai.copilot.thinking()}</span>
-                      </div>
-                    ) : null}
+              if (msg.isArchived) {
+                pendingArchived.push(msg);
+                continue;
+              }
 
-                    {/* 工具调用项展示 */}
-                    {msg.tool_calls && msg.tool_calls.length > 0 && (
-                      <div className="space-y-1">
-                        {msg.tool_calls.map((tc) => {
-                          const toolMsg = messages.find(
-                            (m) => m.role === 'tool' && m.tool_call_id === tc.id,
-                          );
-                          const resultStr = tc.output ?? toolMsg?.content;
-                          return (
-                            <AIToolCallItem
-                              key={tc.id}
-                              toolCall={tc}
-                              result={resultStr}
-                              isExecuted={!isStreamingThis && resultStr !== undefined}
-                            />
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                </div>
+              if (msg.isSummary) {
+                const archivedForThis = pendingArchived;
+                pendingArchived = [];
+                elements.push(
+                  <AICompactedMessageCard
+                    key={msg.id}
+                    message={msg}
+                    archivedMessages={archivedForThis}
+                  />,
+                );
+                continue;
+              }
+
+              elements.push(renderNormalMessage(msg));
+            }
+
+            if (pendingArchived.length > 0) {
+              elements.unshift(
+                <AICompactedMessageCard
+                  key="fallback_archived"
+                  message={{
+                    id: 'fallback_archived',
+                    role: 'assistant',
+                    content: '',
+                    timestamp: Date.now(),
+                    compactMeta: {
+                      compressedMessageCount: pendingArchived.length,
+                      timestamp: Date.now(),
+                    },
+                  }}
+                  archivedMessages={pendingArchived}
+                />,
               );
             }
 
-            return null;
-          })}
+            return elements;
+          })()}
 
           {/* 高风险待确认卡片 */}
           {pendingActions
@@ -1118,6 +1230,59 @@ export function AICopilotPanel() {
                 : 'border-border focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/30'
             }`}
           >
+            {/* 斜杠快捷指令自动补全浮层 */}
+            {matchingCommands.length > 0 && (
+              <div className="absolute bottom-full left-0 right-0 mb-1.5 rounded-lg border border-border bg-popover text-popover-foreground shadow-xl p-1 z-30 space-y-0.5 animate-in fade-in slide-in-from-bottom-1 duration-100">
+                <div className="px-2 py-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center justify-between border-b border-border/40 select-none">
+                  <span>{ll.ai.copilot.slash_commands_title()}</span>
+                  <span className="text-[9px] font-normal font-mono">{ll.ai.copilot.slash_commands_hint()}</span>
+                </div>
+                <div className="max-h-48 overflow-y-auto space-y-0.5">
+                  {matchingCommands.map((cmd, idx) => {
+                    const isSelected = idx === selectedCommandIndex;
+                    return (
+                      <button
+                        key={cmd.id}
+                        type="button"
+                        className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-md text-left text-xs transition-colors cursor-pointer ${
+                          isSelected
+                            ? 'bg-primary text-primary-foreground font-medium'
+                            : 'hover:bg-muted text-foreground'
+                        }`}
+                        onMouseEnter={() => setSelectedCommandIndex(idx)}
+                        onClick={() => {
+                          setInputPrompt('');
+                          cmd.run('');
+                        }}
+                      >
+                        <div className="flex items-center gap-2 min-w-0 flex-1 mr-2">
+                          <span className="font-mono font-semibold">{cmd.name}</span>
+                          <span
+                            className={`truncate text-xs ${
+                              isSelected
+                                ? 'text-primary-foreground/90'
+                                : 'text-muted-foreground'
+                            }`}
+                          >
+                            {cmd.title()}
+                          </span>
+                        </div>
+                        <span
+                          className={`text-[10px] truncate max-w-[150px] shrink-0 ${
+                            isSelected
+                              ? 'text-primary-foreground/75'
+                              : 'text-muted-foreground/60'
+                          }`}
+                        >
+                          {cmd.description()}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             <textarea
               ref={textareaRef}
               value={inputPrompt}

@@ -103,6 +103,8 @@ vi.mock('@/i18n/i18n-lazy', () => ({
         custom_system_prompt_label: () => '自定义全局 System Prompt',
         custom_system_prompt_placeholder: () => '输入附加的系统指令...',
         custom_system_prompt_tip: () => '提示词说明',
+        trust_mode_label: () => '高风险操作完全信任模式',
+        trust_mode_desc: () => '完全信任说明',
       },
     },
     plugins: {
