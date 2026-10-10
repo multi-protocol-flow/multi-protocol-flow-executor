@@ -87,10 +87,29 @@ export interface AIMessage {
   status?: AIMessageStatus;
   /** 是否为中途补充要求/调整指令 */
   isCorrection?: boolean;
+  /** 是否为会话压缩总结节点 */
+  isSummary?: boolean;
+  /** 压缩元数据 */
+  compactMeta?: {
+    compressedMessageCount: number;
+    originalTokenEstimate?: number;
+    timestamp: number;
+  };
+  /** 是否已被压缩归档 (发送给 LLM 时跳过) */
+  isArchived?: boolean;
   /** 错误信息 */
   error?: string;
 }
 
+/**
+ * 斜杠指令定义
+ */
+export interface AISlashCommand {
+  name: string;
+  aliases?: string[];
+  description: string;
+  execute: (args?: string) => Promise<boolean | void> | boolean | void;
+}
 // ============================================================================
 // Tool 定义协议 (JSON Schema)
 // ============================================================================
@@ -247,4 +266,6 @@ export interface AIState {
   alwaysTrustHighRisk: boolean;
   /** 错误信息 */
   error: string | null;
+  /** 是否正在执行上下文压缩 */
+  isCompacting: boolean;
 }

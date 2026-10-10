@@ -3,11 +3,16 @@ import {
   buildSystemPrompt,
   buildActiveStateSummary,
   formatNodeConfigSummary,
+  buildCompactionSystemPrompt,
+  buildCompactionUserPrompt,
+  estimateTokens,
+  pruneMessagesForSending,
 } from '@/services/ai/contextBuilder';
 import { useFlowStore } from '@/stores/flow';
 import { useEnvironmentStore } from '@/stores/environment';
 import { useExecutionStore } from '@/stores/execution';
 import type { Flow, FlowExecutionReport, HttpConfig, ScriptNodeConfig } from '@/types';
+import type { AIMessage } from '@/types/ai';
 
 describe('contextBuilder', () => {
   beforeEach(() => {
@@ -260,6 +265,113 @@ describe('contextBuilder', () => {
       expect(res).toContain('target: ./subflows/login.json');
       expect(res).toContain('inherit_vars: true');
       expect(res).toContain('export_vars: true');
+    });
+  });
+
+  describe('compaction & pruning utilities', () => {
+    it('buildCompactionSystemPrompt 返回规范的会话压缩系统指令', () => {
+      const prompt = buildCompactionSystemPrompt();
+      expect(prompt).toContain('Context Compaction Engine');
+      expect(prompt).toContain('Objective & Flow Architecture');
+      expect(prompt).toContain('Key Variables & Specifications');
+      expect(prompt).toContain('Current Status & Next Actions');
+    });
+
+    it('buildCompactionUserPrompt 将多角色消息转为结构化纯文本', () => {
+      const messages: AIMessage[] = [
+        { id: '1', role: 'user', content: '创建登录流程', timestamp: 1 },
+        {
+          id: '2',
+          role: 'assistant',
+          content: '好的，正在创建',
+          tool_calls: [
+            {
+              id: 'tc1',
+              type: 'function',
+              function: { name: 'add_node', arguments: '{"type":"http:request"}' },
+            },
+          ],
+          timestamp: 2,
+        },
+        { id: '3', role: 'tool', name: 'add_node', content: 'node created ok', timestamp: 3 },
+      ];
+      const res = buildCompactionUserPrompt(messages);
+      expect(res).toContain('[User]: 创建登录流程');
+      expect(res).toContain('[Assistant]: 好的，正在创建');
+      expect(res).toContain('[Tool Calls]: add_node({"type":"http:request"})');
+      expect(res).toContain('[Tool Output (add_node)]: node created ok');
+    });
+
+    it('estimateTokens 预估字符消耗', () => {
+      const messages: AIMessage[] = [
+        { id: '1', role: 'user', content: 'Hello world', timestamp: 1 },
+      ];
+      const tokens = estimateTokens(messages);
+      expect(tokens).toBeGreaterThan(0);
+    });
+
+    it('pruneMessagesForSending 正确过滤归档消息并截断超长历史工具输出', () => {
+      const messages: AIMessage[] = [
+        { id: '1', role: 'user', content: '已归档内容', isArchived: true, timestamp: 1 },
+        { id: '2', role: 'assistant', content: '历史摘要', isSummary: true, timestamp: 2 },
+        {
+          id: '3',
+          role: 'assistant',
+          content: '中间步骤',
+          thought: '深度思考中...',
+          timestamp: 3,
+        },
+        {
+          id: '4',
+          role: 'tool',
+          name: 'scan',
+          content: 'A'.repeat(1200),
+          timestamp: 4,
+        },
+        { id: '5', role: 'user', content: '最新提问', isCorrection: true, timestamp: 5 },
+        { id: '6', role: 'assistant', content: '最新回答', thought: '保留最新思考', timestamp: 6 },
+        { id: '7', role: 'tool', name: 'latest_tool', content: 'B'.repeat(1200), timestamp: 7 },
+      ];
+
+      const pruned = pruneMessagesForSending(messages, '[补充要求]:');
+      // 1. 已归档消息被过滤
+      expect(pruned.find((m) => m.id === '1')).toBeUndefined();
+      // 2. isSummary 消息被注入语义前缀
+      const summaryMsg = pruned.find((m) => m.id === '2');
+      expect(summaryMsg?.content).toContain('[Previous Conversation Summary & Key Milestones]:');
+      // 3. 历史 assistant 消息的旧 thought 被剥离，而最新 assistant 的 thought 保留
+      const oldAssistant = pruned.find((m) => m.id === '3');
+      const latestAssistant = pruned.find((m) => m.id === '6');
+      expect(oldAssistant?.thought).toBeUndefined();
+      expect(latestAssistant?.thought).toBe('保留最新思考');
+      // 4. 较旧的超长 tool 消息被截断
+      const oldTool = pruned.find((m) => m.id === '4');
+      expect(oldTool?.content).toContain('... [output truncated for context limit]');
+      // 5. 最新的 tool 消息保留
+      const latestTool = pruned.find((m) => m.id === '7');
+      expect(latestTool?.content).toBe('B'.repeat(1200));
+      // 6. user 纠偏指令带上前缀
+      const userMsg = pruned.find((m) => m.id === '5');
+      expect(userMsg?.content).toBe('[补充要求]: 最新提问');
+    });
+
+    it('pruneMessagesForSending 仅保留最近两轮 user 消息的图片附件，较旧轮次剥离 images', () => {
+      const messages: AIMessage[] = [
+        { id: 'u1', role: 'user', content: '图1', images: ['data:image1'], timestamp: 1 },
+        { id: 'a1', role: 'assistant', content: '答1', timestamp: 2 },
+        { id: 'u2', role: 'user', content: '图2', images: ['data:image2'], timestamp: 3 },
+        { id: 'a2', role: 'assistant', content: '答2', timestamp: 4 },
+        { id: 'u3', role: 'user', content: '图3', images: ['data:image3'], timestamp: 5 },
+      ];
+
+      const pruned = pruneMessagesForSending(messages, '[补充要求]:');
+      const u1Pruned = pruned.find((m) => m.id === 'u1');
+      const u2Pruned = pruned.find((m) => m.id === 'u2');
+      const u3Pruned = pruned.find((m) => m.id === 'u3');
+
+      expect(u1Pruned?.images).toBeUndefined();
+      expect(u2Pruned?.images).toEqual(['data:image2']);
+      expect(u3Pruned?.images).toEqual(['data:image3']);
     });
   });
 });

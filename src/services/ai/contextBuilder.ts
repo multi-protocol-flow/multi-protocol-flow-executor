@@ -10,7 +10,7 @@ import { useSettingsStore } from '@/stores/settings';
 import { useConsoleStore } from '@/stores/console';
 import { useAIStore } from '@/stores/ai';
 import { useEnvironmentStore } from '@/stores/environment';
-
+import type { AIMessage } from '@/types/ai';
 /**
  * 构建系统提示词 (System Prompt)
  */
@@ -564,4 +564,161 @@ export function buildActiveStateSummary(): string {
   lines.push(`- **System Settings**: Theme = ${settingsState.theme}, Locale = ${settingsState.locale ?? 'en-US'}`);
 
   return lines.join('\n');
+}
+/**
+ * 构建会话历史压缩总结的系统提示词
+ */
+export function buildCompactionSystemPrompt(): string {
+  return `You are the Context Compaction Engine for MPE (Multi-Protocol Flow Executor).
+Your goal is to compress the preceding conversation and tool interaction history into an ultra-dense, structured, highly accurate state summary.
+
+OUTPUT STRUCTURE (Strict Markdown):
+### Objective & Flow Architecture
+- **Overall Goal**: Brief statement of what the user is trying to accomplish.
+- **Workflow Milestones**: Key nodes created, updated, or deleted, and verified working (include exact Node Names, Types, and IDs if available).
+
+### Key Variables & Specifications
+- **Variables & Mappings**: Crucial variable names, values, or extractor JSONPaths identified (e.g. \`{{TOKEN}}\`, \`$.body.data.id\`).
+- **Endpoints & Contracts**: Target URLs, protocols, ports, or API endpoints configured.
+
+### Current Status & Next Actions
+- **Current State**: Where the user and agent left off.
+- **Pending Tasks**: Unresolved items, next steps to execute, or failures that need fixing.
+- **Constraints & Learnings**: User preferences, errors encountered, or specific execution rules.
+
+RULES:
+1. Strip all raw HTTP payloads, lengthy HTML/JSON response dumps, and verbose CLI terminal logs.
+2. Keep the summary concise, dense, factual, and strictly under 350 words.
+3. Preserve exact names, variable references, and configuration keys so future actions remain seamless.`;
+}
+
+/**
+ * 将待压缩的消息列表转换为易于 LLM 提炼的紧凑对话文本
+ */
+export function buildCompactionUserPrompt(messages: AIMessage[]): string {
+  const lines: string[] = ['Please summarize the following conversation history into the structured format:'];
+  for (const m of messages) {
+    if (m.isSummary) {
+      lines.push(`\n[Previous Summary]:\n${m.content}`);
+      continue;
+    }
+    if (m.role === 'user') {
+      lines.push(`\n[User]: ${m.content || '(sent image attachments)'}`);
+    } else if (m.role === 'assistant') {
+      let text = m.content || '';
+      if (m.tool_calls && m.tool_calls.length > 0) {
+        const calls = m.tool_calls
+          .map((tc) => `${tc.function.name}(${tc.function.arguments || ''})`)
+          .join(', ');
+        text += `\n[Tool Calls]: ${calls}`;
+      }
+      lines.push(`\n[Assistant]: ${text.trim()}`);
+    } else if (m.role === 'tool') {
+      const out = m.content || '';
+      const snippet = out.length > 300 ? `${out.slice(0, 297)}...` : out;
+      lines.push(`\n[Tool Output (${m.name || 'tool'})]: ${snippet}`);
+    }
+  }
+  return lines.join('\n');
+}
+
+/**
+ * 估算消息列表的原始 Token 消耗（按混合字符经验常数预估）
+ */
+export function estimateTokens(messages: AIMessage[]): number {
+  let chars = 0;
+  for (const m of messages) {
+    if (m.content) chars += m.content.length;
+    if (m.thought) chars += m.thought.length;
+    if (m.tool_calls) {
+      for (const tc of m.tool_calls) {
+        chars += (tc.function.name ? tc.function.name.length : 0) +
+          (tc.function.arguments ? tc.function.arguments.length : 0) +
+          (tc.output ? tc.output.length : 0);
+      }
+    }
+  }
+  return Math.max(1, Math.round(chars / 1.8));
+}
+
+/**
+ * 在向大模型发送请求前执行历史消息装配与修剪 (Auto-Prune)
+ * 1. 过滤已归档 (isArchived) 与异常消息
+ * 2. 注入历史摘要 (isSummary) 的语义前缀
+ * 3. 对超出近期的长工具输出截断，剥离旧思考链 (thought) 与历史图片 Base64，节省上下文预算
+ */
+export function pruneMessagesForSending(
+  history: AIMessage[],
+  steerPrefix: string,
+): AIMessage[] {
+  // 1. 过滤无效和已归档消息
+  const activeMessages = history.filter(
+    (m) => m.status !== 'error' && !m.isArchived,
+  );
+
+  const total = activeMessages.length;
+  // 寻找最后一个 assistant 消息索引
+  let lastAssistantIndex = -1;
+  for (let i = total - 1; i >= 0; i--) {
+    if (activeMessages[i].role === 'assistant') {
+      lastAssistantIndex = i;
+      break;
+    }
+  }
+  // 统计所有 user 消息索引，确保保留最近 2 轮 user 消息的图片附件
+  const userIndices: number[] = [];
+  for (let i = 0; i < total; i++) {
+    if (activeMessages[i].role === 'user') {
+      userIndices.push(i);
+    }
+  }
+  const recentUserIndices = new Set(
+    userIndices.slice(Math.max(0, userIndices.length - 2)),
+  );
+  return activeMessages.map((m, idx) => {
+    // 摘要卡片转换为系统级上下文认知
+    if (m.isSummary) {
+      return {
+        ...m,
+        content: `[Previous Conversation Summary & Key Milestones]:\n${m.content}`,
+      };
+    }
+
+    // 用户纠偏补充指令
+    if (m.role === 'user') {
+      const isRecentUser = recentUserIndices.has(idx);
+      const userContent = m.isCorrection
+        ? `${steerPrefix} ${m.content}`
+        : m.content;
+
+      return {
+        ...m,
+        content: userContent,
+        // 历史超过 2 轮以上的旧用户消息不再回传冗长的 Base64 图片
+        images: isRecentUser ? m.images : undefined,
+      };
+    }
+
+    // 助手消息：仅保留最近一轮的 thought 推理链，历史旧轮次剥离以避免上下文膨胀
+    if (m.role === 'assistant') {
+      const isLatestAssistant = idx === lastAssistantIndex;
+      return {
+        ...m,
+        thought: isLatestAssistant ? m.thought : undefined,
+      };
+    }
+
+    // 工具结果：如果不在最后 3 条消息且内容过大，修剪过长历史输出
+    if (m.role === 'tool') {
+      const isRecent = idx >= total - 3;
+      if (!isRecent && m.content && m.content.length > 800) {
+        return {
+          ...m,
+          content: `${m.content.slice(0, 300)}\n... [output truncated for context limit]`,
+        };
+      }
+    }
+
+    return m;
+  });
 }
