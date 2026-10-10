@@ -9,3 +9,5 @@ export { AIConfirmCard } from './AIConfirmCard';
 export { AIToolCallItem } from './AIToolCallItem';
 export { AIErrorMessageCard } from './AIErrorMessageCard';
 export { AICompactedMessageCard } from './AICompactedMessageCard';
+export { AIMessageRow } from './AIMessageRow';
+export { AICopilotInput } from './AICopilotInput';
