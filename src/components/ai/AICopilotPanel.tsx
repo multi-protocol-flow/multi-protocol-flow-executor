@@ -2,57 +2,41 @@
  * AI Copilot 侧边栏面板组件 - 会话管理与多模态图片增强版
  */
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import {
   Sparkles,
   X,
   Trash2,
-  Send,
-  Square,
-  Bot,
-  User,
   Lightbulb,
-  Brain,
-  ChevronDown,
-  ChevronRight,
   Settings,
   ArrowRight,
   Loader2,
   Plus,
   History,
-  Image as ImageIcon,
   Edit2,
   Check,
   GripVertical,
   GripHorizontal,
   ArrowRightToLine,
-  ExternalLink,
   Zap,
-  AlertCircle,
-  Folder,
   ShieldCheck,
   Archive,
+  ChevronDown,
+  ExternalLink,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
-import { MarkdownViewer } from '@/components/ui/MarkdownViewer';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { useAIStore } from '@/stores/ai';
 import { useSettingsStore } from '@/stores/settings';
 import { useUIStore } from '@/stores/ui';
 import { useExecutionStore } from '@/stores/execution';
-import { AIToolCallItem } from './AIToolCallItem';
 import { AIConfirmCard } from './AIConfirmCard';
-import { AIErrorMessageCard } from './AIErrorMessageCard';
 import { AICompactedMessageCard } from './AICompactedMessageCard';
-import { findMatchingSlashCommands } from '@/services/ai/slashCommands';
+import { AIMessageRow } from './AIMessageRow';
+import { AICopilotInput } from './AICopilotInput';
 import { formatToolTitle } from '@/services/ai/toolTitleFormatter';
-import {
-  compressAndConvertToBase64,
-  extractImagesFromClipboard,
-  extractImagesFromDrop,
-} from '@/lib/imageUtils';
 import { getLL } from '@/i18n/i18n-lazy';
 import type { AIMessage } from '@/types/ai';
 
@@ -95,9 +79,6 @@ export function AICopilotPanel() {
   const { aiProviders, activeAiProviderId } = useSettingsStore();
   const openSettingsDialog = useUIStore((s) => s.openSettingsDialog);
 
-  const [inputPrompt, setInputPrompt] = useState('');
-  const [attachedImages, setAttachedImages] = useState<string[]>([]);
-  const [isDragOver, setIsDragOver] = useState(false);
   const [openThoughts, setOpenThoughts] = useState<Record<string, boolean>>({});
 
   // 历史会话下拉弹层状态
@@ -110,21 +91,9 @@ export function AICopilotPanel() {
 
   // 拖拽拉伸宽度状态
   const [isResizing, setIsResizing] = useState(false);
-  // 斜杠指令选中索引
-  const [selectedCommandIndex, setSelectedCommandIndex] = useState(0);
-
-  const matchingCommands =
-    inputPrompt.startsWith('/') && !inputPrompt.includes(' ')
-      ? findMatchingSlashCommands(inputPrompt)
-      : [];
-
-  useEffect(() => {
-    setSelectedCommandIndex(0);
-  }, [inputPrompt]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const activeStreamingThoughtRef = useRef<HTMLDivElement | null>(null);
 
@@ -135,13 +104,24 @@ export function AICopilotPanel() {
     agentStatus === 'executing_tools' ||
     agentStatus === 'waiting_confirmation';
 
-  const latestAssistantMsg = (() => {
+  const latestAssistantMsgId = useMemo(() => {
     for (let i = messages.length - 1; i >= 0; i--) {
-      if (messages[i].role === 'assistant') return messages[i];
+      if (messages[i].role === 'assistant') return messages[i].id;
     }
     return undefined;
-  })();
-  const latestAssistantMsgId = latestAssistantMsg?.id;
+  }, [messages]);
+
+  // 预建工具输出结果映射，避免各消息行在大量消息下重复搜索
+  const toolResultsMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (let i = 0; i < messages.length; i++) {
+      const m = messages[i];
+      if (m.role === 'tool' && m.tool_call_id && m.content) {
+        map[m.tool_call_id] = m.content;
+      }
+    }
+    return map;
+  }, [messages]);
 
   // 初始化会话列表
   useEffect(() => {
@@ -334,133 +314,25 @@ export function AICopilotPanel() {
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
   }, [setFloatingPosition]);
-  if (!isCopilotOpen) return null;
 
-  const handleSend = () => {
-    const text = inputPrompt.trim();
-    if (!text && attachedImages.length === 0) return;
-    const imgs = attachedImages.length > 0 ? [...attachedImages] : undefined;
-    setInputPrompt('');
-    setAttachedImages([]);
-    sendMessage(text, imgs);
-  };
+  const handleUsePrompt = useCallback(
+    (promptText: string) => {
+      sendMessage(promptText);
+    },
+    [sendMessage],
+  );
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (matchingCommands.length > 0) {
-      if (e.key === 'ArrowDown') {
-        e.preventDefault();
-        setSelectedCommandIndex((prev) => (prev + 1) % matchingCommands.length);
-        return;
-      }
-      if (e.key === 'ArrowUp') {
-        e.preventDefault();
-        setSelectedCommandIndex(
-          (prev) => (prev - 1 + matchingCommands.length) % matchingCommands.length,
-        );
-        return;
-      }
-      if ((e.key === 'Enter' || e.key === 'Tab') && !e.shiftKey) {
-        e.preventDefault();
-        const selectedCmd = matchingCommands[selectedCommandIndex];
-        if (selectedCmd) {
-          setInputPrompt('');
-          selectedCmd.run('');
-          return;
-        }
-      }
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        setInputPrompt('');
-        return;
-      }
-    }
-
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
-  };
-
-  const handlePaste = async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
-    const images = await extractImagesFromClipboard(e.clipboardData);
-    if (images.length > 0) {
-      e.preventDefault();
-      setAttachedImages((prev) => [...prev, ...images]);
-    }
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragOver(true);
-  };
-
-  const handleDragLeave = () => {
-    setIsDragOver(false);
-  };
-
-  const handleDrop = async (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragOver(false);
-
-    // 优先检查是否拖入本地工程文件夹或项目目录
-    const droppedFile = e.dataTransfer.files?.[0] as (File & { path?: string }) | undefined;
-    if (droppedFile?.path && !droppedFile.type.startsWith('image/')) {
-      const filePath = droppedFile.path;
-      const cleanPath = filePath.replace(/[/\\]+$/, '');
-      const segments = cleanPath.split(/[/\\]/);
-      const name = segments[segments.length - 1] || 'workspace';
-      setSessionWorkspace({
-        path: filePath,
-        name,
-      });
-      return;
-    }
-
-    const images = await extractImagesFromDrop(e.dataTransfer);
-    if (images.length > 0) {
-      setAttachedImages((prev) => [...prev, ...images]);
-    }
-  };
-
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    const newImages: string[] = [];
-    for (const file of files) {
-      if (file.type.startsWith('image/')) {
-        try {
-          const base64 = await compressAndConvertToBase64(file);
-          newImages.push(base64);
-        } catch {
-          // 忽略
-        }
-      }
-    }
-    if (newImages.length > 0) {
-      setAttachedImages((prev) => [...prev, ...newImages]);
-    }
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-
-  const handleRemoveImage = (index: number) => {
-    setAttachedImages((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const handleUsePrompt = (promptText: string) => {
-    sendMessage(promptText);
-  };
-
-  const toggleThought = (msgId: string) => {
+  const toggleThought = useCallback((msgId: string) => {
     setOpenThoughts((prev) => ({ ...prev, [msgId]: !prev[msgId] }));
-  };
-
+  }, []);
   const handleSaveRename = (sessionId: string) => {
     if (editTitleInput.trim()) {
       renameSession(sessionId, editTitleInput.trim());
     }
     setEditingSessionId(null);
   };
+  if (!isCopilotOpen) return null;
+
 
   return (
     <>
@@ -903,165 +775,6 @@ export function AICopilotPanel() {
 
           {/* 消息对话气泡与上下文压缩卡片 */}
           {(() => {
-            const renderNormalMessage = (msg: AIMessage) => {
-              if (msg.role === 'system') return null;
-
-              if (msg.role === 'user') {
-                return (
-                  <div key={msg.id} className="flex justify-end gap-2 pl-6">
-                    <div className="max-w-[88%] space-y-1.5">
-                      {/* 用户附加的图片展示 */}
-                      {msg.images && msg.images.length > 0 && (
-                        <div className="flex flex-wrap justify-end gap-1.5">
-                          {msg.images.map((imgSrc, idx) => (
-                            <button
-                              key={idx}
-                              type="button"
-                              className="overflow-hidden rounded-lg border border-primary/30 max-w-[180px] max-h-[140px] hover:opacity-90 transition-opacity cursor-zoom-in"
-                              onClick={() => setPreviewImageUrl(imgSrc)}
-                            >
-                              <img
-                                src={imgSrc}
-                                alt={`Upload ${idx + 1}`}
-                                className="w-full h-full object-cover rounded-lg"
-                              />
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                      {msg.isCorrection && (
-                        <div className="flex items-center justify-end gap-1 text-[10px] text-amber-500 font-medium pb-0.5">
-                          <Zap className="h-2.5 w-2.5 fill-current" />
-                          <span>{ll.ai.copilot.steer_badge()}</span>
-                        </div>
-                      )}
-
-                      {msg.content && (
-                        <div className="rounded-2xl rounded-tr-sm bg-primary px-3.5 py-2 text-primary-foreground text-xs shadow-xs break-words whitespace-pre-wrap overflow-hidden max-w-full">
-                          {msg.content}
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/20 text-primary mt-0.5">
-                      <User className="h-3.5 w-3.5" />
-                    </div>
-                  </div>
-                );
-              }
-
-              if (msg.role === 'assistant') {
-                if (msg.status === 'error') {
-                  return (
-                    <div key={msg.id} className="flex justify-start gap-2 pr-4">
-                      <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-destructive/10 text-destructive mt-0.5">
-                        <AlertCircle className="h-3.5 w-3.5" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <AIErrorMessageCard message={msg} />
-                      </div>
-                    </div>
-                  );
-                }
-
-                const isStreamingThis = activeStreamingMessageId === msg.id;
-                const hasContent = Boolean(msg.content && msg.content.trim().length > 0);
-                const hasThought = Boolean(msg.thought && msg.thought.trim().length > 0);
-                const hasToolCalls = Boolean(msg.tool_calls && msg.tool_calls.length > 0);
-
-                // 既无正文、又无思考、又无工具调用，且当前没有处于流式中：绝对不渲染多余的空白头像！
-                if (!hasContent && !hasThought && !hasToolCalls && !isStreamingThis) {
-                  return null;
-                }
-
-                const isLatestAssistant = msg.id === latestAssistantMsgId;
-                const thoughtOpen =
-                  openThoughts[msg.id] !== undefined
-                    ? openThoughts[msg.id]
-                    : (isStreamingThis || (isGenerating && isLatestAssistant));
-
-                return (
-                  <div key={msg.id} className="flex justify-start gap-2 pr-4">
-                    <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary mt-0.5">
-                      <Bot className="h-3.5 w-3.5" />
-                    </div>
-
-                    <div className="flex-1 space-y-2 min-w-0">
-                      {/* 深度思考过程展示 (DeepSeek R1 / Reasoning) */}
-                      {msg.thought && (
-                        <div className="rounded border border-border/60 bg-muted/30 text-xs overflow-hidden">
-                          <button
-                            type="button"
-                            className="flex w-full items-center gap-1.5 px-2.5 py-1.5 text-left text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
-                            onClick={() => toggleThought(msg.id)}
-                          >
-                            <Brain className="h-3 w-3 text-indigo-500 shrink-0" />
-                            <span className="font-medium text-[11px] truncate min-w-0 flex-1">
-                              {ll.ai.copilot.thought_process()}
-                              {isStreamingThis && (
-                                <span className="ml-1.5 text-[10px] text-primary animate-pulse font-normal">
-                                  ({ll.ai.copilot.thinking()})
-                                </span>
-                              )}
-                            </span>
-                            <span className="text-[10px] text-muted-foreground/70 font-mono mr-1">
-                              {msg.thought.length} 字
-                            </span>
-                            {thoughtOpen ? (
-                              <ChevronDown className="h-3 w-3 ml-auto shrink-0" />
-                            ) : (
-                              <ChevronRight className="h-3 w-3 ml-auto shrink-0" />
-                            )}
-                          </button>
-                          {thoughtOpen && (
-                            <div
-                              ref={isStreamingThis ? activeStreamingThoughtRef : undefined}
-                              className="border-t border-border/40 p-2 text-[11px] font-mono text-muted-foreground/90 whitespace-pre-wrap break-words bg-background/40 max-h-48 overflow-y-auto [contain:content]"
-                            >
-                              {msg.thought}
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                      {/* 正文内容渲染（放在工具调用前，保证意图和方案规划先于工具卡片呈现） */}
-                      {msg.content ? (
-                        <div className="rounded-2xl rounded-tl-sm bg-muted/40 p-3 border border-border/40 text-foreground text-xs leading-relaxed break-words">
-                          <MarkdownViewer content={msg.content} compact />
-                        </div>
-                      ) : isStreamingThis && !msg.thought && (!msg.tool_calls || msg.tool_calls.length === 0) ? (
-                        <div className="flex items-center gap-1.5 text-muted-foreground py-1">
-                          <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
-                          <span className="text-xs">{ll.ai.copilot.thinking()}</span>
-                        </div>
-                      ) : null}
-
-                      {/* 工具调用项展示 */}
-                      {msg.tool_calls && msg.tool_calls.length > 0 && (
-                        <div className="space-y-1">
-                          {msg.tool_calls.map((tc) => {
-                            const toolMsg = messages.find(
-                              (m) => m.role === 'tool' && m.tool_call_id === tc.id,
-                            );
-                            const resultStr = tc.output ?? toolMsg?.content;
-                            return (
-                              <AIToolCallItem
-                                key={tc.id}
-                                toolCall={tc}
-                                result={resultStr}
-                                isExecuted={!isStreamingThis && resultStr !== undefined}
-                              />
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              }
-
-              return null;
-            };
-
             const elements: React.ReactNode[] = [];
             let pendingArchived: AIMessage[] = [];
 
@@ -1087,7 +800,23 @@ export function AICopilotPanel() {
                 continue;
               }
 
-              elements.push(renderNormalMessage(msg));
+              const isStreamingThis = activeStreamingMessageId === msg.id;
+              const isLatestAssistant = msg.id === latestAssistantMsgId;
+
+              elements.push(
+                <AIMessageRow
+                  key={msg.id}
+                  message={msg}
+                  isStreaming={isStreamingThis}
+                  isGenerating={isGenerating}
+                  isLatestAssistant={isLatestAssistant}
+                  isThoughtOpen={openThoughts[msg.id]}
+                  toolResults={toolResultsMap}
+                  activeStreamingThoughtRef={activeStreamingThoughtRef}
+                  onToggleThought={toggleThought}
+                  onPreviewImage={setPreviewImageUrl}
+                />,
+              );
             }
 
             if (pendingArchived.length > 0) {
@@ -1123,7 +852,7 @@ export function AICopilotPanel() {
           {isGenerating && agentStatus === 'executing_tools' && (() => {
             const lastMsg = messages[messages.length - 1];
             const activeTool = lastMsg?.tool_calls?.find(
-              (tc) => !messages.some((m) => m.role === 'tool' && m.tool_call_id === tc.id),
+              (tc) => !toolResultsMap[tc.id],
             );
             const activeToolTitle = activeTool
               ? formatToolTitle(activeTool.function.name, activeTool.function.arguments).fullTitle
@@ -1145,233 +874,17 @@ export function AICopilotPanel() {
         </div>
 
         {/* 底部输入框区 */}
-        <footer
-          className="p-3 border-t border-border bg-background shrink-0 space-y-2"
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-        >
-          {/* 工作区胶囊组件 (Workspace Context Pill) */}
-          <div className="flex items-center justify-between">
-            {!activeWorkspace ? (
-              <button
-                type="button"
-                onClick={() => selectWorkspaceFolder()}
-                className="inline-flex items-center gap-1.5 px-2 py-1 text-[11px] font-medium text-muted-foreground hover:text-foreground bg-muted/40 hover:bg-muted/70 rounded-md border border-border/60 transition-colors"
-                title={ll.ai.copilot.link_workspace_tip()}
-              >
-                <Folder className="h-3.5 w-3.5 text-primary/70" />
-                <span>{ll.ai.copilot.link_workspace()}</span>
-              </button>
-            ) : (
-              <div className="w-full flex items-center justify-between text-[11px] bg-primary/5 border border-primary/20 rounded-md px-2 py-1 text-foreground">
-                <div
-                  className="flex items-center gap-1.5 min-w-0 max-w-[240px] truncate cursor-help"
-                  title={`${activeWorkspace.path}${activeWorkspace.techStack ? ` (${activeWorkspace.techStack})` : ''}`}
-                >
-                  <Folder className="h-3.5 w-3.5 text-primary shrink-0" />
-                  <span className="font-medium text-foreground truncate">{activeWorkspace.name}</span>
-                  <span className="text-[10px] text-muted-foreground truncate max-w-[120px]">{activeWorkspace.path}</span>
-                  {activeWorkspace.techStack && (
-                    <span className="shrink-0 px-1 py-0.2 text-[9px] bg-primary/10 text-primary rounded font-mono">
-                      {activeWorkspace.techStack}
-                    </span>
-                  )}
-                </div>
-                <div className="flex items-center gap-1 shrink-0 ml-2">
-                  <button
-                    type="button"
-                    onClick={() => selectWorkspaceFolder()}
-                    className="text-[10px] text-muted-foreground hover:text-foreground px-1 py-0.5 rounded hover:bg-muted transition-colors"
-                    title={ll.ai.copilot.switch_workspace_tip()}
-                  >
-                    {ll.ai.copilot.switch_workspace()}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setSessionWorkspace(null)}
-                    className="text-muted-foreground hover:text-destructive p-0.5 rounded hover:bg-destructive/10 transition-colors"
-                    title={ll.ai.copilot.unlink_workspace_tip()}
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* 图片附件待发预览条 */}
-          {attachedImages.length > 0 && (
-            <div className="flex flex-wrap gap-2 p-1.5 bg-muted/30 rounded-lg border border-border/50">
-              {attachedImages.map((imgSrc, idx) => (
-                <div key={idx} className="relative group">
-                  <img
-                    src={imgSrc}
-                    alt={`Preview ${idx + 1}`}
-                    className="h-12 w-12 object-cover rounded-md border border-border"
-                  />
-                  <button
-                    type="button"
-                    className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center text-[10px] shadow-sm hover:scale-110 transition-transform"
-                    onClick={() => handleRemoveImage(idx)}
-                    title={ll.ai.copilot.remove_image()}
-                  >
-                    ✕
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-
-          <div
-            className={`relative rounded-lg border bg-background transition-all ${
-              isDragOver
-                ? 'border-primary ring-2 ring-primary/20 bg-primary/5'
-                : 'border-border focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/30'
-            }`}
-          >
-            {/* 斜杠快捷指令自动补全浮层 */}
-            {matchingCommands.length > 0 && (
-              <div className="absolute bottom-full left-0 right-0 mb-1.5 rounded-lg border border-border bg-popover text-popover-foreground shadow-xl p-1 z-30 space-y-0.5 animate-in fade-in slide-in-from-bottom-1 duration-100">
-                <div className="px-2 py-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center justify-between border-b border-border/40 select-none">
-                  <span>{ll.ai.copilot.slash_commands_title()}</span>
-                  <span className="text-[9px] font-normal font-mono">{ll.ai.copilot.slash_commands_hint()}</span>
-                </div>
-                <div className="max-h-48 overflow-y-auto space-y-0.5">
-                  {matchingCommands.map((cmd, idx) => {
-                    const isSelected = idx === selectedCommandIndex;
-                    return (
-                      <button
-                        key={cmd.id}
-                        type="button"
-                        className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-md text-left text-xs transition-colors cursor-pointer ${
-                          isSelected
-                            ? 'bg-primary text-primary-foreground font-medium'
-                            : 'hover:bg-muted text-foreground'
-                        }`}
-                        onMouseEnter={() => setSelectedCommandIndex(idx)}
-                        onClick={() => {
-                          setInputPrompt('');
-                          cmd.run('');
-                        }}
-                      >
-                        <div className="flex items-center gap-2 min-w-0 flex-1 mr-2">
-                          <span className="font-mono font-semibold">{cmd.name}</span>
-                          <span
-                            className={`truncate text-xs ${
-                              isSelected
-                                ? 'text-primary-foreground/90'
-                                : 'text-muted-foreground'
-                            }`}
-                          >
-                            {cmd.title()}
-                          </span>
-                        </div>
-                        <span
-                          className={`text-[10px] truncate max-w-[150px] shrink-0 ${
-                            isSelected
-                              ? 'text-primary-foreground/75'
-                              : 'text-muted-foreground/60'
-                          }`}
-                        >
-                          {cmd.description()}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            <textarea
-              ref={textareaRef}
-              value={inputPrompt}
-              onChange={(e) => setInputPrompt(e.target.value)}
-              onKeyDown={handleKeyDown}
-              onPaste={handlePaste}
-              placeholder={
-                activeProvider
-                  ? isDragOver
-                    ? ll.ai.copilot.drop_image_here()
-                    : isGenerating
-                      ? ll.ai.copilot.input_midway_placeholder()
-                      : ll.ai.copilot.input_placeholder()
-                  : ll.ai.copilot.input_disabled_placeholder()
-              }
-              rows={2}
-              className="w-full resize-none border-0 bg-transparent p-2.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 shadow-none min-h-[50px] max-h-32 disabled:cursor-not-allowed disabled:opacity-50"
-            />
-
-            {/* 隐藏的图片文件选择器 */}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              multiple
-              className="hidden"
-              onChange={handleFileSelect}
-            />
-
-            <div className="flex items-center justify-between px-2.5 pb-2">
-              <div className="flex items-center gap-1">
-                {/* 附加图片按钮 */}
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="h-6 w-6 text-muted-foreground hover:text-foreground"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={!activeProvider}
-                  title={ll.ai.copilot.attach_image()}
-                >
-                  <ImageIcon className="h-3.5 w-3.5" />
-                </Button>
-                <span className="text-[10px] text-muted-foreground">
-                  {attachedImages.length > 0
-                    ? ll.ai.copilot.image_attached({ count: attachedImages.length })
-                    : ll.ai.copilot.image_support()}
-                </span>
-              </div>
-
-              <div className="flex items-center gap-1.5">
-                {isGenerating ? (
-                  <>
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      className="h-6 px-2 text-[11px] rounded-md gap-1"
-                      onClick={stopGeneration}
-                      title={ll.ai.copilot.stop()}
-                    >
-                      <Square className="h-3 w-3 fill-current" />
-                      {ll.ai.copilot.stop()}
-                    </Button>
-                    {Boolean(inputPrompt.trim() || attachedImages.length > 0) && (
-                      <Button
-                        size="sm"
-                        className="h-6 px-2 text-[11px] rounded-md bg-amber-600 hover:bg-amber-700 text-white gap-1 animate-in fade-in duration-100"
-                        onClick={handleSend}
-                        title={ll.ai.copilot.send_correction_tip()}
-                      >
-                        <Send className="h-3 w-3" />
-                        <span>{ll.ai.copilot.send_correction()}</span>
-                      </Button>
-                    )}
-                  </>
-                ) : (
-                  <Button
-                    size="sm"
-                    className="h-6 w-6 p-0 rounded-md bg-primary hover:bg-primary/90 text-primary-foreground"
-                    onClick={handleSend}
-                    disabled={(!inputPrompt.trim() && attachedImages.length === 0) || !activeProvider}
-                    title={ll.ai.copilot.send()}
-                  >
-                    <Send className="h-3 w-3" />
-                  </Button>
-                )}
-              </div>
-            </div>
-          </div>
-        </footer>
+        <AICopilotInput
+          textareaRef={textareaRef}
+          activeProvider={activeProvider}
+          activeWorkspace={activeWorkspace}
+          isGenerating={isGenerating}
+          onSendMessage={sendMessage}
+          onStopGeneration={stopGeneration}
+          onSelectWorkspaceFolder={selectWorkspaceFolder}
+          onUnlinkWorkspace={() => setSessionWorkspace(null)}
+          onSetWorkspaceFolder={setSessionWorkspace}
+        />
 
         {/* 浮动模式下：右下角拉伸调整手柄 */}
         {isFloating && (
