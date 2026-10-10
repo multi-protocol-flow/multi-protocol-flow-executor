@@ -3,7 +3,7 @@
  * 展示由 /compact 生成的紧凑结构化会话状态，并支持按需展开查看已归档历史记录
  */
 
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import {
   Archive,
   ChevronDown,
@@ -23,7 +23,7 @@ interface AICompactedMessageCardProps {
   archivedMessages?: AIMessage[];
 }
 
-export function AICompactedMessageCard({
+export const AICompactedMessageCard = memo(function AICompactedMessageCard({
   message,
   archivedMessages = [],
 }: AICompactedMessageCardProps) {
@@ -152,4 +152,4 @@ export function AICompactedMessageCard({
       )}
     </div>
   );
-}
+});

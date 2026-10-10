@@ -2,7 +2,7 @@
  * AI Tool Call 徽章、参数与执行详情展示项
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo, memo } from 'react';
 import {
   Wrench,
   ChevronDown,
@@ -24,7 +24,7 @@ interface AIToolCallItemProps {
   isExecuted?: boolean;
 }
 
-export function AIToolCallItem({
+export const AIToolCallItem = memo(function AIToolCallItem({
   toolCall,
   result,
   isExecuted = true,
@@ -38,50 +38,68 @@ export function AIToolCallItem({
   );
 
   const rawResult = result ?? toolCall.output;
-  const titleInfo = formatToolTitle(
-    toolCall.function.name,
-    toolCall.function.arguments,
-    rawResult,
+  const titleInfo = useMemo(
+    () =>
+      formatToolTitle(
+        toolCall.function.name,
+        toolCall.function.arguments,
+        rawResult,
+      ),
+    [toolCall.function.name, toolCall.function.arguments, rawResult],
   );
 
-  // 格式化入参
-  let formattedArgs = toolCall.function.arguments;
-  try {
-    const parsed = JSON.parse(toolCall.function.arguments);
-    formattedArgs = JSON.stringify(parsed, null, 2);
-  } catch {
-    // 保持原文
-  }
-
-  let formattedResult = rawResult || '';
-  let isResultSuccess = true;
-  let summaryMessage: string | null = null;
-  let errorMessage: string | null = null;
-
-  if (rawResult) {
+  const {
+    formattedArgs,
+    formattedResult,
+    isResultSuccess,
+    summaryMessage,
+    errorMessage,
+  } = useMemo(() => {
+    let args = toolCall.function.arguments;
     try {
-      const parsedResult = JSON.parse(rawResult);
-      formattedResult = JSON.stringify(parsedResult, null, 2);
-      if (parsedResult && typeof parsedResult === 'object') {
-        if (parsedResult.success === false || parsedResult.error) {
-          isResultSuccess = false;
-          errorMessage =
-            typeof parsedResult.error === 'string'
-              ? parsedResult.error
-              : typeof parsedResult.message === 'string'
-                ? parsedResult.message
-                : null;
-        } else if (typeof parsedResult.message === 'string') {
-          summaryMessage = parsedResult.message;
-        } else if (typeof parsedResult.summary === 'string') {
-          summaryMessage = parsedResult.summary;
-        }
-      }
+      const parsed = JSON.parse(toolCall.function.arguments);
+      args = JSON.stringify(parsed, null, 2);
     } catch {
-      formattedResult = rawResult;
+      // 保持原文
     }
-  }
 
+    let formatted = rawResult || '';
+    let success = true;
+    let summary: string | null = null;
+    let error: string | null = null;
+
+    if (rawResult) {
+      try {
+        const parsedResult = JSON.parse(rawResult);
+        formatted = JSON.stringify(parsedResult, null, 2);
+        if (parsedResult && typeof parsedResult === 'object') {
+          if (parsedResult.success === false || parsedResult.error) {
+            success = false;
+            error =
+              typeof parsedResult.error === 'string'
+                ? parsedResult.error
+                : typeof parsedResult.message === 'string'
+                  ? parsedResult.message
+                  : null;
+          } else if (typeof parsedResult.message === 'string') {
+            summary = parsedResult.message;
+          } else if (typeof parsedResult.summary === 'string') {
+            summary = parsedResult.summary;
+          }
+        }
+      } catch {
+        formatted = rawResult;
+      }
+    }
+
+    return {
+      formattedArgs: args,
+      formattedResult: formatted,
+      isResultSuccess: success,
+      summaryMessage: summary,
+      errorMessage: error,
+    };
+  }, [toolCall.function.arguments, rawResult]);
   const handleCopy = useCallback(
     async (e: React.MouseEvent) => {
       e.stopPropagation();
@@ -270,4 +288,4 @@ export function AIToolCallItem({
       )}
     </div>
   );
-}
+});

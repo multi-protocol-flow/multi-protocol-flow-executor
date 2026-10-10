@@ -2,7 +2,7 @@
  * AI 高风险操作待确认卡片
  */
 
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import { Check, X, ShieldAlert, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAIStore } from '@/stores/ai';
@@ -13,7 +13,7 @@ interface AIConfirmCardProps {
   action: AIPendingAction;
 }
 
-export function AIConfirmCard({ action }: AIConfirmCardProps) {
+export const AIConfirmCard = memo(function AIConfirmCard({ action }: AIConfirmCardProps) {
   const ll = getLL();
   const resolvePendingAction = useAIStore((s) => s.resolvePendingAction);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -120,4 +120,4 @@ export function AIConfirmCard({ action }: AIConfirmCardProps) {
       )}
     </div>
   );
-}
+});

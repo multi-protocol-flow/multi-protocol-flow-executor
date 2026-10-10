@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, memo } from 'react';
 import {
   AlertCircle,
   RotateCcw,
@@ -39,17 +39,20 @@ function getErrorIcon(kind: AIErrorKind) {
   }
 }
 
-export const AIErrorMessageCard: React.FC<AIErrorMessageCardProps> = ({
+export const AIErrorMessageCard: React.FC<AIErrorMessageCardProps> = memo(function AIErrorMessageCard({
   message,
   compact = false,
   onRetry,
-}) => {
+}) {
   const ll = getLL();
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
 
-  const diagnosis = diagnoseAIError(message.error || message.content);
+  const diagnosis = useMemo(
+    () => diagnoseAIError(message.error || message.content),
+    [message.error, message.content],
+  );
 
   const handleCopy = async () => {
     try {
@@ -156,4 +159,4 @@ export const AIErrorMessageCard: React.FC<AIErrorMessageCardProps> = ({
       </div>
     </div>
   );
-};
+});
