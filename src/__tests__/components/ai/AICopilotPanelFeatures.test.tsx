@@ -94,30 +94,6 @@ describe('AICopilotPanel UI & Execution Enhancements', () => {
     expect(useAIStore.getState().isFloating).toBe(false);
   });
 
-  it('3. 执行到底 (Auto-Execute) 开关正确切换状态', async () => {
-    const ll = getLL();
-    await act(async () => {
-      useAIStore.setState({ isCopilotOpen: true, autoExecuteToGoal: true });
-    });
-
-    render(<AICopilotPanel />);
-
-    const autoBtn = screen.getByTitle(ll.ai.copilot.auto_execute_tip());
-    expect(autoBtn).toBeInTheDocument();
-    expect(screen.getByText(ll.ai.copilot.auto_execute())).toBeInTheDocument();
-
-    // 点击切换关闭
-    await act(async () => {
-      fireEvent.click(autoBtn);
-    });
-    expect(useAIStore.getState().autoExecuteToGoal).toBe(false);
-
-    // 再次点击切换打开
-    await act(async () => {
-      fireEvent.click(autoBtn);
-    });
-    expect(useAIStore.getState().autoExecuteToGoal).toBe(true);
-  });
 
   it('4. 执行中支持中途二次输入内容并展示中途纠偏按钮', async () => {
     const ll = getLL();
@@ -328,6 +304,45 @@ describe('AICopilotPanel UI & Execution Enhancements', () => {
 
     const compactBtn = screen.getByTitle(ll.ai.copilot.compact_button_tip());
     expect(compactBtn).toBeInTheDocument();
+  });
+
+  it('8.1. 超窄宽度 (< 360px) 且有消息时，压缩与清空按钮收拢至更多操作菜单', async () => {
+    const ll = getLL();
+    const testMessages = [
+      { id: '1', role: 'user' as const, content: 'msg 1', timestamp: 1 },
+      { id: '2', role: 'assistant' as const, content: 'msg 2', timestamp: 2 },
+      { id: '3', role: 'user' as const, content: 'msg 3', timestamp: 3 },
+    ];
+    await aiSessionStorage.saveSession({
+      id: 'sess-narrow',
+      title: '测试会话',
+      createdAt: 1,
+      updatedAt: 1,
+      messages: testMessages,
+    });
+    await act(async () => {
+      useAIStore.setState({
+        isCopilotOpen: true,
+        panelWidth: 320,
+        isFloating: false,
+        currentSessionId: 'sess-narrow',
+        messages: testMessages,
+      });
+    });
+    render(<AICopilotPanel />);
+
+    // 平铺的压缩按钮被收拢，展示更多操作菜单按钮
+    expect(screen.queryByTitle(ll.ai.copilot.compact_button_tip())).not.toBeInTheDocument();
+    const moreBtn = screen.getByTitle(ll.ai.copilot.more_actions());
+    expect(moreBtn).toBeInTheDocument();
+
+    // 点击更多按钮展开下拉菜单
+    await act(async () => {
+      fireEvent.click(moreBtn);
+    });
+
+    expect(screen.getByText(ll.ai.copilot.command_compact())).toBeInTheDocument();
+    expect(screen.getByText(ll.ai.copilot.clear_history())).toBeInTheDocument();
   });
 
   it('9. 侧边栏反复展开与收起，Hook 调用顺序与数量严格一致，无 Rendered more hooks 异常', async () => {

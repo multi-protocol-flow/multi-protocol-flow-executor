@@ -18,11 +18,11 @@ import {
   GripVertical,
   GripHorizontal,
   ArrowRightToLine,
-  Zap,
   ShieldCheck,
   Archive,
   ChevronDown,
   ExternalLink,
+  MoreHorizontal,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -54,11 +54,9 @@ export function AICopilotPanel() {
     panelWidth,
     isFloating,
     floatingPosition,
-    autoExecuteToGoal,
     setPanelWidth,
     setFloating,
     setFloatingPosition,
-    toggleAutoExecuteToGoal,
     alwaysTrustHighRisk,
     setAlwaysTrustHighRisk,
     toggleAlwaysTrustHighRisk,
@@ -83,9 +81,9 @@ export function AICopilotPanel() {
 
   // 历史会话下拉弹层状态
   const [showSessionMenu, setShowSessionMenu] = useState(false);
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
   const [editTitleInput, setEditTitleInput] = useState('');
-
   // 大图查看弹窗状态
   const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
 
@@ -95,6 +93,7 @@ export function AICopilotPanel() {
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const moreMenuRef = useRef<HTMLDivElement>(null);
   const activeStreamingThoughtRef = useRef<HTMLDivElement | null>(null);
 
   const activeProvider = aiProviders.find((p) => p.id === activeAiProviderId);
@@ -166,12 +165,15 @@ export function AICopilotPanel() {
         setShowSessionMenu(false);
         setEditingSessionId(null);
       }
+      if (moreMenuRef.current && !moreMenuRef.current.contains(e.target as HTMLElement)) {
+        setShowMoreMenu(false);
+      }
     };
-    if (showSessionMenu) {
+    if (showSessionMenu || showMoreMenu) {
       document.addEventListener('mousedown', handleClickOutside);
     }
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [showSessionMenu]);
+  }, [showSessionMenu, showMoreMenu]);
 
   // 处理拖拽拉伸宽度
   const handleMouseDownResize = useCallback((e: React.MouseEvent) => {
@@ -386,14 +388,16 @@ export function AICopilotPanel() {
               onMouseDown={isFloating ? handleMouseDownFloatingHeader : handleMouseDownDockedDrag}
             >
               <div className="flex items-center gap-1.5 min-w-0 flex-1 mr-1">
-                {/* 拖拽移动把手 */}
-                <div
-                  className="flex items-center justify-center p-1 rounded hover:bg-muted/70 text-muted-foreground transition-colors shrink-0 cursor-grab active:cursor-grabbing"
-                  title={ll.ai.copilot.drag_to_move()}
-                  onMouseDown={isFloating ? handleMouseDownFloatingHeader : handleMouseDownDockedDrag}
-                >
-                  <GripHorizontal className="h-3.5 w-3.5" />
-                </div>
+                {/* 拖拽移动把手：浮动模式下常驻；停靠模式下在较宽 (>= 380) 时展示 */}
+                {(isFloating || effectiveWidth >= 380) && (
+                  <div
+                    className="flex items-center justify-center p-1 rounded hover:bg-muted/70 text-muted-foreground transition-colors shrink-0 cursor-grab active:cursor-grabbing"
+                    title={ll.ai.copilot.drag_to_move()}
+                    onMouseDown={isFloating ? handleMouseDownFloatingHeader : handleMouseDownDockedDrag}
+                  >
+                    <GripHorizontal className="h-3.5 w-3.5" />
+                  </div>
+                )}
                 {effectiveWidth >= 360 && (
                   <div className="flex h-6 w-6 items-center justify-center rounded-md bg-primary/10 text-primary shrink-0">
                     <Sparkles className="h-3.5 w-3.5" />
@@ -401,20 +405,20 @@ export function AICopilotPanel() {
                 )}
 
                 {/* 会话选择器与下拉抽屉触发器 */}
-                <div className="relative inline-flex items-center min-w-0 flex-1 max-w-[200px]" ref={menuRef}>
+                <div className="relative inline-flex items-center min-w-0 max-w-[220px]" ref={menuRef}>
                   <button
                     type="button"
-                    className="inline-flex items-center gap-1 text-xs font-semibold text-foreground hover:bg-muted/60 px-1.5 py-1 rounded-md transition-colors min-w-0 w-full"
+                    className="inline-flex items-center gap-1 text-xs font-semibold text-foreground hover:bg-muted/60 px-1.5 py-1 rounded-md transition-colors min-w-0 max-w-full cursor-pointer"
                     onClick={() => setShowSessionMenu(!showSessionMenu)}
                     title={ll.ai.copilot.sessions_title()}
                   >
-                    <span className="truncate min-w-0 flex-1 text-left">
+                    <span className="truncate min-w-0 text-left">
                       {currentSession?.title || ll.ai.copilot.title()}
                     </span>
                     <ChevronDown className="h-3 w-3 text-muted-foreground shrink-0" />
                   </button>
-              {/* 历史会话浮动列表 Popover */}
-              {showSessionMenu && (
+                  {/* 历史会话浮动列表 Popover */}
+                  {showSessionMenu && (
                 <div
                   className="absolute left-0 top-8 w-64 rounded-lg border border-border bg-popover text-popover-foreground shadow-xl z-50 p-1.5 space-y-1 animate-in fade-in zoom-in-95 duration-100"
                   onMouseDown={(e) => e.stopPropagation()}
@@ -530,76 +534,36 @@ export function AICopilotPanel() {
           </div>
 
           <div className="flex items-center gap-0.5 shrink-0">
-            {/* 执行到底模式 Switch 开关 */}
-            <button
-              type="button"
-              role="switch"
-              aria-checked={autoExecuteToGoal}
-              className={`flex items-center gap-1.5 h-7 rounded-md text-[11px] font-medium border transition-colors cursor-pointer select-none shrink-0 ${
-                effectiveWidth < 380 ? 'px-1.5' : 'px-2'
-              } ${
-                autoExecuteToGoal
-                  ? 'bg-emerald-500/10 border-emerald-500/35 text-emerald-600 dark:bg-emerald-950/40 dark:border-emerald-600/40 dark:text-emerald-300'
-                  : 'bg-muted/40 border-border/80 text-muted-foreground hover:bg-muted/60 dark:bg-zinc-900/60 dark:border-zinc-800'
-              }`}
-              onClick={toggleAutoExecuteToGoal}
-              title={ll.ai.copilot.auto_execute_tip()}
-            >
-              <Zap
-                className={`h-3.5 w-3.5 shrink-0 transition-transform ${
-                  autoExecuteToGoal
-                    ? 'fill-emerald-500 text-emerald-500 dark:fill-emerald-400 dark:text-emerald-400 scale-105'
-                    : 'text-muted-foreground/70'
-                }`}
-              />
-              <span
-                className={`${
-                  effectiveWidth < 440 ? 'sr-only' : 'inline font-medium'
-                } ${autoExecuteToGoal ? 'text-emerald-700 dark:text-emerald-300 font-semibold' : 'text-muted-foreground'}`}
-              >
-                {ll.ai.copilot.auto_execute()}
-              </span>
-              {effectiveWidth >= 360 && (
-                <span className="pointer-events-none inline-flex items-center" aria-hidden="true">
-                  <Switch
-                    checked={autoExecuteToGoal}
-                    tabIndex={-1}
-                    variant="emerald"
-                    className="scale-75 origin-center"
-                  />
-                </span>
-              )}
-            </button>
-            {/* 完全信任模式 Switch 开关 */}
-            <button
-              type="button"
-              role="switch"
-              aria-checked={alwaysTrustHighRisk}
-              className={`flex items-center gap-1.5 h-7 rounded-md text-[11px] font-medium border transition-colors cursor-pointer select-none shrink-0 ${
-                effectiveWidth < 380 ? 'px-1.5' : 'px-2'
-              } ${
-                alwaysTrustHighRisk
-                  ? 'bg-amber-500/10 border-amber-500/35 text-amber-600 dark:bg-amber-950/40 dark:border-amber-600/40 dark:text-amber-300'
-                  : 'bg-muted/40 border-border/80 text-muted-foreground hover:bg-muted/60 dark:bg-zinc-900/60 dark:border-zinc-800'
-              }`}
-              onClick={toggleAlwaysTrustHighRisk}
-              title={ll.ai.copilot.trust_mode_tip()}
-            >
-              <ShieldCheck
-                className={`h-3.5 w-3.5 shrink-0 transition-transform ${
+            {/* 完全信任模式：宽屏 (>= 460) 下胶囊 Switch，标准及窄屏 (< 460) 下紧凑高亮图标按钮 */}
+            {effectiveWidth >= 460 ? (
+              <button
+                type="button"
+                role="switch"
+                aria-checked={alwaysTrustHighRisk}
+                className={`flex items-center gap-1.5 h-7 px-2 rounded-md text-[11px] font-medium border transition-colors cursor-pointer select-none shrink-0 ${
                   alwaysTrustHighRisk
-                    ? 'text-amber-600 dark:text-amber-400 scale-105'
-                    : 'text-muted-foreground/70'
+                    ? 'bg-amber-500/10 border-amber-500/35 text-amber-600 dark:bg-amber-950/40 dark:border-amber-600/40 dark:text-amber-300'
+                    : 'bg-muted/40 border-border/80 text-muted-foreground hover:bg-muted/60 dark:bg-zinc-900/60 dark:border-zinc-800'
                 }`}
-              />
-              <span
-                className={`${
-                  effectiveWidth < 460 ? 'sr-only' : 'inline font-medium'
-                } ${alwaysTrustHighRisk ? 'text-amber-700 dark:text-amber-300 font-semibold' : 'text-muted-foreground'}`}
+                onClick={toggleAlwaysTrustHighRisk}
+                title={ll.ai.copilot.trust_mode_tip()}
               >
-                {ll.ai.copilot.trust_mode()}
-              </span>
-              {effectiveWidth >= 360 && (
+                <ShieldCheck
+                  className={`h-3.5 w-3.5 shrink-0 transition-transform ${
+                    alwaysTrustHighRisk
+                      ? 'text-amber-600 dark:text-amber-400 scale-105'
+                      : 'text-muted-foreground/70'
+                  }`}
+                />
+                <span
+                  className={
+                    alwaysTrustHighRisk
+                      ? 'text-amber-700 dark:text-amber-300 font-semibold'
+                      : 'text-muted-foreground'
+                  }
+                >
+                  {ll.ai.copilot.trust_mode()}
+                </span>
                 <span className="pointer-events-none inline-flex items-center" aria-hidden="true">
                   <Switch
                     checked={alwaysTrustHighRisk}
@@ -608,8 +572,25 @@ export function AICopilotPanel() {
                     className="scale-75 origin-center"
                   />
                 </span>
-              )}
-            </button>
+              </button>
+            ) : (
+              <button
+                type="button"
+                role="switch"
+                aria-checked={alwaysTrustHighRisk}
+                className={`flex items-center justify-center h-7 w-7 rounded-md border transition-colors cursor-pointer select-none shrink-0 ${
+                  alwaysTrustHighRisk
+                    ? 'bg-amber-500/15 border-amber-500/35 text-amber-600 dark:bg-amber-950/50 dark:border-amber-600/40 dark:text-amber-300 shadow-xs'
+                    : 'bg-transparent border-transparent hover:bg-muted/70 text-muted-foreground hover:text-foreground'
+                }`}
+                onClick={toggleAlwaysTrustHighRisk}
+                title={ll.ai.copilot.trust_mode_tip()}
+              >
+                <ShieldCheck
+                  className={`h-3.5 w-3.5 ${alwaysTrustHighRisk ? 'text-amber-600 dark:text-amber-400' : ''}`}
+                />
+              </button>
+            )}
             {isFloating ? (
               <Button
                 size="icon"
@@ -643,33 +624,87 @@ export function AICopilotPanel() {
               <Plus className="h-4 w-4" />
             </Button>
 
-            {/* 上下文压缩按钮 */}
-            {messages.length > 2 && (
-              <Button
-                size="icon"
-                variant="ghost"
-                className="h-7 w-7 text-muted-foreground hover:text-indigo-500 hover:bg-indigo-500/10 transition-colors"
-                onClick={() => compactHistory()}
-                disabled={isCompacting || isGenerating}
-                title={ll.ai.copilot.compact_button_tip()}
-              >
-                {isCompacting ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin text-indigo-500" />
-                ) : (
-                  <Archive className="h-3.5 w-3.5" />
+            {/* 会话维护操作：标准及宽屏 (>= 360) 平铺，超窄屏 (< 360) 收拢至更多菜单 */}
+            {effectiveWidth >= 360 ? (
+              <>
+                {messages.length > 2 && (
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-7 w-7 text-muted-foreground hover:text-indigo-500 hover:bg-indigo-500/10 transition-colors shrink-0"
+                    onClick={() => compactHistory()}
+                    disabled={isCompacting || isGenerating}
+                    title={ll.ai.copilot.compact_button_tip()}
+                  >
+                    {isCompacting ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin text-indigo-500" />
+                    ) : (
+                      <Archive className="h-3.5 w-3.5" />
+                    )}
+                  </Button>
                 )}
-              </Button>
-            )}
-            {messages.length > 0 && (
-              <Button
-                size="icon"
-                variant="ghost"
-                className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                onClick={clearMessages}
-                title={ll.ai.copilot.clear_history()}
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </Button>
+                {messages.length > 0 && (
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-7 w-7 text-muted-foreground hover:text-foreground shrink-0"
+                    onClick={clearMessages}
+                    title={ll.ai.copilot.clear_history()}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                )}
+              </>
+            ) : (
+              messages.length > 0 && (
+                <div className="relative inline-flex items-center shrink-0" ref={moreMenuRef}>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className={`h-7 w-7 transition-colors ${
+                      showMoreMenu
+                        ? 'bg-muted text-foreground'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                    onClick={() => setShowMoreMenu(!showMoreMenu)}
+                    title={ll.ai.copilot.more_actions()}
+                  >
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                  {showMoreMenu && (
+                    <div
+                      className="absolute right-0 top-8 w-44 rounded-lg border border-border bg-popover text-popover-foreground shadow-xl z-50 p-1 space-y-0.5 animate-in fade-in zoom-in-95 duration-100"
+                      onMouseDown={(e) => e.stopPropagation()}
+                    >
+                      {messages.length > 2 && (
+                        <button
+                          type="button"
+                          disabled={isCompacting || isGenerating}
+                          className="w-full flex items-center gap-2 px-2 py-1.5 text-xs rounded-md text-foreground hover:bg-muted/70 transition-colors disabled:opacity-50 text-left cursor-pointer"
+                          onClick={() => {
+                            setShowMoreMenu(false);
+                            compactHistory();
+                          }}
+                        >
+                          <Archive className="h-3.5 w-3.5 text-indigo-500 shrink-0" />
+                          <span className="truncate">{ll.ai.copilot.command_compact()}</span>
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        className="w-full flex items-center gap-2 px-2 py-1.5 text-xs rounded-md text-destructive hover:bg-destructive/10 transition-colors text-left cursor-pointer"
+                        onClick={() => {
+                          setShowMoreMenu(false);
+                          clearMessages();
+                        }}
+                      >
+                        <Trash2 className="h-3.5 w-3.5 shrink-0" />
+                        <span className="truncate">{ll.ai.copilot.clear_history()}</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )
             )}
 
             <Button
