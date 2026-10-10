@@ -364,4 +364,161 @@ describe('aiStore', () => {
 
     streamSpy.mockRestore();
   });
+
+  describe('compactHistory & slash command interception', () => {
+    it('compactHistory 会话消息少于等于2条时不执行并返回 false', async () => {
+      useAIStore.setState({
+        messages: [
+          { id: '1', role: 'user', content: 'hello', timestamp: 1 },
+          { id: '2', role: 'assistant', content: 'hi', timestamp: 2 },
+        ],
+      });
+
+      const res = await useAIStore.getState().compactHistory();
+      expect(res).toBe(false);
+      expect(useAIStore.getState().messages).toHaveLength(2);
+    });
+
+    it('compactHistory 正常总结多轮会话、标记已归档并追加 isSummary 摘要卡片', async () => {
+      const sessionId = await useAIStore.getState().createNewSession('测试压缩会话');
+      useAIStore.setState({
+        currentSessionId: sessionId,
+        messages: [
+          { id: '1', role: 'user', content: '步骤1：创建HTTP请求节点', timestamp: 1 },
+          { id: '2', role: 'assistant', content: '已为您创建HTTP节点', timestamp: 2 },
+          { id: '3', role: 'user', content: '步骤2：添加状态断言', timestamp: 3 },
+          { id: '4', role: 'assistant', content: '已为您添加断言', timestamp: 4 },
+        ],
+      });
+
+      const streamSpy = vi
+        .spyOn(openaiClientModule, 'streamChatCompletion')
+        .mockResolvedValue({
+          content: '### Objective\n- User created HTTP request and assertions.',
+        });
+
+      const res = await useAIStore.getState().compactHistory();
+      expect(res).toBe(true);
+
+      const msgs = useAIStore.getState().messages;
+      expect(msgs).toHaveLength(5);
+      // 前4条历史消息应全部被标记为 isArchived: true
+      expect(msgs.slice(0, 4).every((m) => m.isArchived === true)).toBe(true);
+
+      // 第5条为新注入的 isSummary 消息
+      const summaryMsg = msgs[4];
+      expect(summaryMsg.isSummary).toBe(true);
+      expect(summaryMsg.compactMeta?.compressedMessageCount).toBe(4);
+      expect(summaryMsg.compactMeta?.originalTokenEstimate).toBeGreaterThan(0);
+      expect(summaryMsg.content).toContain('User created HTTP request and assertions');
+
+      // 验证已持久化至 aiSessionStorage
+      const loaded = await aiSessionStorage.loadSession(sessionId);
+      expect(loaded?.messages).toHaveLength(5);
+      expect(loaded?.messages[4].isSummary).toBe(true);
+
+      streamSpy.mockRestore();
+    });
+
+    it('sendMessage 遇到 /clear 指令自动拦截执行，不触发大模型请求', async () => {
+      const streamSpy = vi.spyOn(openaiClientModule, 'streamChatCompletion');
+      useAIStore.setState({
+        messages: [{ id: '1', role: 'user', content: 'hello', timestamp: 1 }],
+      });
+
+      await useAIStore.getState().sendMessage('/clear');
+
+      // messages 已被清空
+      expect(useAIStore.getState().messages).toHaveLength(0);
+      // streamChatCompletion 未被调用
+      expect(streamSpy).not.toHaveBeenCalled();
+
+      streamSpy.mockRestore();
+    });
+
+    it('sendMessage 遇到 /help 指令自动拦截并追加指令说明', async () => {
+      const streamSpy = vi.spyOn(openaiClientModule, 'streamChatCompletion');
+
+      await useAIStore.getState().sendMessage('/help');
+
+      const msgs = useAIStore.getState().messages;
+      expect(msgs).toHaveLength(1);
+      expect(msgs[0].role).toBe('assistant');
+      expect(msgs[0].content).toContain('/compact');
+      expect(streamSpy).not.toHaveBeenCalled();
+
+      streamSpy.mockRestore();
+    });
+
+    it('compactHistory 处于生成状态中阻断执行并返回 false', async () => {
+      useAIStore.setState({
+        agentStatus: 'thinking',
+        messages: [
+          { id: '1', role: 'user', content: 'msg1', timestamp: 1 },
+          { id: '2', role: 'assistant', content: 'msg2', timestamp: 2 },
+          { id: '3', role: 'user', content: 'msg3', timestamp: 3 },
+        ],
+      });
+
+      const res = await useAIStore.getState().compactHistory();
+      expect(res).toBe(false);
+      // messages 保持不变
+      expect(useAIStore.getState().messages).toHaveLength(3);
+    });
+
+    it('compactHistory 执行期间用户切换会话，不污染新会话状态，安全落盘原会话', async () => {
+      const sess1 = await useAIStore.getState().createNewSession('会话1');
+      const sess2 = await useAIStore.getState().createNewSession('会话2');
+
+      // 切换到会话1
+      await useAIStore.getState().switchSession(sess1);
+      const sess1Messages = [
+        { id: 'm1', role: 'user' as const, content: '会话1步骤1', timestamp: 1 },
+        { id: 'm2', role: 'assistant' as const, content: '会话1步骤2', timestamp: 2 },
+        { id: 'm3', role: 'user' as const, content: '会话1步骤3', timestamp: 3 },
+      ];
+      useAIStore.setState({ messages: sess1Messages });
+
+      // 模拟 streamChatCompletion 执行中途用户切换到了会话2
+      const streamSpy = vi
+        .spyOn(openaiClientModule, 'streamChatCompletion')
+        .mockImplementation(async () => {
+          // 模拟异步返回前，用户点击了切换到会话2
+          useAIStore.setState({
+            currentSessionId: sess2,
+            messages: [{ id: 's2_m1', role: 'user' as const, content: '会话2内容', timestamp: 10 }],
+          });
+          return { content: '会话1结构化摘要' };
+        });
+
+      const res = await useAIStore.getState().compactHistory();
+      expect(res).toBe(true);
+
+      // 当前活跃会话依然是会话2，messages 不被会话1污染
+      expect(useAIStore.getState().currentSessionId).toBe(sess2);
+      expect(useAIStore.getState().messages).toEqual([
+        { id: 's2_m1', role: 'user', content: '会话2内容', timestamp: 10 },
+      ]);
+
+      // 验证后台持久化中的会话1已被安全更新并写入摘要
+      const savedSess1 = await aiSessionStorage.loadSession(sess1);
+      expect(savedSess1?.messages).toBeDefined();
+      expect(savedSess1?.messages.some((m) => m.isSummary)).toBe(true);
+
+      streamSpy.mockRestore();
+    });
+
+    it('sendMessage 在正在执行压缩时阻断新消息提交', async () => {
+      const streamSpy = vi.spyOn(openaiClientModule, 'streamChatCompletion');
+      useAIStore.setState({ isCompacting: true });
+
+      await useAIStore.getState().sendMessage('新提问');
+
+      // 没有触发大模型生成，新提问未加入 messages
+      expect(streamSpy).not.toHaveBeenCalled();
+      expect(useAIStore.getState().messages).toHaveLength(0);
+
+      streamSpy.mockRestore();
+    });
+  });
 });

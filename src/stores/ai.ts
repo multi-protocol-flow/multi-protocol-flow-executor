@@ -12,13 +12,19 @@ import type {
   AIPendingAction,
 } from '@/types/ai';
 import { getLL } from '@/i18n/i18n-lazy';
+import { toast } from 'sonner';
 import { useSettingsStore } from './settings';
 import { aiSessionStorage } from '@/services/storage/aiSessionStorage';
 import { streamChatCompletion, type ChatCompletionResult } from '@/services/ai/openaiClient';
 import {
   buildSystemPrompt,
   buildActiveStateSummary,
+  buildCompactionSystemPrompt,
+  buildCompactionUserPrompt,
+  estimateTokens,
+  pruneMessagesForSending,
 } from '@/services/ai/contextBuilder';
+import { executeSlashCommand } from '@/services/ai/slashCommands';
 import {
   getAllAIToolDefinitions,
   isHighRiskTool,
@@ -147,6 +153,8 @@ export interface AIActions {
 
   /** 清空当前会话的消息历史 */
   clearMessages: () => void;
+  /** 压缩总结当前会话历史，释放上下文窗口并节省 Token */
+  compactHistory: () => Promise<boolean>;
   /** 中止当前 Agent 生成与工具执行 */
   stopGeneration: () => void;
   /** 发送用户消息并触发 ReAct Agent 循环 (支持附加图片) */
@@ -179,8 +187,8 @@ const initialState: AIState = {
   autoExecuteToGoal: getStoredAutoExecute(),
   alwaysTrustHighRisk: getStoredAlwaysTrustHighRisk(),
   error: null,
+  isCompacting: false,
 };
-
 export const useAIStore = create<AIStore>((set, get) => ({
   ...initialState,
 
@@ -505,6 +513,154 @@ export const useAIStore = create<AIStore>((set, get) => ({
     }
   },
 
+  compactHistory: async () => {
+    if (get().isCompacting) return false;
+    const isGenerating =
+      get().agentStatus === 'thinking' ||
+      get().agentStatus === 'executing_tools' ||
+      get().agentStatus === 'waiting_confirmation';
+    if (isGenerating) {
+      toast.info(getLL().ai.copilot.compact_blocked_generating());
+      return false;
+    }
+
+    const targetSessionId = get().currentSessionId;
+    if (!targetSessionId) return false;
+
+    const currentMessages = get().messages;
+    // 提取所有未被归档的非系统消息
+    const unarchivedMessages = currentMessages.filter(
+      (m) => !m.isArchived && m.role !== 'system' && m.status !== 'error',
+    );
+
+    // 会话内容过少暂无需压缩
+    if (unarchivedMessages.length <= 2) {
+      toast.info(getLL().ai.copilot.compact_no_need());
+      return false;
+    }
+
+    const settings = useSettingsStore.getState();
+    const activeProvider = settings.aiProviders.find(
+      (p) => p.id === settings.activeAiProviderId,
+    );
+
+    if (!activeProvider) {
+      toast.error(getLL().ai.copilot.no_active_provider());
+      return false;
+    }
+
+    set({ isCompacting: true });
+    const toastId = toast.loading(getLL().ai.copilot.compact_running());
+
+    try {
+      const systemPrompt: AIMessage = {
+        id: `sys_compact_${Date.now()}`,
+        role: 'system',
+        content: buildCompactionSystemPrompt(),
+        timestamp: Date.now(),
+      };
+
+      const userPrompt: AIMessage = {
+        id: `user_compact_${Date.now()}`,
+        role: 'user',
+        content: buildCompactionUserPrompt(unarchivedMessages),
+        timestamp: Date.now(),
+      };
+
+      const result = await streamChatCompletion(
+        activeProvider,
+        [systemPrompt, userPrompt],
+        undefined,
+        undefined,
+      );
+
+      const summaryContent = result.content?.trim();
+      if (!summaryContent) {
+        throw new Error(getLL().ai.copilot.compact_empty_error());
+      }
+
+      const originalTokenEst = estimateTokens(unarchivedMessages);
+
+      const summaryMessage: AIMessage = {
+        id: `msg_${Date.now()}_summary`,
+        role: 'assistant',
+        content: summaryContent,
+        isSummary: true,
+        compactMeta: {
+          compressedMessageCount: unarchivedMessages.length,
+          originalTokenEstimate: originalTokenEst,
+          timestamp: Date.now(),
+        },
+        timestamp: Date.now(),
+        status: 'done',
+      };
+
+      const unarchivedIds = new Set(unarchivedMessages.map((m) => m.id));
+      const isStillOnTargetSession = get().currentSessionId === targetSessionId;
+
+      if (isStillOnTargetSession) {
+        const updatedMessages: AIMessage[] = [];
+        for (const m of get().messages) {
+          if (unarchivedIds.has(m.id)) {
+            updatedMessages.push({ ...m, isArchived: true });
+          } else {
+            updatedMessages.push(m);
+          }
+        }
+        updatedMessages.push(summaryMessage);
+
+        set({
+          messages: updatedMessages,
+          isCompacting: false,
+        });
+
+        // 持久化存储
+        const currentMeta = get().sessions.find((s) => s.id === targetSessionId);
+        const sessionObj: AISession = {
+          id: targetSessionId,
+          title: currentMeta ? currentMeta.title : getLL().ai.copilot.new_session_title(),
+          createdAt: currentMeta ? currentMeta.createdAt : Date.now(),
+          updatedAt: Date.now(),
+          workspace: get().activeWorkspace ?? undefined,
+          messages: updatedMessages,
+        };
+        await aiSessionStorage.saveSession(sessionObj);
+        const updatedList = await aiSessionStorage.listSessions();
+        set({ sessions: updatedList });
+      } else {
+        // 用户中途切换到了其他会话：仅持久化目标会话数据，不污染当前活跃会话状态
+        const targetSessionData = await aiSessionStorage.loadSession(targetSessionId);
+        if (targetSessionData) {
+          const updatedMessages: AIMessage[] = [];
+          for (const m of targetSessionData.messages || []) {
+            if (unarchivedIds.has(m.id)) {
+              updatedMessages.push({ ...m, isArchived: true });
+            } else {
+              updatedMessages.push(m);
+            }
+          }
+          updatedMessages.push(summaryMessage);
+          targetSessionData.messages = updatedMessages;
+          targetSessionData.updatedAt = Date.now();
+          await aiSessionStorage.saveSession(targetSessionData);
+          const updatedList = await aiSessionStorage.listSessions();
+          set({ sessions: updatedList, isCompacting: false });
+        } else {
+          set({ isCompacting: false });
+        }
+      }
+      toast.success(getLL().ai.copilot.compact_success(), { id: toastId });
+      return true;
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : String(err),
+        { id: toastId },
+      );
+      set({ isCompacting: false });
+      return false;
+    }
+  },
+
   stopGeneration: () => {
     if (sessionAbortController) {
       sessionAbortController.abort();
@@ -632,11 +788,22 @@ export const useAIStore = create<AIStore>((set, get) => ({
     const trimmedPrompt = prompt.trim();
     if (!trimmedPrompt && (!images || images.length === 0)) return;
 
+    // 拦截并执行斜杠指令 (如 /compact, /clear, /diagnose, /review, /help)
+    if (trimmedPrompt.startsWith('/') && (!images || images.length === 0)) {
+      const handled = await executeSlashCommand(trimmedPrompt);
+      if (handled) return;
+    }
+
+    // 正在压缩上下文时阻断新消息提交，防止并发状态冲突
+    if (get().isCompacting) {
+      toast.info(getLL().ai.copilot.compact_running());
+      return;
+    }
+
     const isGenerating =
       get().agentStatus === 'thinking' ||
       get().agentStatus === 'executing_tools' ||
       get().agentStatus === 'waiting_confirmation';
-
     // 若当前 Agent 正在生成中，直接转入中途插话纠偏逻辑，不重置对话与上下文！
     if (isGenerating && (!sessionAbortController || !sessionAbortController.signal.aborted)) {
       await get().steerGeneration(prompt, images);
@@ -762,17 +929,10 @@ export const useAIStore = create<AIStore>((set, get) => ({
 
         const currentHistory = get().messages;
         const steerPrefix = getLL().ai.copilot.steer_prefix();
-        const formattedHistory: AIMessage[] = currentHistory
-          .filter((m) => m.status !== 'error')
-          .map((m) => {
-            if (m.role === 'user' && m.isCorrection) {
-              return {
-                ...m,
-                content: `${steerPrefix} ${m.content}`,
-              };
-            }
-            return m;
-          });
+        const formattedHistory: AIMessage[] = pruneMessagesForSending(
+          currentHistory,
+          steerPrefix,
+        );
         const messagesToSend: AIMessage[] = [systemMessage, ...formattedHistory];
 
         // 占位 Assistant 消息
