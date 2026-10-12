@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0-beta] - 2026-10-12
+
 ### Added
 - **Flow Lifecycle Stages (Setup / Main / Teardown)**: A flow is now a first-class three-stage lifecycle. `flow.setup` and `flow.teardown` are optional sub-graphs (`FlowSubGraph`) that execute once before / after the business flow, and `flow.nodes` / `flow.connections` remain the Main stage. Both extra stages accept the full multi-protocol node set, so sign-in warm-up, token extraction, notification webhooks and resource cleanup are orchestrated with real nodes instead of embedded callbacks. Setup exports variables straight into the Main context; Main's variables are visible to Teardown.
 - **Stage Switcher in the Canvas**: A compact segmented pill bar placed at the top-left of the canvas switches the view between `Setup` / `Main` / `Teardown`, avoiding floating toolbar occlusion. Hover tooltips explain each stage, eliminating permanent blocking text cards. Node add/update/delete/connect operations and undo/redo only touch the active stage. The node outline lists all three stages with a stage chip and jumps the canvas to a node's own stage when clicked.
