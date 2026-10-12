@@ -3200,7 +3200,10 @@ mod tests {
 
         let flow1_new_path = flows_dir.join("target-sub").join("待移动流程1.mpf");
         assert!(flow1_new_path.is_file(), "文件应已移动至 target-sub");
-        assert!(!flows_dir.join("待移动流程1.mpf").exists(), "根目录下原文件应已移除");
+        assert!(
+            !flows_dir.join("待移动流程1.mpf").exists(),
+            "根目录下原文件应已移除"
+        );
 
         // 3. 按内部 UUID 移动 flow2 到目标子文件夹
         move_flow_to_folder("flow-move-2", flows_dir, "target-sub")
@@ -3222,7 +3225,9 @@ mod tests {
 
         let err = move_flow_to_folder("待移动流程1.mpf", flows_dir, "target-sub");
         assert!(err.is_err(), "同名文件已存在时应报错");
-        assert!(err.unwrap_err().contains("already exists in the target folder"));
+        assert!(err
+            .unwrap_err()
+            .contains("already exists in the target folder"));
     }
 
     /// 测试 `save_flow_file` 更新已有流程（同 UUID 覆盖写入）

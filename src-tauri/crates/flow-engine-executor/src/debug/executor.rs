@@ -848,12 +848,17 @@ impl DebuggableFlowExecutor {
                 match command_result {
                     Ok(StepCommandResult::SkipNode(next_node_uuid_opt, simulated_output)) => {
                         let node_end_ms = flow_engine_core::utils::unix_timestamp_ms();
-                        let raw_config = serde_json::to_value(&node.data).unwrap_or(serde_json::json!(null));
-                        let resolved_config = Some(flow_engine_core::executor::resolve_variables_in_json(
-                            &raw_config,
-                            &call_frames[active_idx].context,
-                        ));
-                        let input_data = crate::executor::build_input_data_from_node_config(&self.registry, &node);
+                        let raw_config =
+                            serde_json::to_value(&node.data).unwrap_or(serde_json::json!(null));
+                        let resolved_config =
+                            Some(flow_engine_core::executor::resolve_variables_in_json(
+                                &raw_config,
+                                &call_frames[active_idx].context,
+                            ));
+                        let input_data = crate::executor::build_input_data_from_node_config(
+                            &self.registry,
+                            &node,
+                        );
                         let stack_entry = ExecutionStackEntry {
                             node_uuid: node.uuid.clone(),
                             node_name: node.name.clone(),
@@ -943,12 +948,19 @@ impl DebuggableFlowExecutor {
 
                                         let node_start_ms =
                                             flow_engine_core::utils::unix_timestamp_ms();
-                                        let raw_config = serde_json::to_value(&node.data).unwrap_or(serde_json::json!(null));
-                                        let resolved_config = Some(flow_engine_core::executor::resolve_variables_in_json(
-                                            &raw_config,
-                                            &call_frames[active_idx].context,
-                                        ));
-                                        let input_data = crate::executor::build_input_data_from_node_config(&self.registry, &node);
+                                        let raw_config = serde_json::to_value(&node.data)
+                                            .unwrap_or(serde_json::json!(null));
+                                        let resolved_config = Some(
+                                            flow_engine_core::executor::resolve_variables_in_json(
+                                                &raw_config,
+                                                &call_frames[active_idx].context,
+                                            ),
+                                        );
+                                        let input_data =
+                                            crate::executor::build_input_data_from_node_config(
+                                                &self.registry,
+                                                &node,
+                                            );
                                         let stack_entry = ExecutionStackEntry {
                                             node_uuid: node.uuid.clone(),
                                             node_name: node.name.clone(),
@@ -1256,12 +1268,14 @@ impl DebuggableFlowExecutor {
                 } else {
                     node.clone()
                 };
-            let raw_config = serde_json::to_value(&effective_node.data).unwrap_or(serde_json::json!(null));
+            let raw_config =
+                serde_json::to_value(&effective_node.data).unwrap_or(serde_json::json!(null));
             let resolved_config = Some(flow_engine_core::executor::resolve_variables_in_json(
                 &raw_config,
                 &active_frame.context,
             ));
-            let input_data = crate::executor::build_input_data_from_node_config(&self.registry, &effective_node);
+            let input_data =
+                crate::executor::build_input_data_from_node_config(&self.registry, &effective_node);
 
             // 记录节点执行前快照（最多保留 32 个快照）
             if active_frame.snapshots.len() >= 32 {
@@ -1301,7 +1315,6 @@ impl DebuggableFlowExecutor {
                 sub_flow_report: None,
             };
             debug_state.push_stack_entry(stack_entry);
-
 
             active_frame.context.node_reports = debug_state
                 .execution_stack
@@ -1383,11 +1396,13 @@ impl DebuggableFlowExecutor {
                         .map(|plugin| Some(plugin.resolve_port(&output_data)))
                         .unwrap_or(None);
 
-                    let effective_raw_config = serde_json::to_value(&effective_node.data).unwrap_or(serde_json::json!(null));
-                    let effective_resolved_config = Some(flow_engine_core::executor::resolve_variables_in_json(
-                        &effective_raw_config,
-                        &active_frame.context,
-                    ));
+                    let effective_raw_config = serde_json::to_value(&effective_node.data)
+                        .unwrap_or(serde_json::json!(null));
+                    let effective_resolved_config =
+                        Some(flow_engine_core::executor::resolve_variables_in_json(
+                            &effective_raw_config,
+                            &active_frame.context,
+                        ));
                     let node_error = crate::executor::extract_error_from_output(&output_data);
                     let node_failed = if node.node_type == node_types::CONDITIONAL {
                         node_error.is_some()
@@ -1722,11 +1737,13 @@ impl DebuggableFlowExecutor {
                         None
                     };
 
-                    let effective_raw_config = serde_json::to_value(&effective_node.data).unwrap_or(serde_json::json!(null));
-                    let effective_resolved_config = Some(flow_engine_core::executor::resolve_variables_in_json(
-                        &effective_raw_config,
-                        &active_frame.context,
-                    ));
+                    let effective_raw_config = serde_json::to_value(&effective_node.data)
+                        .unwrap_or(serde_json::json!(null));
+                    let effective_resolved_config =
+                        Some(flow_engine_core::executor::resolve_variables_in_json(
+                            &effective_raw_config,
+                            &active_frame.context,
+                        ));
 
                     debug_state.update_last_stack_entry(
                         node_end_ms,
@@ -2453,10 +2470,8 @@ impl DebuggableFlowExecutor {
             as u32;
 
         // 计算统计信息（在移动 node_reports 之前）
-        let statistics = flow_engine_core::statistics::FlowStatistics::from_reports(
-            &node_reports,
-            total_nodes,
-        );
+        let statistics =
+            flow_engine_core::statistics::FlowStatistics::from_reports(&node_reports, total_nodes);
         let executed_count = node_reports.len() as u32;
 
         flow_engine_core::report::FlowExecutionReport {
@@ -2486,11 +2501,13 @@ impl DebuggableFlowExecutor {
                 .execution_stack
                 .iter()
                 .filter_map(|e| {
-                    e.skip_reason.as_ref().map(|r| flow_engine_core::report::SkippedNodeInfo {
-                        node_uuid: e.node_uuid.clone(),
-                        node_name: e.node_name.clone(),
-                        reason: r.clone(),
-                    })
+                    e.skip_reason
+                        .as_ref()
+                        .map(|r| flow_engine_core::report::SkippedNodeInfo {
+                            node_uuid: e.node_uuid.clone(),
+                            node_name: e.node_name.clone(),
+                            reason: r.clone(),
+                        })
                 })
                 .collect(),
             // 收集 WebSocket 消息流（完整数据）
@@ -4983,7 +5000,9 @@ mod tests {
             node_type: "script".to_string(),
             name: "Script".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
-            data: NodeData::script("let x = '{{my_val}}'; fn.variables.set('computed', 'result_ok');"),
+            data: NodeData::script(
+                "let x = '{{my_val}}'; fn.variables.set('computed', 'result_ok');",
+            ),
             ports: None,
             has_breakpoint: None,
             on_error: None,
@@ -5013,14 +5032,7 @@ mod tests {
         let executor = DebuggableFlowExecutor::new();
 
         let debug_state = executor
-            .start_debug(
-                &flow,
-                None,
-                vec![],
-                None,
-                event_sender,
-                command_receiver,
-            )
+            .start_debug(&flow, None, vec![], None, event_sender, command_receiver)
             .await;
 
         let mut final_report = None;
@@ -5056,7 +5068,9 @@ mod tests {
             .expect("resolved_config 必须存在");
         assert_eq!(
             resolved.get("script"),
-            Some(&json!("let x = '42'; fn.variables.set('computed', 'result_ok');")),
+            Some(&json!(
+                "let x = '42'; fn.variables.set('computed', 'result_ok');"
+            )),
             "{{my_val}} 占位符必须在 resolved_config 中被解析为 42"
         );
 
@@ -5066,7 +5080,9 @@ mod tests {
             .as_ref()
             .expect("必须包含 variable_changes");
         assert!(
-            changes.iter().any(|c| c.key == "computed" && c.new_value == json!("result_ok")),
+            changes
+                .iter()
+                .any(|c| c.key == "computed" && c.new_value == json!("result_ok")),
             "variable_changes 必须记录 computed 变量变更"
         );
     }

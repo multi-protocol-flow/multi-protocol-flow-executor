@@ -375,190 +375,190 @@ impl StressTestExecutor {
             let variables = Some(Arc::new(
                 serde_json::to_value(global_vars.clone()).unwrap_or(serde_json::json!({})),
             ));
-        // 虚拟用户仅执行 Main 流程主体
-        let mut main_flow = flow.clone();
-        main_flow.setup = None;
-        main_flow.teardown = None;
+            // 虚拟用户仅执行 Main 流程主体
+            let mut main_flow = flow.clone();
+            main_flow.setup = None;
+            main_flow.teardown = None;
 
-        // 加载 CSV 数据源（如果配置了）
-        let csv_rows: Arc<Vec<serde_json::Value>> = if let Some(ref path) = config.dataset_path {
-            match csv_parser::parse_csv(path, config.dataset_encoding.as_deref(), None) {
-                Ok(reader) => match reader.collect_all() {
-                    Ok(rows) => {
-                        log::info!(
-                            "[StressTest] loading CSV dataset: path={}, rows={}",
-                            path,
-                            rows.len()
-                        );
-                        Arc::new(rows)
-                    }
+            // 加载 CSV 数据源（如果配置了）
+            let csv_rows: Arc<Vec<serde_json::Value>> = if let Some(ref path) = config.dataset_path
+            {
+                match csv_parser::parse_csv(path, config.dataset_encoding.as_deref(), None) {
+                    Ok(reader) => match reader.collect_all() {
+                        Ok(rows) => {
+                            log::info!(
+                                "[StressTest] loading CSV dataset: path={}, rows={}",
+                                path,
+                                rows.len()
+                            );
+                            Arc::new(rows)
+                        }
+                        Err(e) => {
+                            log::error!("[StressTest] failed to parse CSV dataset: {}", e);
+                            Arc::new(Vec::new())
+                        }
+                    },
                     Err(e) => {
-                        log::error!("[StressTest] failed to parse CSV dataset: {}", e);
+                        log::error!("[StressTest] failed to open CSV file: {}", e);
                         Arc::new(Vec::new())
                     }
-                },
-                Err(e) => {
-                    log::error!("[StressTest] failed to open CSV file: {}", e);
-                    Arc::new(Vec::new())
                 }
-            }
-        } else {
-            Arc::new(Vec::new())
-        };
-        let dataset_strategy = config.dataset_strategy.clone().unwrap_or_default();
-
-        // 用于管理虚拟用户任务
-        let (task_stop_tx, _task_stop_rx) = broadcast::channel::<()>(1);
-
-        // 主循环
-        loop {
-            let elapsed = start_time.elapsed();
-
-            // 检查是否超时
-            if config.duration_seconds > 0 && elapsed >= duration {
-                break;
-            }
-
-            // 检查是否收到停止信号
-            if stop_flag.load(Ordering::SeqCst) {
-                break;
-            }
-
-            // 计算当前并发数
-            let current_concurrency = calculate_current_concurrency(
-                config.concurrent_users,
-                config.ramp_up_seconds,
-                elapsed.as_secs(),
-            );
-
-            // 更新状态（从 RampUp 到 Running）
-            {
-                let mut state_guard = state.write().await;
-                if elapsed.as_secs() >= config.ramp_up_seconds as u64
-                    && state_guard.status == StressTestStatus::RampUp
-                {
-                    state_guard.status = StressTestStatus::Running;
-                }
-            }
-
-            // 确保有足够的虚拟用户
-            {
-                let mut state_guard = state.write().await;
-
-                // 清理已完成的任务
-                state_guard
-                    .active_tasks
-                    .retain(|handle| !handle.is_finished());
-
-                // 计算需要启动的新任务数
-                let current_active = state_guard.active_tasks.len() as u32;
-                let needed = current_concurrency.saturating_sub(current_active);
-
-                // 启动新的虚拟用户
-                for user_id in 0..needed {
-                    let flow_clone = main_flow.clone();
-                    let metrics_clone = Arc::clone(&metrics);
-                    let stop_flag_clone = Arc::clone(&stop_flag);
-                    let stop_rx = task_stop_tx.subscribe();
-                    let csv_rows_clone = Arc::clone(&csv_rows);
-                    let strategy = dataset_strategy.clone();
-                    let registry_clone = Arc::clone(&registry);
-                    let virtual_user_id = current_active + user_id;
-                    let variables_clone = variables.clone();
-
-                    let handle = tokio::spawn(async move {
-                        Self::run_virtual_user(
-                            flow_clone,
-                            metrics_clone,
-                            stop_flag_clone,
-                            stop_rx,
-                            csv_rows_clone,
-                            strategy,
-                            virtual_user_id,
-                            registry_clone,
-                            variables_clone,
-                        )
-                        .await;
-                    });
-
-                    state_guard.active_tasks.push(handle);
-                }
-            }
-
-            // 每秒发送进度事件
-            if last_progress_time.elapsed().as_millis() >= PROGRESS_INTERVAL_MS as u128 {
-                let progress = {
-                    let state_guard = state.read().await;
-                    let elapsed_secs = start_time.elapsed().as_secs();
-                    let statistics = state_guard.metrics.get_statistics();
-                    let response_time = state_guard.metrics.get_response_time_distribution();
-
-                    StressTestProgress {
-                        status: state_guard.status.clone(),
-                        elapsed_seconds: elapsed_secs,
-                        total_iterations: statistics.total_iterations,
-                        successful_iterations: statistics.successful,
-                        failed_iterations: statistics.failed,
-                        current_rps: statistics.rps,
-                        avg_latency_ms: response_time.avg_ms,
-                        node_metrics: state_guard.metrics.get_node_metrics(),
-                    }
-                };
-
-                let _ = event_sender.send(StressTestEvent::Progress {
-                    progress: progress.clone(),
-                });
-                progress_history.push(progress);
-                last_progress_time = Instant::now();
-            }
-
-            // 短暂休眠，避免忙等待
-            tokio::time::sleep(Duration::from_millis(100)).await;
-        }
-
-        // 停止所有虚拟用户
-        let _ = task_stop_tx.send(());
-
-        // 等待所有任务完成（最多等待 5 秒）
-        {
-            let mut state_guard = state.write().await;
-            let timeout = tokio::time::sleep(Duration::from_secs(5));
-            tokio::pin!(timeout);
-
-            while !state_guard.active_tasks.is_empty() {
-                tokio::select! {
-                    _ = &mut timeout => {
-                        log::warn!("[StressTest] timed out waiting for virtual user, force terminating");
-                        break;
-                    }
-                    _ = tokio::time::sleep(Duration::from_millis(100)) => {
-                        state_guard.active_tasks.retain(|handle| !handle.is_finished());
-                    }
-                }
-            }
-            state_guard.active_tasks.clear();
-        }
-
-        // 捕获任务结束时的最终进度快照
-        {
-            let state_guard = state.read().await;
-            let elapsed_secs = start_time.elapsed().as_secs();
-            let statistics = state_guard.metrics.get_statistics();
-            let response_time = state_guard.metrics.get_response_time_distribution();
-
-            let final_progress = StressTestProgress {
-                status: StressTestStatus::Stopped,
-                elapsed_seconds: elapsed_secs,
-                total_iterations: statistics.total_iterations,
-                successful_iterations: statistics.successful,
-                failed_iterations: statistics.failed,
-                current_rps: statistics.rps,
-                avg_latency_ms: response_time.avg_ms,
-                node_metrics: state_guard.metrics.get_node_metrics(),
+            } else {
+                Arc::new(Vec::new())
             };
-            progress_history.push(final_progress);
-        }
+            let dataset_strategy = config.dataset_strategy.clone().unwrap_or_default();
 
+            // 用于管理虚拟用户任务
+            let (task_stop_tx, _task_stop_rx) = broadcast::channel::<()>(1);
+
+            // 主循环
+            loop {
+                let elapsed = start_time.elapsed();
+
+                // 检查是否超时
+                if config.duration_seconds > 0 && elapsed >= duration {
+                    break;
+                }
+
+                // 检查是否收到停止信号
+                if stop_flag.load(Ordering::SeqCst) {
+                    break;
+                }
+
+                // 计算当前并发数
+                let current_concurrency = calculate_current_concurrency(
+                    config.concurrent_users,
+                    config.ramp_up_seconds,
+                    elapsed.as_secs(),
+                );
+
+                // 更新状态（从 RampUp 到 Running）
+                {
+                    let mut state_guard = state.write().await;
+                    if elapsed.as_secs() >= config.ramp_up_seconds as u64
+                        && state_guard.status == StressTestStatus::RampUp
+                    {
+                        state_guard.status = StressTestStatus::Running;
+                    }
+                }
+
+                // 确保有足够的虚拟用户
+                {
+                    let mut state_guard = state.write().await;
+
+                    // 清理已完成的任务
+                    state_guard
+                        .active_tasks
+                        .retain(|handle| !handle.is_finished());
+
+                    // 计算需要启动的新任务数
+                    let current_active = state_guard.active_tasks.len() as u32;
+                    let needed = current_concurrency.saturating_sub(current_active);
+
+                    // 启动新的虚拟用户
+                    for user_id in 0..needed {
+                        let flow_clone = main_flow.clone();
+                        let metrics_clone = Arc::clone(&metrics);
+                        let stop_flag_clone = Arc::clone(&stop_flag);
+                        let stop_rx = task_stop_tx.subscribe();
+                        let csv_rows_clone = Arc::clone(&csv_rows);
+                        let strategy = dataset_strategy.clone();
+                        let registry_clone = Arc::clone(&registry);
+                        let virtual_user_id = current_active + user_id;
+                        let variables_clone = variables.clone();
+
+                        let handle = tokio::spawn(async move {
+                            Self::run_virtual_user(
+                                flow_clone,
+                                metrics_clone,
+                                stop_flag_clone,
+                                stop_rx,
+                                csv_rows_clone,
+                                strategy,
+                                virtual_user_id,
+                                registry_clone,
+                                variables_clone,
+                            )
+                            .await;
+                        });
+
+                        state_guard.active_tasks.push(handle);
+                    }
+                }
+
+                // 每秒发送进度事件
+                if last_progress_time.elapsed().as_millis() >= PROGRESS_INTERVAL_MS as u128 {
+                    let progress = {
+                        let state_guard = state.read().await;
+                        let elapsed_secs = start_time.elapsed().as_secs();
+                        let statistics = state_guard.metrics.get_statistics();
+                        let response_time = state_guard.metrics.get_response_time_distribution();
+
+                        StressTestProgress {
+                            status: state_guard.status.clone(),
+                            elapsed_seconds: elapsed_secs,
+                            total_iterations: statistics.total_iterations,
+                            successful_iterations: statistics.successful,
+                            failed_iterations: statistics.failed,
+                            current_rps: statistics.rps,
+                            avg_latency_ms: response_time.avg_ms,
+                            node_metrics: state_guard.metrics.get_node_metrics(),
+                        }
+                    };
+
+                    let _ = event_sender.send(StressTestEvent::Progress {
+                        progress: progress.clone(),
+                    });
+                    progress_history.push(progress);
+                    last_progress_time = Instant::now();
+                }
+
+                // 短暂休眠，避免忙等待
+                tokio::time::sleep(Duration::from_millis(100)).await;
+            }
+
+            // 停止所有虚拟用户
+            let _ = task_stop_tx.send(());
+
+            // 等待所有任务完成（最多等待 5 秒）
+            {
+                let mut state_guard = state.write().await;
+                let timeout = tokio::time::sleep(Duration::from_secs(5));
+                tokio::pin!(timeout);
+
+                while !state_guard.active_tasks.is_empty() {
+                    tokio::select! {
+                        _ = &mut timeout => {
+                            log::warn!("[StressTest] timed out waiting for virtual user, force terminating");
+                            break;
+                        }
+                        _ = tokio::time::sleep(Duration::from_millis(100)) => {
+                            state_guard.active_tasks.retain(|handle| !handle.is_finished());
+                        }
+                    }
+                }
+                state_guard.active_tasks.clear();
+            }
+
+            // 捕获任务结束时的最终进度快照
+            {
+                let state_guard = state.read().await;
+                let elapsed_secs = start_time.elapsed().as_secs();
+                let statistics = state_guard.metrics.get_statistics();
+                let response_time = state_guard.metrics.get_response_time_distribution();
+
+                let final_progress = StressTestProgress {
+                    status: StressTestStatus::Stopped,
+                    elapsed_seconds: elapsed_secs,
+                    total_iterations: statistics.total_iterations,
+                    successful_iterations: statistics.successful,
+                    failed_iterations: statistics.failed,
+                    current_rps: statistics.rps,
+                    avg_latency_ms: response_time.avg_ms,
+                    node_metrics: state_guard.metrics.get_node_metrics(),
+                };
+                progress_history.push(final_progress);
+            }
         }
         // 生成最终报告
         // 生成最终报告

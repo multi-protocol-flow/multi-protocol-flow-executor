@@ -1,0 +1,86 @@
+{
+  "_version": 1,
+  "flow": {
+    "uuid": "agent-react-real-tools-flow",
+    "name": "Agent ReAct Real Tools Scheduling Flow",
+    "initial_variables": {
+      "ECHO_URL": "https://httpbin.org/get"
+    },
+    "nodes": [
+      {
+        "uuid": "entry-001",
+        "type": "entry",
+        "name": "Start",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "type": "entry"
+        },
+        "ports": null
+      },
+      {
+        "uuid": "agent-001",
+        "type": "agent:react",
+        "name": "Autonomous ReAct Agent",
+        "position": {
+          "x": 200,
+          "y": 0
+        },
+        "data": {
+          "type": "agent:react",
+          "provider": {
+            "base_url": "http://127.0.0.1:11434/v1",
+            "api_key": "dummy-token",
+            "model": "llama3:latest",
+            "timeout_ms": 30000
+          },
+          "system_prompt": "You are an autonomous ReAct agent with real host tool execution capabilities. Always inspect system status using the available tools.",
+          "user_prompt": "Please query the hello status endpoint and verify code 0.",
+          "max_iterations": 5,
+          "max_tool_calls_per_round": 3,
+          "temperature": 0.1,
+          "timeout_secs": 60,
+          "read_only_mode": false,
+          "stream": false,
+          "enable_ask_human": false,
+          "tools": [
+            {
+              "id": "query_hello_status",
+              "name": "query_hello_status",
+              "description": "Calls the host HTTP endpoint to check service status and return code",
+              "tool_type": "standalone_action",
+              "target_node_type": "http:request",
+              "fixed_config": {
+                "url": "{{ECHO_URL}}",
+                "method": "get"
+              },
+              "dynamic_schema": {
+                "type": "object",
+                "properties": {
+                  "query": {
+                    "type": "string",
+                    "description": "Optional search query"
+                  }
+                }
+              },
+              "require_confirmation": false
+            }
+          ]
+        },
+        "ports": null
+      }
+    ],
+    "connections": [
+      {
+        "id": "conn-001",
+        "source_node_uuid": "entry-001",
+        "target_node_uuid": "agent-001",
+        "source_port_id": "output",
+        "target_port_id": "in"
+      }
+    ]
+  },
+  "_meta": null
+}

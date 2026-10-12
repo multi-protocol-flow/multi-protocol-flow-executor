@@ -43,10 +43,13 @@ pub mod stress_test;
 pub mod sub_flow_executor;
 /// 流程子图执行器（Setup/Teardown 阶段）
 pub mod subgraph_runner;
+/// Tool Bridge 本地回环调度服务模块
+pub mod tool_bridge;
 /// 流程验证器，检查流程结构与配置的完整性
 pub mod validator;
 /// 变量提取节点执行器
 pub mod variable_extractor_executor;
+pub use tool_bridge::{ToolBridgeHandle, ToolBridgeServer};
 
 // ============================================================================
 // 协议 crate 公共 re-export（供 facade 层条件转发）

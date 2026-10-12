@@ -12,7 +12,7 @@ use flow_engine_core::node_types;
 use flow_engine_core::registry::NodeRegistry;
 use flow_engine_core::traits::{DebugEventSender, ExecutionEventSender, LogSender};
 use serde_json::json;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 use std::sync::Arc;
 
@@ -105,6 +105,7 @@ pub fn supports_single_node(registry: &NodeRegistry, type_id: &str) -> bool {
 const FALLBACK_TIMEOUT_MS: u64 = 30_000;
 
 /// Flow executor
+#[derive(Clone)]
 pub struct FlowExecutor {
     /// Flow file path (used for resolving relative paths in CLI mode)
     flow_file_path: Option<PathBuf>,
@@ -127,10 +128,36 @@ pub struct FlowExecutor {
     parent_node_uuid: Option<String>,
     /// 附加的自定义 Provider
     extra_providers: HashMap<String, Arc<dyn std::any::Any + Send + Sync>>,
+    /// Tool Bridge 句柄（可选，用于侧边进程双向工具调度）
+    tool_bridge: Option<crate::tool_bridge::ToolBridgeHandle>,
 }
 impl Default for FlowExecutor {
     fn default() -> Self {
         Self::new()
+    }
+}
+/// RAII 守卫：确保流程执行结束时自动注销上下文并释放临时 Tool Bridge 服务端口
+struct ToolBridgeCleanupGuard {
+    bridge: Option<crate::tool_bridge::ToolBridgeHandle>,
+    owned: Option<crate::tool_bridge::ToolBridgeHandle>,
+    execution_id: String,
+}
+
+impl Drop for ToolBridgeCleanupGuard {
+    fn drop(&mut self) {
+        if let Some(bridge) = self.bridge.take() {
+            let exec_id = self.execution_id.clone();
+            tokio::spawn(async move {
+                bridge.unregister_context(&exec_id).await;
+            });
+        }
+        if let Some(owned) = self.owned.take() {
+            tokio::spawn(async move {
+                owned.shutdown().await;
+            });
+        }
+        std::env::remove_var("MPE_TOOL_BRIDGE_URL");
+        std::env::remove_var("MPE_TOOL_BRIDGE_TOKEN");
     }
 }
 
@@ -147,6 +174,7 @@ impl FlowExecutor {
             call_stack: Vec::new(),
             parent_node_uuid: None,
             extra_providers: HashMap::new(),
+            tool_bridge: None,
         }
     }
 
@@ -160,6 +188,16 @@ impl FlowExecutor {
     pub fn with_provider<T: 'static + Send + Sync>(mut self, name: &str, provider: Arc<T>) -> Self {
         self.extra_providers.insert(name.to_string(), provider);
         self
+    }
+    /// 注入已存在的 Tool Bridge 调度句柄
+    pub fn with_tool_bridge(mut self, bridge: crate::tool_bridge::ToolBridgeHandle) -> Self {
+        self.tool_bridge = Some(bridge);
+        self
+    }
+
+    /// 获取当前的 Tool Bridge 句柄引用
+    pub fn tool_bridge(&self) -> Option<&crate::tool_bridge::ToolBridgeHandle> {
+        self.tool_bridge.as_ref()
     }
 
     /// 获取兜底超时时长
@@ -347,17 +385,21 @@ impl FlowExecutor {
         for (name, provider) in &self.extra_providers {
             context.set_provider(name, provider.clone());
         }
-        // 集成流程验证器
+        // 集成流程验证器（切片执行允许无 entry 节点，缺失 entry 错误由后续 start_node 自适应回退机制接管）
         let validator = crate::validator::FlowValidator::new();
         let validation = validator.validate(flow);
-        if !validation.valid {
+        let fatal_errors: Vec<_> = validation
+            .errors
+            .into_iter()
+            .filter(|e| e.code != ErrorCode::E_VAL_MISSING_ENTRY)
+            .collect();
+        if !fatal_errors.is_empty() {
             return ExecutionResult {
                 success: false,
                 data: None,
                 error: Some(format!(
                     "Flow validation failed: {}",
-                    validation
-                        .errors
+                    fatal_errors
                         .iter()
                         .map(|e| &e.message[..])
                         .collect::<Vec<&str>>()
@@ -369,6 +411,52 @@ impl FlowExecutor {
                 execution_id: execution_id.clone(),
             };
         }
+        if flow.nodes.is_empty() {
+            return ExecutionResult {
+                success: false,
+                data: None,
+                error: Some("Flow missing start node".to_string()),
+                executed_count: 0,
+                node_reports: vec![],
+                flow_report: None,
+                execution_id: execution_id.clone(),
+            };
+        }
+        // 初始化 Tool Bridge（如果未预先注入，则为当前执行启动本地回环服务）
+        let (bridge_handle, owned_bridge) = match &self.tool_bridge {
+            Some(b) => (Some(b.clone()), None),
+            None => match crate::tool_bridge::ToolBridgeServer::start(Arc::new(self.clone())).await
+            {
+                Ok(handle) => {
+                    let h = handle.clone();
+                    (Some(handle), Some(h))
+                }
+                Err(e) => {
+                    log::warn!("[FlowExecutor] Tool bridge server start failed: {e}");
+                    (None, None)
+                }
+            },
+        };
+
+        if let Some(bridge) = &bridge_handle {
+            let bridge_val = serde_json::json!({
+                "url": bridge.url,
+                "token": bridge.token,
+            });
+            context.set_provider("tool_bridge", Arc::new(bridge_val));
+            bridge
+                .register_context(context.execution_id.clone(), context.clone())
+                .await;
+            std::env::set_var("MPE_TOOL_BRIDGE_URL", &bridge.url);
+            std::env::set_var("MPE_TOOL_BRIDGE_TOKEN", &bridge.token);
+        }
+
+        let _bridge_guard = ToolBridgeCleanupGuard {
+            bridge: bridge_handle.clone(),
+            owned: owned_bridge,
+            execution_id: context.execution_id.clone(),
+        };
+
         // 过滤 flow_warning：排除已由前端通过 end_node_reached i18n 处理的"无 End 节点"提示
         let flow_warning: Option<String> = {
             let has_end_nodes = flow.nodes.iter().any(|n| n.node_type == node_types::END);
@@ -489,7 +577,9 @@ impl FlowExecutor {
                                     status: flow_engine_core::report::ExecutionStatus::Failed,
                                     duration_ms: 0,
                                     node_reports: Vec::new(),
-                                    error: Some(flow_engine_core::error::ErrorDetail::execution_error(err)),
+                                    error: Some(
+                                        flow_engine_core::error::ErrorDetail::execution_error(err),
+                                    ),
                                 });
                         }
                     }
@@ -579,10 +669,15 @@ impl FlowExecutor {
                 .variables
                 .set_variable(k.clone(), v.clone(), String::new());
         }
+        if let Some(bridge) = &bridge_handle {
+            bridge
+                .register_context(context.execution_id.clone(), context.clone())
+                .await;
+        }
         let main_start_time = tokio::time::Instant::now();
 
-        // 查找开始节点
         // 查找开始节点：优先标准 entry 节点，缺失时回退到 http:ingress（Mock 服务入口）
+        // 若切片中均无 entry 节点，则自动回退至入度为 0 的节点或首个节点
         let start_node = flow
             .nodes
             .iter()
@@ -591,6 +686,20 @@ impl FlowExecutor {
                 flow.nodes
                     .iter()
                     .find(|node| node_types::is_entry_node_type(&node.node_type))
+            })
+            .or_else(|| {
+                let node_uuids: HashSet<&str> =
+                    flow.nodes.iter().map(|n| n.uuid.as_str()).collect();
+                let target_uuids: HashSet<&str> = flow
+                    .connections
+                    .iter()
+                    .filter(|c| node_uuids.contains(c.source_node_uuid.as_str()))
+                    .map(|c| c.target_node_uuid.as_str())
+                    .collect();
+                flow.nodes
+                    .iter()
+                    .find(|n| !target_uuids.contains(n.uuid.as_str()))
+                    .or_else(|| flow.nodes.first())
             });
         let start_node = match start_node {
             Some(node) => node,
@@ -779,7 +888,6 @@ impl FlowExecutor {
                     // 记录节点结束时间
                     let node_end_ms = flow_engine_core::utils::unix_timestamp_ms();
                     let node_duration = node_start_time.elapsed().as_millis() as u64;
-
 
                     // 根据节点类型设置 used_port_id（通过 registry 查找）
                     let type_id = node.data.type_name();
@@ -1124,7 +1232,6 @@ impl FlowExecutor {
                         })
                         .await;
 
-
                     // RouteToFalse（默认）: 如果有 false 端口连接，继续执行 false 分支
                     if route_to_false {
                         if let Some(next_node_uuid) = false_port_next_node {
@@ -1417,8 +1524,8 @@ impl FlowExecutor {
         };
 
         // 发送流程结束事件
-        let is_cancelled = is_cancelled
-            || flow_status == flow_engine_core::report::ExecutionStatus::Cancelled;
+        let is_cancelled =
+            is_cancelled || flow_status == flow_engine_core::report::ExecutionStatus::Cancelled;
         if is_cancelled {
             context
                 .emit_execution_event(ExecutionEvent::FlowCancelled {
@@ -1535,40 +1642,43 @@ impl FlowExecutor {
     ///
     /// # Returns
     /// `ExecutionResult` with a single-entry `node_reports` vector
-    pub async fn execute_single_node(
+    /// 直接执行一个节点（用于 Tool Bridge 动态调度或单节点执行）
+    /// 支持所有已在注册表中注册的节点类型，并可继承 flow 的 providers 与 variables
+    pub async fn execute_tool_node(
         &self,
         node: &Node,
         variables: Option<serde_json::Value>,
-        _log_sender: Option<Arc<dyn LogSender>>,
+        extra_providers: Option<&HashMap<String, Arc<dyn std::any::Any + Send + Sync>>>,
+        execution_id: Option<String>,
     ) -> ExecutionResult {
         let now_ms = flow_engine_core::utils::unix_timestamp_ms();
-
-        // 1. Get type_id and validate
         let type_id = node.data.type_name();
-        if !supports_single_node(&self.registry, &type_id) {
-            return ExecutionResult {
-                success: false,
-                data: None,
-                error: Some(format!("Unsupported single-node type: {}", type_id)),
-                executed_count: 0,
-                node_reports: vec![],
-                flow_report: None,
-                execution_id: Uuid::new_v4().to_string(),
-            };
-        }
 
-        // 2. Build execution context with unique flow id
         let mut context =
-            ExecutionContext::new("_single_node_".to_string(), now_ms).with_default_providers();
+            ExecutionContext::new("_tool_node_".to_string(), now_ms).with_default_providers();
+        context.execution_id = execution_id.unwrap_or_else(|| Uuid::new_v4().to_string());
 
-        // 3. Inject variables from JSON object
-        if let Some(serde_json::Value::Object(obj)) = variables {
-            for (key, value) in obj {
-                context.variables.set_variable(key, value, String::new());
+        // 1. 注入 node_registry 和 extra_providers
+        context.set_provider("node_registry", self.registry.clone());
+        for (name, provider) in &self.extra_providers {
+            context.set_provider(name, provider.clone());
+        }
+        if let Some(providers) = extra_providers {
+            for (name, provider) in providers {
+                context.set_provider(name, provider.clone());
             }
         }
 
-        // 4. Lookup plugin
+        // 2. 注入变量
+        if let Some(serde_json::Value::Object(obj)) = &variables {
+            for (key, value) in obj {
+                context
+                    .variables
+                    .set_variable(key.clone(), value.clone(), String::new());
+            }
+        }
+
+        // 3. 查找插件
         let plugin = match self.registry.get(&type_id) {
             Some(p) => p,
             None => {
@@ -1596,7 +1706,7 @@ impl FlowExecutor {
                         variable_changes: None,
                         skip_reason: None,
                         wait_duration_ms: None,
-                        plugin_data: context.current_node_plugin_data.take(),
+                        plugin_data: None,
                         sub_flow_report: None,
                         is_detail_stripped: None,
                     }],
@@ -1606,11 +1716,11 @@ impl FlowExecutor {
             }
         };
 
-        // 5. Build single-entry node_map
+        // 4. 构建单节点映射
         let node_map: std::collections::HashMap<String, &Node> =
             [(node.uuid.clone(), node)].into_iter().collect();
 
-        // 6. Execute with timeout (node-specific or fallback 30s)
+        // 5. 执行节点并施加超时
         let empty_connections: Vec<flow_engine_core::connection::Connection> = vec![];
         let execute_future = plugin.execute(node, &mut context, &empty_connections, &node_map);
         let timeout_duration = node
@@ -1626,39 +1736,35 @@ impl FlowExecutor {
         let duration_ms = end_ms.saturating_sub(now_ms);
 
         match result {
-            Ok(Ok((_next_ids, output_data))) => {
-                // Success
-                ExecutionResult {
-                    success: true,
-                    data: output_data.clone(),
+            Ok(Ok((_next_ids, output_data))) => ExecutionResult {
+                success: true,
+                data: output_data.clone(),
+                error: None,
+                executed_count: 1,
+                node_reports: vec![flow_engine_core::report::NodeExecutionReport {
+                    node_uuid: node.uuid.clone(),
+                    node_type: node.node_type.clone(),
+                    node_name: node.name.clone(),
+                    start_time: now_ms,
+                    end_time: end_ms,
+                    duration_ms,
+                    status: flow_engine_core::report::ExecutionStatus::Success,
+                    input_data: None,
+                    output_data,
+                    used_port_id: Some("out".to_string()),
                     error: None,
-                    executed_count: 1,
-                    node_reports: vec![flow_engine_core::report::NodeExecutionReport {
-                        node_uuid: node.uuid.clone(),
-                        node_type: node.node_type.clone(),
-                        node_name: node.name.clone(),
-                        start_time: now_ms,
-                        end_time: end_ms,
-                        duration_ms,
-                        status: flow_engine_core::report::ExecutionStatus::Success,
-                        input_data: None,
-                        output_data,
-                        used_port_id: Some("out".to_string()),
-                        error: None,
-                        resolved_config: None,
-                        variable_changes: None,
-                        skip_reason: None,
-                        wait_duration_ms: None,
-                        plugin_data: context.current_node_plugin_data.take(),
-                        sub_flow_report: None,
-                        is_detail_stripped: None,
-                    }],
-                    flow_report: None,
-                    execution_id: context.execution_id.clone(),
-                }
-            }
+                    resolved_config: None,
+                    variable_changes: None,
+                    skip_reason: None,
+                    wait_duration_ms: None,
+                    plugin_data: context.current_node_plugin_data.take(),
+                    sub_flow_report: None,
+                    is_detail_stripped: None,
+                }],
+                flow_report: None,
+                execution_id: context.execution_id.clone(),
+            },
             Ok(Err(err_detail)) => {
-                // Plugin execution returned error
                 let err_msg = err_detail.message.clone();
                 ExecutionResult {
                     success: false,
@@ -1690,7 +1796,6 @@ impl FlowExecutor {
                 }
             }
             Err(_elapsed) => {
-                // Timeout
                 let error_msg = format!("Node execution timeout ({}ms)", timeout_ms);
                 ExecutionResult {
                     success: false,
@@ -1730,6 +1835,31 @@ impl FlowExecutor {
                 }
             }
         }
+    }
+
+    /// Execute a single node standalone (no flow traversal, no report persistence)
+    ///
+    /// Used by `mpe run node` CLI and Tauri "Test" command to verify
+    /// connectivity for protocol node types.
+    pub async fn execute_single_node(
+        &self,
+        node: &Node,
+        variables: Option<serde_json::Value>,
+        _log_sender: Option<Arc<dyn LogSender>>,
+    ) -> ExecutionResult {
+        let type_id = node.data.type_name();
+        if !supports_single_node(&self.registry, &type_id) {
+            return ExecutionResult {
+                success: false,
+                data: None,
+                error: Some(format!("Unsupported single-node type: {}", type_id)),
+                executed_count: 0,
+                node_reports: vec![],
+                flow_report: None,
+                execution_id: Uuid::new_v4().to_string(),
+            };
+        }
+        self.execute_tool_node(node, variables, None, None).await
     }
 }
 
@@ -1901,25 +2031,14 @@ mod tests {
 
     #[tokio::test]
     async fn test_flow_executor_no_start_node() {
-        // 创建没有开始节点的流程
+        // 创建空节点的流程
         let flow_id = Uuid::new_v4().to_string();
-        let http_node = Node {
-            uuid: format!("http-{}", flow_id),
-            node_type: "http:request".to_string(),
-            name: "HTTP 请求".to_string(),
-            position: NodePosition { x: 0.0, y: 0.0 },
-            data: NodeData::entry(),
-            ports: None,
-            has_breakpoint: None,
-            on_error: None,
-        };
-
         let flow = Flow {
             uuid: flow_id.clone(),
             initial_variables: None,
             name: "Test Flow".to_string(),
             description: None,
-            nodes: vec![http_node],
+            nodes: vec![],
             connections: vec![],
             setup: None,
             teardown: None,
@@ -1931,10 +2050,10 @@ mod tests {
         // 验证执行Failed
         assert!(!result.success);
         assert!(result.error.is_some());
-        assert!(result
-            .error
-            .unwrap_or_else(|| panic!("expected Some"))
-            .contains("Flow validation failed"));
+        assert_eq!(
+            result.error.as_deref(),
+            Some("Flow missing start node")
+        );
         assert_eq!(result.executed_count, 0);
     }
 
@@ -3073,5 +3192,122 @@ mod tests {
             err.unwrap_or_else(|| panic!("expected Some")).error_kind,
             ErrorKind::Parse
         );
+    }
+
+    #[tokio::test]
+    async fn test_execute_flow_without_entry_single_node() {
+        init_crypto();
+        let node = Node {
+            uuid: "script-node-1".to_string(),
+            node_type: "script".to_string(),
+            name: "脚本".to_string(),
+            position: NodePosition::default(),
+            data: NodeData::Script(ScriptNodeConfig {
+                script: "fn.variables.set('count', 1);".into(),
+                timeout_ms: 5000,
+                memory_limit_mb: 10,
+                execution_phase: ScriptExecutionPhase::default(),
+                on_error: ScriptErrorStrategy::default(),
+            }),
+            ports: None,
+            has_breakpoint: None,
+            on_error: None,
+        };
+        let flow = Flow {
+            uuid: "flow-without-entry".to_string(),
+            initial_variables: None,
+            name: "Test Flow".to_string(),
+            description: None,
+            nodes: vec![node],
+            connections: vec![],
+            setup: None,
+            teardown: None,
+        };
+
+        let executor = FlowExecutor::new();
+        let result = executor.execute_flow(&flow, None, None, None).await;
+        assert!(result.success, "error: {:?}", result.error);
+        assert_eq!(result.executed_count, 1);
+        assert_eq!(result.node_reports.len(), 1);
+        assert_eq!(result.node_reports[0].node_uuid, "script-node-1");
+    }
+
+    #[tokio::test]
+    async fn test_execute_flow_without_entry_slice_in_degree_zero() {
+        init_crypto();
+        let node_a = Node {
+            uuid: "node-a".to_string(),
+            node_type: "script".to_string(),
+            name: "Node A".to_string(),
+            position: NodePosition::default(),
+            data: NodeData::Script(ScriptNodeConfig {
+                script: "fn.variables.set('a', 1);".into(),
+                timeout_ms: 5000,
+                memory_limit_mb: 10,
+                execution_phase: ScriptExecutionPhase::default(),
+                on_error: ScriptErrorStrategy::default(),
+            }),
+            ports: None,
+            has_breakpoint: None,
+            on_error: None,
+        };
+        let node_b = Node {
+            uuid: "node-b".to_string(),
+            node_type: "script".to_string(),
+            name: "Node B".to_string(),
+            position: NodePosition::default(),
+            data: NodeData::Script(ScriptNodeConfig {
+                script: "fn.variables.set('b', 2);".into(),
+                timeout_ms: 5000,
+                memory_limit_mb: 10,
+                execution_phase: ScriptExecutionPhase::default(),
+                on_error: ScriptErrorStrategy::default(),
+            }),
+            ports: None,
+            has_breakpoint: None,
+            on_error: None,
+        };
+        let conn = Connection {
+            id: "conn-a-b".to_string(),
+            source_node_uuid: "node-a".to_string(),
+            target_node_uuid: "node-b".to_string(),
+            source_port_id: "true".to_string(),
+            target_port_id: "input".to_string(),
+        };
+        let flow = Flow {
+            uuid: "flow-slice".to_string(),
+            initial_variables: None,
+            name: "Slice Flow".to_string(),
+            description: None,
+            nodes: vec![node_b, node_a],
+            connections: vec![conn],
+            setup: None,
+            teardown: None,
+        };
+
+        let executor = FlowExecutor::new();
+        let result = executor.execute_flow(&flow, None, None, None).await;
+        assert!(result.success, "error: {:?}", result.error);
+        assert_eq!(result.executed_count, 2);
+        assert_eq!(result.node_reports[0].node_uuid, "node-a");
+        assert_eq!(result.node_reports[1].node_uuid, "node-b");
+    }
+
+    #[tokio::test]
+    async fn test_execute_flow_empty_nodes_fails() {
+        let flow = Flow {
+            uuid: "flow-empty".to_string(),
+            initial_variables: None,
+            name: "Empty Flow".to_string(),
+            description: None,
+            nodes: vec![],
+            connections: vec![],
+            setup: None,
+            teardown: None,
+        };
+        let executor = FlowExecutor::new();
+        let result = executor.execute_flow(&flow, None, None, None).await;
+        assert!(!result.success);
+        assert_eq!(result.error, Some("Flow missing start node".to_string()));
     }
 }

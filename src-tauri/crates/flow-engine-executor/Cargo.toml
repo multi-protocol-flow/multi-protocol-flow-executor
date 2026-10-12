@@ -60,6 +60,7 @@ wiremock = "0.6"
 proptest = "1.4"
 futures-util = { workspace = true }
 rustls = { workspace = true }
+reqwest = { workspace = true }
 
 [lints]
 workspace = true

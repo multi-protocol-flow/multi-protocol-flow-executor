@@ -298,27 +298,13 @@ mod tests {
     async fn test_execute_flow_missing_entry_node() {
         let flow_id = Uuid::new_v4().to_string();
 
-        // 创建没有 Entry node的流程（只有 HTTP 节点）
-        let http_node = Node {
-            uuid: format!("http-{}", flow_id),
-            node_type: "http:request".to_string(),
-            name: "HTTP请求".to_string(),
-            position: NodePosition { x: 0.0, y: 0.0 },
-            data: NodeData::Http(flow_engine_core::node_config::HttpConfig {
-                url: "https://example.com".to_string(),
-                ..Default::default()
-            }),
-            ports: None,
-            has_breakpoint: None,
-            on_error: None,
-        };
-
+        // 创建空节点的流程
         let flow = Flow {
             uuid: flow_id.clone(),
             initial_variables: None,
-            name: "无效流程".to_string(),
+            name: "空流程".to_string(),
             description: None,
-            nodes: vec![http_node],
+            nodes: vec![],
             connections: vec![],
             setup: None,
             teardown: None,
@@ -331,15 +317,13 @@ mod tests {
         // 验证Error结果
         assert!(!result.success, "流程应该Failed");
         assert!(result.error.is_some(), "应该有Error信息");
-        assert!(
-            result
-                .error
-                .unwrap_or_else(|| panic!("expected Some"))
-                .contains("Flow validation failed"),
-            "Error信息应该说明验证Failed"
+        assert_eq!(
+            result.error.as_deref(),
+            Some("Flow missing start node"),
+            "Error信息应该说明缺失开始节点"
         );
         // Error情况下 executed_count 为 0（没有 flow_report 或报告中的 executed_count 为 0）
-        if let Some(ref report) = result.flow_report {
+        if let Some(report) = &result.flow_report {
             assert_eq!(report.executed_count, 0, "不应该执行任何节点");
         }
     }
