@@ -229,7 +229,23 @@ impl NodePlugin for SidecarPlugin {
             node,
         );
 
-        let params = serde_json::json!({
+        // 6.7 注入 Tool Bridge 连接参数供插件双向调用宿主
+        let mut tool_bridge_obj = providers.get("tool_bridge").cloned();
+        if tool_bridge_obj.is_none() {
+            if let (Ok(url), Ok(token)) = (
+                std::env::var("MPE_TOOL_BRIDGE_URL"),
+                std::env::var("MPE_TOOL_BRIDGE_TOKEN"),
+            ) {
+                let tb = serde_json::json!({
+                    "url": url,
+                    "token": token,
+                });
+                providers.insert("tool_bridge".to_string(), tb.clone());
+                tool_bridge_obj = Some(tb);
+            }
+        }
+
+        let mut params = serde_json::json!({
             "config": resolved_config,
             "providers": providers,
             "referenced_variables": referenced_variables,
@@ -238,6 +254,9 @@ impl NodePlugin for SidecarPlugin {
             "execution_id": context.execution_id,
             "node_instance_id": node.uuid,
         });
+        if let Some(tb) = tool_bridge_obj {
+            params["tool_bridge"] = tb;
+        }
 
         // 7. Execute RPC under the wrapper-owned timeout + cancellation.
         let response = match run_with_timeout_and_cancel(

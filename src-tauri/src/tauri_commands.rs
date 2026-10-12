@@ -23,9 +23,8 @@ use flow_engine::debug::DebugEvent;
 use flow_engine::execution_event::ExecutionEvent;
 use flow_engine::flow::Flow;
 use flow_engine::log_event::LogEvent;
-use flow_engine::node::Node;
 use flow_engine::plugin::NodeMetadata;
-use flow_engine::report::{FlowExecutionReport, NodeExecutionReport, ReportMetadata};
+use flow_engine::report::{FlowExecutionReport, ReportMetadata};
 use flow_engine::traits::DebugEventSender;
 use flow_engine::traits::ExecutionEventSender;
 
@@ -313,75 +312,6 @@ pub fn get_node_execution_detail(
     Ok(state.detail_cache.get_node_detail(&flow_uuid, &node_uuid))
 }
 
-/// 执行单个节点（连接性验证）
-///
-/// 单独执行一个协议节点，用于前端"测试"功能验证连接性。
-/// 与后端 executor 共用 `supports_single_node` 能力检查（内置白名单 +
-/// 插件 capabilities.single_node），无独立清单。执行超时时间为 30 秒。
-#[tauri::command]
-pub async fn execute_single_node(
-    app: tauri::AppHandle,
-    node: Node,
-    variables: Option<serde_json::Value>,
-    state: State<'_, ExecutionSessionManager>,
-    node_registry: State<'_, NodeRegistryState>,
-) -> Result<NodeExecutionReport, String> {
-    // 能力检查（纵深防御）——与 executor 内部同一函数，杜绝两份白名单漂移：
-    // 内置节点走 SUPPORTED_SINGLE_NODE_TYPES，插件节点走 describe 的
-    // capabilities.single_node 声明。
-    let type_id = node.data.type_name();
-    let snap = node_registry.snapshot();
-    if !flow_engine::executor::supports_single_node(&snap.registry, &type_id) {
-        return Err(format!(
-            "Unsupported node type for single-node execution: {}",
-            type_id
-        ));
-    }
-
-    log::info!(
-        "[SingleNode] Execute: type={}, name={}, uuid={}",
-        type_id,
-        node.name,
-        node.uuid
-    );
-
-    // 子流程按 ID 解析需要与前端列表同一流程目录
-    crate::sync_flows_dir_override(&app);
-
-    // 创建取消信号通道
-    let (cancel_tx, cancel_rx) = tokio::sync::watch::channel(false);
-    let session_id = uuid::Uuid::new_v4().to_string();
-
-    // 存储 sender 到会话管理器（允许前端通过 cancel_flow 取消）
-    {
-        let mut guard = state.cancel_senders.lock().map_err(|e| e.to_string())?;
-        guard.insert(session_id.clone(), cancel_tx);
-    }
-    let default_timeout = crate::resolve_default_execution_timeout(&app);
-    let executor = flow_engine::executor::FlowExecutor::new()
-        .with_registry(Arc::clone(&snap.registry))
-        .with_fallback_timeout(default_timeout)
-        .with_cancel_receiver(cancel_rx);
-
-    let result = executor.execute_single_node(&node, variables, None).await;
-
-    // execution complete后清理会话
-    {
-        let mut guard = state.cancel_senders.lock().map_err(|e| e.to_string())?;
-        guard.remove(&session_id);
-    }
-    log::info!(
-        "[SingleNode] Complete: type={}, success={}",
-        type_id,
-        result.success
-    );
-
-    result
-        .node_reports
-        .into_iter()
-        .next()
-        .ok_or_else(|| "No execution result".to_string())
-}
 
 /// 验证流程
 ///
@@ -2872,24 +2802,13 @@ mod tests {
 
     #[tokio::test]
     async fn test_execute_flow_no_start_node() {
-        // 创建一个没有开始节点的Test Flow
+        // 创建一个没有开始节点的空流程
         let flow_id = Uuid::new_v4().to_string();
-        let http_node = Node {
-            uuid: format!("http-{}", flow_id),
-            node_type: "http:request".to_string(),
-            name: "HTTP Request".to_string(),
-            position: NodePosition { x: 0.0, y: 0.0 },
-            data: NodeData::http("https://example.com"),
-            ports: None,
-            has_breakpoint: None,
-            on_error: None,
-        };
-
         let flow = Flow {
             uuid: flow_id.clone(),
             name: "Test Flow".to_string(),
             description: None,
-            nodes: vec![http_node],
+            nodes: vec![],
             connections: vec![],
             initial_variables: None,
             setup: None,
@@ -2900,15 +2819,10 @@ mod tests {
         let executor = FlowExecutor::new();
         let result = executor.execute_flow(&flow, None, None, None).await;
 
-        // 验证执行Failed（校验先于执行，报缺少 Entry 节点）
+        // 验证执行Failed（无开始节点）
         assert!(!result.success, "flow should fail (no start node)");
         assert!(result.error.is_some(), "should have error on failure");
-        let error = result.error.unwrap();
-        assert!(
-            error.contains("missing an Entry node"),
-            "error should contain 'missing an Entry node', got: {}",
-            error
-        );
+        assert_eq!(result.error.as_deref(), Some("Flow missing start node"));
     }
 
     #[test]

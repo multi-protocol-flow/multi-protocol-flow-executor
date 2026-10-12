@@ -58,7 +58,6 @@ pub use tauri_commands::{
     end_debug,
     execute_flow,
     execute_flow_with_dataset,
-    execute_single_node,
     force_end_debug,
     get_active_ingress_ports,
     get_app_data_dir,
@@ -557,6 +556,7 @@ pub fn run() {
             let _ = app.handle().plugin(
                 tauri_plugin_log::Builder::new()
                     .level(level)
+                    .clear_targets()
                     // 文件 target（生产诊断）
                     .target(tauri_plugin_log::Target::new(
                         tauri_plugin_log::TargetKind::Folder {
@@ -579,7 +579,6 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             create_flow,
             execute_flow,
-            execute_single_node,
             get_node_execution_detail,
             save_flow_report,
             load_flow_report,
