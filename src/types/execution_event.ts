@@ -25,6 +25,30 @@ export interface PluginEventData {
   timestamp: string;
 }
 
+/**
+ * 插件人机协同交互请求 (HITL: Human-in-the-Loop)
+ */
+export interface PendingInteraction {
+  interaction_id: string;
+  execution_id: string;
+  /** "ask_human" | "confirmation" | "step_pause" */
+  interaction_type: 'ask_human' | 'confirmation' | 'step_pause' | string;
+  prompt: string;
+  tool_id?: string;
+  tool_name?: string;
+  input_args?: Record<string, unknown>;
+  step_index?: number;
+  created_at_ms: number;
+}
+
+/** 人机协同用户响应载荷 */
+export interface HumanResponsePayload {
+  text?: string;
+  approved?: boolean;
+  reason?: string;
+  action?: 'next_step' | 'run_to_end' | 'cancel' | string;
+}
+
 /** 单个流式分块数据 */
 export interface NodeStreamChunk {
   kind?: 'content' | 'reasoning' | 'data' | string;

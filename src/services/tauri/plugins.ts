@@ -120,3 +120,27 @@ export async function installMarketplacePlugin(
   const { installMarketplacePlugin: mock } = await import('./mock');
   return mock(url, name, version, force);
 }
+
+/**
+ * 调用插件提供的 UI Call 方法（如人机协同 submit_human_response 等）
+ */
+export async function pluginUiCall<T = unknown>(
+  nodeType: string,
+  method: string,
+  payload?: unknown
+): Promise<T> {
+  if (isTauriEnv()) {
+    // 动态导入：Tauri API 在纯浏览器/测试环境中不存在
+    const { invoke } = await import('@tauri-apps/api/core');
+    try {
+      return await invoke<T>('plugin_ui_call', {
+        nodeType,
+        method,
+        payload: payload ?? null,
+      });
+    } catch (error) {
+      throw formatError(error, 'plugin_ui_call');
+    }
+  }
+  return null as T;
+}

@@ -5,7 +5,6 @@
 
 import { invoke, Channel } from '@tauri-apps/api/core';
 import type { Flow } from '@/types/flow';
-import type { Node } from '@/types/node';
 import type { NodeExecutionReport } from '@/types/report';
 import type {
   CreateFlowCommandInput,
@@ -17,9 +16,19 @@ import type {
 import type { LogEvent } from '@/types/events';
 import type { DebugEvent } from '@/types/debug';
 import type { ExecutionEvent } from '@/types/execution_event';
+import { toast } from 'sonner';
+import { isTauriEnv } from '@/lib/platform';
+import { notifyError } from '@/lib/notify';
+import { getActiveVariables } from '@/types/flow';
+import {
+  useExecutionStore,
+  useDebugStore,
+  useUIStore,
+} from '@/stores';
+import { useConsoleStore } from '@/stores/console';
+import { useWsStreamStore } from '@/stores/wsStream';
 import { getLL } from '@/i18n/i18n-lazy';
 import { useEnvironmentStore } from '@/stores/environment';
-
 /**
  * IPC 错误类
  * 包含命令名称、错误码和原始错误原因
@@ -214,33 +223,121 @@ export async function validateFlow(flow: Flow): Promise<ValidationResult> {
 }
 
 /**
- * 执行单个节点（连接性验证）
- * 调用后端 execute_single_node IPC 命令
+ * 构建流程切片子流程
  *
- * 支持的节点类型: http:request, script, assertion,
- * ws:connect, sse:connect,
- * graphql:connect, tcp:connect, 以及声明了
- * capabilities.single_node 的插件节点（如 redis:connect / mcp:connect）
+ * 提取目标节点及其内部相互连线，生成独立的轻量临时子流程用于局部交互测试。
+ * 跳过全局前置 Setup 与后置 Teardown，避免非预期的预热与清理开销。
  *
- * @param node - 要执行的节点
- * @param variables - 可选的变量
- * @returns 节点执行报告
- * @throws IpcError 如果执行失败
+ * @param flow - 原始完整流程
+ * @param targetNodeUuids - 待测试的目标节点 UUID 列表
+ * @param sliceName - 可选的切片名称覆盖
+ * @returns 构造的子流程
  */
-export async function executeSingleNode(
-  node: Node,
-  variables?: Record<string, unknown>
-): Promise<NodeExecutionReport> {
-  try {
-    return await invoke<NodeExecutionReport>('execute_single_node', {
-      node,
-      variables: variables ?? null,
-    });
-  } catch (error) {
-    throw formatError(error, 'execute_single_node');
-  }
+export function buildFlowSlice(flow: Flow, targetNodeUuids: string[], sliceName?: string): Flow {
+  const targetSet = new Set(targetNodeUuids);
+  const allNodes = [
+    ...(flow.setup?.nodes ?? []),
+    ...flow.nodes,
+    ...(flow.teardown?.nodes ?? []),
+  ];
+  const allConnections = [
+    ...(flow.setup?.connections ?? []),
+    ...flow.connections,
+    ...(flow.teardown?.connections ?? []),
+  ];
+  const nodes = allNodes.filter((n) => targetSet.has(n.uuid));
+  const connections = allConnections.filter(
+    (c) => targetSet.has(c.source_node_uuid) && targetSet.has(c.target_node_uuid)
+  );
+  return {
+    ...flow,
+    uuid: `slice-${Date.now()}`,
+    name: sliceName || (nodes.length === 1 ? `Test: ${nodes[0]?.name || ''}` : `Slice (${nodes.length} nodes)`),
+    nodes,
+    connections,
+    setup: undefined,
+    teardown: undefined,
+  };
 }
 
+/**
+ * 启动交互式切片/单节点执行服务
+ *
+ * 复用统一流程执行通道 execute_flow 与底部 running 运行面板，
+ * 支持思维链流式输出与人机协同卡片（ask_human）。
+ * 执行报告仅驻留内存供即时查阅，不落盘持久化。
+ *
+ * @param flow - 当前完整流程
+ * @param targetNodeUuids - 待执行的目标节点 UUID 数组
+ */
+export async function startInteractiveSliceExecution(
+  flow: Flow,
+  targetNodeUuids: string[]
+): Promise<void> {
+  if (useExecutionStore.getState().isExecuting) {
+    toast.warning(getLL().flow.debug_unavailable_executing());
+    return;
+  }
+  const sliceFlow = buildFlowSlice(flow, targetNodeUuids);
+  const flowVariables = getActiveVariables(flow);
+  useExecutionStore.getState().clearExecutionState();
+  useDebugStore.getState().clearDebugData();
+  useConsoleStore.getState().clearLogs();
+  useUIStore.setState({ isBottomPanelExpanded: true, bottomPanelTab: 'running' });
+  useExecutionStore.getState().startExecution({
+    flow_uuid: sliceFlow.uuid,
+    total_nodes: sliceFlow.nodes.length,
+  });
+
+  const handleLog = (event: LogEvent) => {
+    useConsoleStore.getState().addLog(event);
+  };
+  const handleExecutionEvent = (event: ExecutionEvent) => {
+    useExecutionStore.getState().handleExecutionEvent(event);
+  };
+  const handleWsEvent = (event: DebugEvent) => {
+    useWsStreamStore.getState().handleWsEvent(event);
+  };
+
+  try {
+    const executeFn = isTauriEnv()
+      ? executeFlowWithChannel
+      : (await import('./mock')).executeFlowWithChannel;
+
+    const result = await executeFn(
+      sliceFlow,
+      handleLog,
+      handleExecutionEvent,
+      handleWsEvent,
+      flowVariables,
+      undefined
+    );
+
+    if (result.flow_report) {
+      useExecutionStore.getState().setReport(result.flow_report);
+    }
+
+    if (result.success) {
+      toast.success(getLL().flow.slice_test_completed());
+    } else {
+      const errMsg = result.error || getLL().flow.slice_test_failed();
+      useExecutionStore.getState().setError(errMsg);
+      toast.error(getLL().flow.slice_test_failed(), {
+        description: errMsg,
+      });
+    }
+  } catch (error) {
+    const errorMsg = (error as Error).message;
+    useExecutionStore.getState().setError(errorMsg);
+    notifyError(getLL().flow.slice_test_failed(), error, {
+      category: 'Execution',
+      flowUuid: sliceFlow.uuid,
+    });
+  } finally {
+    useConsoleStore.getState().flushLogs();
+    useExecutionStore.setState({ isExecuting: false });
+  }
+}
 /**
  * 启动 Ingress Mock 监听服务
  *

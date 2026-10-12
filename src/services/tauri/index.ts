@@ -112,6 +112,7 @@ export async function executeFlowWithChannel(
   }
 }
 
+export { buildFlowSlice, startInteractiveSliceExecution } from './flow';
 // ============================================================================
 // 报告存储命令
 // ============================================================================
@@ -636,3 +637,5 @@ export async function saveDatasetReport(report: DatasetExecutionReport, reportsD
     return saveDatasetReportImpl(report, reportsDir);
   }
 }
+
+export { pluginUiCall } from './plugins';

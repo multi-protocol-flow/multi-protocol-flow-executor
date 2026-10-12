@@ -88,9 +88,12 @@ export async function executeFlowWithChannel(
     flowStarted: { flowUuid: flow.uuid, flowName: flow.name, totalNodes: flow.nodes.length },
   });
 
-  // 查找开始节点
-  const startNode = flow.nodes.find((node) => node.type === 'entry');
-
+  // 查找开始节点：优先 entry 节点，回退到入度为 0 的节点或首个节点
+  let startNode = flow.nodes.find((node) => node.type === 'entry');
+  if (!startNode && flow.nodes.length > 0) {
+    const targetUuids = new Set(flow.connections.map((c) => c.target_node_uuid));
+    startNode = flow.nodes.find((n) => !targetUuids.has(n.uuid)) || flow.nodes[0];
+  }
   // 验证开始节点存在
   if (!startNode) {
     onLog({
@@ -243,8 +246,7 @@ export async function executeFlowWithChannel(
   // 遍历并模拟执行其他节点
   for (let i = 0; i < flow.nodes.length; i++) {
     const node = flow.nodes[i];
-    if (node.type === 'entry') continue; // 跳过已执行的开始节点
-
+    if (node.type === 'entry' || node.uuid === startNode.uuid) continue; // 跳过已执行的开始节点
     const nodeStartTime = Date.now();
 
     // 发送节点开始日志
@@ -888,3 +890,5 @@ export async function saveDatasetReport(
 ): Promise<string> {
   return '';
 }
+
+export { buildFlowSlice, startInteractiveSliceExecution } from './flow';
