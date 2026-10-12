@@ -23,6 +23,7 @@ import {
   type FitViewOptions,
   type ProOptions,
   BackgroundVariant,
+  SelectionMode,
 } from '@xyflow/react';
 import {
   EntryNode,
@@ -131,6 +132,8 @@ export interface FlowSurfaceProps {
   onDragOver: (event: React.DragEvent) => void;
   onDrop: (event: React.DragEvent) => Promise<void>;
   onNodeContextMenu: (event: React.MouseEvent, node: Node) => void;
+  onSelectionContextMenu?: (event: React.MouseEvent, nodes: Node[]) => void;
+  onCloseContextMenu?: () => void;
 }
 
 export const FlowSurface = memo(function FlowSurface({
@@ -138,6 +141,8 @@ export const FlowSurface = memo(function FlowSurface({
   onDragOver,
   onDrop,
   onNodeContextMenu,
+  onSelectionContextMenu,
+  onCloseContextMenu,
 }: FlowSurfaceProps) {
   const flow = useFlowStore(selectFlow);
   const activeStage = useFlowStore(selectActiveStage);
@@ -163,7 +168,7 @@ export const FlowSurface = memo(function FlowSurface({
   const locale = useCurrentLocale();
   const ll = getLL();
 
-  const { fitView, setCenter, getNode } = useReactFlow();
+  const { fitView, setCenter, getNode, getNodes } = useReactFlow();
 
   // 转换 Flow 数据为 React Flow 初始格式（按当前阶段取子图）
   const initialData = useMemo(() => {
@@ -462,7 +467,12 @@ export const FlowSurface = memo(function FlowSurface({
   );
 
   const onNodeClick = useCallback(
-    (_: React.MouseEvent, node: Node) => {
+    (event: React.MouseEvent, node: Node) => {
+      onCloseContextMenu?.();
+      // 多选操作（按住 Ctrl / Meta / Shift 点选）交给 ReactFlow 内部处理多选，不覆盖单选面板
+      if (event.ctrlKey || event.metaKey || event.shiftKey) {
+        return;
+      }
       selectNode(node.id);
       setConfigPanelOpen(true);
       setConfigPanelMode('node');
@@ -472,35 +482,46 @@ export const FlowSurface = memo(function FlowSurface({
         setFlowListPanelOpen(true);
       }
     },
-    [selectNode, setConfigPanelOpen, setConfigPanelMode, setFlowListPanelOpen],
+    [selectNode, setConfigPanelOpen, setConfigPanelMode, setFlowListPanelOpen, onCloseContextMenu],
   );
 
   const onEdgeClick = useCallback(() => {
+    onCloseContextMenu?.();
     selectNode(null);
     setConfigPanelOpen(false);
-  }, [selectNode, setConfigPanelOpen]);
+  }, [selectNode, setConfigPanelOpen, onCloseContextMenu]);
 
   const onPaneClick = useCallback(() => {
+    onCloseContextMenu?.();
     selectNode(null);
     setConfigPanelMode('node');
     useUIStore.getState().closeNodePalette();
-  }, [selectNode, setConfigPanelMode]);
-
+  }, [selectNode, setConfigPanelMode, onCloseContextMenu]);
   const onMove = useCallback((_event: unknown, viewport: { x: number; y: number; zoom: number }) => {
+    onCloseContextMenu?.();
     const el = overlayInnerRef.current;
     if (el) {
       el.style.transform = `translate(${viewport.x}px, ${viewport.y}px) scale(${viewport.zoom})`;
     }
-  }, []);
+  }, [onCloseContextMenu]);
 
   const onPaneContextMenu = useCallback(
     (event: React.MouseEvent | MouseEvent) => {
       event.preventDefault();
       const x = 'clientX' in event ? event.clientX : 0;
       const y = 'clientY' in event ? event.clientY : 0;
+
+      // 如果当前已有多个节点被选中，右键空白处优先弹出多选操作菜单（而非添加节点面板）
+      const selectedNodes = getNodes().filter((n) => n.selected);
+      if (selectedNodes.length > 1 && onSelectionContextMenu) {
+        onSelectionContextMenu(event as React.MouseEvent, selectedNodes);
+        return;
+      }
+
+      onCloseContextMenu?.();
       useUIStore.getState().openNodePalette({ x, y });
     },
-    [],
+    [onCloseContextMenu, onSelectionContextMenu, getNodes],
   );
 
   const handleNodesChange = useCallback(
@@ -653,6 +674,7 @@ export const FlowSurface = memo(function FlowSurface({
       onNodeDragStop={onNodeDragStop}
       onNodeClick={onNodeClick}
       onNodeContextMenu={onNodeContextMenu}
+      onSelectionContextMenu={onSelectionContextMenu}
       onEdgeClick={onEdgeClick}
       onDragOver={onDragOver}
       onDrop={onDrop}
@@ -665,6 +687,7 @@ export const FlowSurface = memo(function FlowSurface({
       fitViewOptions={FIT_VIEW_OPTIONS}
       minZoom={0.1}
       maxZoom={2}
+      selectionMode={SelectionMode.Partial}
       proOptions={PRO_OPTIONS}
       colorMode={resolvedTheme === 'dark' ? 'dark' : 'light'}
       elevateNodesOnSelect={true}

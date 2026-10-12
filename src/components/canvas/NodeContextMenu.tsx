@@ -2,17 +2,14 @@
  * NodeContextMenu - 节点右键上下文菜单
  * 在鼠标右键点击节点时显示，支持复制、重命名、删除、配置复制/粘贴操作
  */
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
+import { useReactFlow } from '@xyflow/react';
 import { Copy, Trash2, Pencil, ClipboardCopy, ClipboardPaste, Play, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { getLL } from '@/i18n/i18n-lazy';
-import { executeSingleNode } from '@/services/tauri/flow';
-import { notifyError } from '@/lib/notify';
-import { useFlowStore, useExecutionStore, useDebugStore } from '@/stores';
-import { getActiveVariables } from '@/types/flow';
-import type { FlowExecutionReport } from '@/types';
-
+import { startInteractiveSliceExecution } from '@/services/tauri';
+import { useFlowStore, useDebugStore } from '@/stores';
 export interface NodeContextMenuProps {
   /** 菜单显示位置 (屏幕坐标) */
   x: number;
@@ -73,64 +70,39 @@ export function NodeContextMenu({
   hasClipboardConfig,
 }: NodeContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
-  const [testing, setTesting] = useState(false);
+  const { getNodes } = useReactFlow();
 
   // 构建菜单项
   const LL = getLL();
   const isDebugPaused = useDebugStore((state) => state.status === 'paused');
   const executionStack = useDebugStore((state) => state.executionStack);
   const isNodeInDebugStack = isDebugPaused && executionStack.some((e) => e.node_uuid === nodeId);
+
+  const selectedNodes = getNodes().filter((n) => n.selected);
+  const isMultiSelected = selectedNodes.length > 1 && selectedNodes.some((n) => n.id === nodeId);
+
   const handleTestNode = async () => {
-    setTesting(true);
+    onClose();
     const flow = useFlowStore.getState().flow;
-    try {
-      if (!flow) {
-        toast.error('No flow loaded');
-        return;
-      }
-      const node = flow.nodes.find((n) => n.uuid === nodeId);
-      if (!node) {
-        toast.error('Node not found in current flow');
-        return;
-      }
-      // Pass flow's active variables so {{variable}} references in node config are resolved
-      const flowVariables = getActiveVariables(flow);
-      const nodeReport = await executeSingleNode(node, flowVariables);
-
-      // Build a lightweight flow report for the dialog (no persistence)
-      const now = Date.now();
-      const flowReport: FlowExecutionReport = {
-        uuid: `test-${nodeId}-${now}`,
-        flow_uuid: flow.uuid,
-        flow_name: `Test: ${nodeName}`,
-        start_time: now - nodeReport.duration_ms,
-        end_time: now,
-        duration_ms: nodeReport.duration_ms,
-        total_nodes: 1,
-        executed_count: nodeReport.status === 'success' ? 1 : 0,
-        status: nodeReport.status,
-        node_reports: [nodeReport],
-        statistics: {
-          success_count: nodeReport.status === 'success' ? 1 : 0,
-          failed_count: nodeReport.status === 'failed' ? 1 : 0,
-          avg_node_duration_ms: nodeReport.duration_ms,
-          max_node_duration_ms: nodeReport.duration_ms,
-          min_node_duration_ms: nodeReport.duration_ms,
-        },
-        execution_mode: 'normal',
-      };
-
-      // Show in report dialog — no save, no history
-      useExecutionStore.getState().setReport(flowReport);
-      useExecutionStore.getState().openReportDialog(flowReport);
-    } catch (error) {
-      notifyError(LL.flow.test_node_failed(), error, { category: 'NodeExecution', flowUuid: flow?.uuid });
-    } finally {
-      setTesting(false);
-      onClose();
+    if (!flow) {
+      toast.error('No flow loaded');
+      return;
     }
+    await startInteractiveSliceExecution(flow, [nodeId]);
   };
 
+  const handleRunSelectedNodes = async () => {
+    onClose();
+    const flow = useFlowStore.getState().flow;
+    if (!flow) {
+      toast.error('No flow loaded');
+      return;
+    }
+    await startInteractiveSliceExecution(
+      flow,
+      selectedNodes.map((n) => n.id)
+    );
+  };
   const menuItems: MenuItem[] = [
     ...(isNodeInDebugStack
       ? [
@@ -173,11 +145,22 @@ export function NodeContextMenu({
         onClose();
       },
     },
+    ...(isMultiSelected
+      ? [
+          {
+            key: 'run-selected',
+            label: LL.flow.context_run_selected_nodes({ count: selectedNodes.length }),
+            icon: <Play className="w-4 h-4 text-purple-400" />,
+            action: () => {
+              handleRunSelectedNodes();
+            },
+          },
+        ]
+      : []),
     {
       key: 'test',
       label: LL.flow.context_test_node(),
       icon: <Play className="w-4 h-4" />,
-      disabled: testing,
       action: () => {
         handleTestNode();
       },
@@ -210,8 +193,8 @@ export function NodeContextMenu({
 
   // 点击外部关闭菜单
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+    const handleClickOutside = (e: MouseEvent | PointerEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as globalThis.Node)) {
         onClose();
       }
     };
@@ -222,19 +205,22 @@ export function NodeContextMenu({
       }
     };
 
-    // 使用 setTimeout 避免当前右键事件立即触发关闭
+    // 使用 capture 阶段捕获 pointerdown 与 mousedown，防止被 ReactFlow 等子组件的 stopPropagation 拦截
     const timer = setTimeout(() => {
-      document.addEventListener('mousedown', handleClickOutside);
-      document.addEventListener('keydown', handleKeyDown);
+      document.addEventListener('pointerdown', handleClickOutside, { capture: true });
+      document.addEventListener('mousedown', handleClickOutside, { capture: true });
+      document.addEventListener('contextmenu', handleClickOutside, { capture: true });
+      document.addEventListener('keydown', handleKeyDown, { capture: true });
     }, 0);
 
     return () => {
       clearTimeout(timer);
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('pointerdown', handleClickOutside, { capture: true });
+      document.removeEventListener('mousedown', handleClickOutside, { capture: true });
+      document.removeEventListener('contextmenu', handleClickOutside, { capture: true });
+      document.removeEventListener('keydown', handleKeyDown, { capture: true });
     };
   }, [onClose]);
-
   return (
     <div
       ref={menuRef}
@@ -250,8 +236,11 @@ export function NodeContextMenu({
       style={{ left: x, top: y }}
     >
       {/* 节点名称标题 */}
-      <div className="px-3 py-1.5 text-xs text-muted-foreground border-b border-border/40 dark:border-white/10 truncate max-w-[200px]" title={nodeName}>
-        {nodeName}
+      <div
+        className="px-3 py-1.5 text-xs text-muted-foreground border-b border-border/40 dark:border-white/10 truncate max-w-[200px]"
+        title={isMultiSelected ? LL.flow.selected_nodes_count({ count: selectedNodes.length }) : nodeName}
+      >
+        {isMultiSelected ? LL.flow.selected_nodes_count({ count: selectedNodes.length }) : nodeName}
       </div>
 
       {/* 菜单项列表 */}

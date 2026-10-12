@@ -403,6 +403,26 @@ function FlowCanvasInner() {
     []
   );
 
+  // 处理多选区域右键菜单（Shift 框选区域内右键）
+  const onSelectionContextMenu = useCallback(
+    (event: React.MouseEvent, selectedNodes: Node[]) => {
+      event.preventDefault();
+      if (!selectedNodes || selectedNodes.length === 0) return;
+      const firstNode = selectedNodes[0];
+      const nodeData = firstNode.data as { label?: string };
+      setContextMenu({
+        x: event.clientX,
+        y: event.clientY,
+        nodeId: firstNode.id,
+        nodeType: firstNode.type || '',
+        nodeName:
+          selectedNodes.length > 1
+            ? getLL().flow.selected_nodes_count({ count: selectedNodes.length })
+            : nodeData?.label || '',
+      });
+    },
+    []
+  );
   // 复制节点（含源端连接复制）
   const handleCopyNode = useCallback(
     (nodeId: string) => {
@@ -886,6 +906,8 @@ function FlowCanvasInner() {
         onDragOver={onDragOver}
         onDrop={onDrop}
         onNodeContextMenu={onNodeContextMenu}
+        onSelectionContextMenu={onSelectionContextMenu}
+        onCloseContextMenu={() => setContextMenu(null)}
       />
       {/* 节点右键菜单 */}
       {contextMenu && (

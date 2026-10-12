@@ -17,6 +17,7 @@ import {
   selectFlow,
   selectNodes,
   getAllNodes,
+  selectIsExecuting,
 } from '@/stores';
 import { notifyError } from '@/lib/notify';
 import { useConsoleStore } from '@/stores/console';
@@ -51,9 +52,10 @@ const DatasetExecutionPanel = lazy(() =>
  */
 export function CanvasToolbar() {
   const ll = getLL();
-  const [isExecuting, setIsExecuting] = useState(false);
+  const isGlobalExecuting = useExecutionStore(selectIsExecuting);
+  const [localExecuting, setLocalExecuting] = useState(false);
+  const isExecuting = localExecuting || isGlobalExecuting;
   const flow = useFlowStore(selectFlow);
-
   const hasEnvironments = useEnvironmentStore((s) => s.environments.length > 0);
   // 验证错误对话框状态
   const [validationErrors, setValidationErrors] = useState<{ code: string; message: string }[]>([]);
@@ -149,14 +151,14 @@ export function CanvasToolbar() {
       if (!validation.valid && validation.errors.length > 0) {
         setValidationErrors(validation.errors);
         setShowValidationDialog(true);
-        setIsExecuting(false);
+        setLocalExecuting(false);
         return;
       }
     } catch {
       // 验证调用失败（如非 Tauri 环境）继续执行，后端会在执行时再次验证
     }
 
-    setIsExecuting(true);
+    setLocalExecuting(true);
     setConfigPanelOpen(false);
 
     // 清空上次增量执行状态，打开底部面板并切换到运行标签
@@ -233,7 +235,7 @@ export function CanvasToolbar() {
       });
     } finally {
       useConsoleStore.getState().flushLogs();
-      setIsExecuting(false);
+      setLocalExecuting(false);
     }
   };
 
@@ -376,6 +378,7 @@ export function CanvasToolbar() {
         {isExecuting ? (
           <button
             type="button"
+            data-stop-btn
             onClick={() => useExecutionStore.getState().cancelExecution()}
             title={getLL().flow.stop_execution()}
             className="flex items-center justify-center transition-all duration-150 text-red-600 hover:text-red-700 hover:scale-110 cursor-pointer"
