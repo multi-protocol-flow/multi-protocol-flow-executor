@@ -110,6 +110,22 @@ describe('Tauri IPC Mock 服务', () => {
       const flow: Flow = {
         uuid: 'test-flow-id',
         name: '测试流程',
+        nodes: [],
+        connections: [],
+        initial_variables: {},
+      };
+
+      const onLog = vi.fn();
+      const result = await executeFlowWithChannel(flow, onLog);
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Flow is missing a start node');
+    });
+
+    it('无 Entry 节点但有普通节点时应该通过回退自适应执行', async () => {
+      const flow: Flow = {
+        uuid: 'test-flow-id',
+        name: '测试流程',
         nodes: [
           {
             uuid: 'http-node',
@@ -126,8 +142,7 @@ describe('Tauri IPC Mock 服务', () => {
       const onLog = vi.fn();
       const result = await executeFlowWithChannel(flow, onLog);
 
-      expect(result.success).toBe(false);
-      expect(result.error).toBe('Flow is missing a start node');
+      expect(result.success).toBe(true);
     });
 
     it('应该调用日志回调', async () => {

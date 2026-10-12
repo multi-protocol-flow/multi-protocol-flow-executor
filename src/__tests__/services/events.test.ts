@@ -38,11 +38,11 @@ describe('executeFlowWithChannel (Mock)', () => {
       expect(result).toHaveProperty('execution_time');
     });
 
-    it('没有开始节点时应该返回失败', async () => {
+    it('没有节点时应该返回失败（缺少开始节点）', async () => {
       const flow: Flow = {
         uuid: 'test-flow',
         name: '测试流程',
-        nodes: [{ uuid: 'http-1', type: 'http:request', name: 'HTTP', position: { x: 0, y: 0 }, data: { type: 'http:request', url: 'https://example.com', method: 'get' } }],
+        nodes: [],
         connections: [],
         initial_variables: {},
       };
@@ -54,6 +54,20 @@ describe('executeFlowWithChannel (Mock)', () => {
       expect(result.error).toContain('missing a start node');
     });
 
+    it('无 Entry 节点但有普通节点时应该通过回退自适应执行', async () => {
+      const flow: Flow = {
+        uuid: 'test-flow',
+        name: '测试流程',
+        nodes: [{ uuid: 'http-1', type: 'http:request', name: 'HTTP', position: { x: 0, y: 0 }, data: { type: 'http:request', url: 'https://example.com', method: 'get' } }],
+        connections: [],
+        initial_variables: {},
+      };
+      const onLog = vi.fn();
+
+      const result = await executeFlowWithChannel(flow, onLog);
+
+      expect(result.success).toBe(true);
+    });
     it('单个 Entry 节点无连接应该成功', async () => {
       const flow = createTestFlow(false);
       const onLog = vi.fn();

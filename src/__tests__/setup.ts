@@ -22,7 +22,7 @@ vi.mock('@/i18n/i18n-util', async () => {
         if (!params) return text;
         let result = text;
         for (const [key, value] of Object.entries(params)) {
-          result = result.replace(new RegExp(`\\{${key}\\}`, 'g'), String(value ?? ''));
+          result = result.replace(new RegExp(`\\{${key}(?::[^}]+)?\\}`, 'g'), String(value ?? ''));
         }
         return result;
       };

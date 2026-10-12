@@ -97,4 +97,47 @@ describe('ExecutionPanel', () => {
     rerender(<ExecutionPanel />);
     expect(screen.getAllByText('HTTP 节点').length).toBeGreaterThan(0);
   });
+  it('当节点触发 HITL 人机交互时，面板正常展示交互卡片并可交互', () => {
+    const flow = createMockFlow();
+    useFlowStore.getState().setFlow(flow);
+    act(() => {
+      useExecutionStore.setState({
+        isExecuting: true,
+        currentNodeUuid: 'node-main-1',
+        activeInteractions: {
+          'node-main-1': {
+            interaction_id: 'ask_123',
+            execution_id: 'exec_123',
+            interaction_type: 'ask_human',
+            prompt: '您希望测试什么消息？',
+            created_at_ms: Date.now(),
+          },
+        },
+      });
+    });
+
+    render(<ExecutionPanel />);
+
+    // 应该展示智能体提问内容
+    expect(screen.getByText('您希望测试什么消息？')).toBeDefined();
+    expect(screen.getByText('HITL')).toBeDefined();
+  });
+
+  it('当执行切片流程时，展示测试运行不入历史徽章', () => {
+    const flow = createMockFlow();
+    useFlowStore.getState().setFlow(flow);
+
+    act(() => {
+      useExecutionStore.setState({
+        isExecuting: true,
+        activeFlowUuid: 'slice-123456789',
+        currentNodeUuid: 'node-main-1',
+        totalNodes: 1,
+        completedNodeCount: 0,
+      });
+    });
+
+    render(<ExecutionPanel />);
+    expect(screen.getByText('测试运行 / 不入历史')).toBeInTheDocument();
+  });
 });

@@ -8,11 +8,19 @@ import { invoke, Channel } from '@tauri-apps/api/core';
 import {
   createFlow,
   executeFlowWithChannel,
+  buildFlowSlice,
+  startInteractiveSliceExecution,
   IpcError,
 } from '@/services/tauri/flow';
 import type { Flow } from '@/types/flow';
 import type { ExecuteFlowCommandOutput } from '@/types/ipc';
 import { useEnvironmentStore } from '@/stores/environment';
+import { useExecutionStore, useUIStore } from '@/stores';
+
+// Mock platform to test Tauri IPC branch
+vi.mock('@/lib/platform', () => ({
+  isTauriEnv: () => true,
+}));
 
 // Mock Tauri API
 vi.mock('@tauri-apps/api/core', () => ({
@@ -323,6 +331,95 @@ describe('Tauri IPC flow.ts 服务', () => {
 
       // 验证 onmessage 被设置（logChannel 应包含 onLog 回调）
       expect(capturedOnmessages).toContain(onLog);
+    });
+  });
+
+  describe('buildFlowSlice', () => {
+    it('应该正确提取指定节点和内部连线', () => {
+      const flow: Flow = {
+        uuid: 'full-flow',
+        name: 'Full Flow',
+        nodes: [
+          { uuid: 'node-1', type: 'http:request', name: 'Node 1', position: { x: 0, y: 0 }, data: { type: 'http:request', url: 'https://example.com' } },
+          { uuid: 'node-2', type: 'script', name: 'Node 2', position: { x: 100, y: 0 }, data: { type: 'script', script: 'return 1;' } },
+          { uuid: 'node-3', type: 'assertion', name: 'Node 3', position: { x: 200, y: 0 }, data: { type: 'assertion', assertions: [], mode: 'all', on_failure: 'route_false', continue_on_failure: false } },
+        ],
+        connections: [
+          { id: 'c1', source_node_uuid: 'node-1', target_node_uuid: 'node-2', source_port_id: 'out', target_port_id: 'in' },
+          { id: 'c2', source_node_uuid: 'node-2', target_node_uuid: 'node-3', source_port_id: 'out', target_port_id: 'in' },
+          { id: 'c3', source_node_uuid: 'node-1', target_node_uuid: 'node-3', source_port_id: 'out', target_port_id: 'in' },
+        ],
+        setup: { nodes: [], connections: [] },
+        teardown: { nodes: [], connections: [] },
+        initial_variables: {},
+      };
+
+      const slice = buildFlowSlice(flow, ['node-2', 'node-3']);
+      expect(slice.uuid).toMatch(/^slice-\d+/);
+      expect(slice.name).toBe('Slice (2 nodes)');
+      expect(slice.nodes).toHaveLength(2);
+      expect(slice.nodes.map((n) => n.uuid)).toEqual(['node-2', 'node-3']);
+      expect(slice.connections).toHaveLength(1);
+      expect(slice.connections[0].id).toBe('c2');
+      expect(slice.setup).toBeUndefined();
+      expect(slice.teardown).toBeUndefined();
+    });
+
+    it('单个节点切片应该以该节点名称命名', () => {
+      const flow = createTestFlow();
+      const slice = buildFlowSlice(flow, ['http-node-uuid']);
+      expect(slice.nodes).toHaveLength(1);
+      expect(slice.name).toBe('Test: HTTP 请求');
+      expect(slice.connections).toHaveLength(0);
+    });
+  });
+
+  describe('startInteractiveSliceExecution', () => {
+    it('应该展开底部面板并进入 running 标签页', async () => {
+      const flow = createTestFlow();
+      const mockOutput: ExecuteFlowCommandOutput = {
+        success: true,
+        execution_time: 42,
+        flow_report: {
+          uuid: 'rep-slice-1',
+          flow_uuid: 'slice-123456789',
+          flow_name: 'Test: HTTP 请求',
+          start_time: Date.now(),
+          end_time: Date.now() + 42,
+          duration_ms: 42,
+          total_nodes: 1,
+          executed_count: 1,
+          status: 'success',
+          node_reports: [],
+          statistics: {
+            success_count: 1,
+            failed_count: 0,
+            avg_node_duration_ms: 42,
+            max_node_duration_ms: 42,
+            min_node_duration_ms: 42,
+          },
+          execution_mode: 'normal',
+        },
+      };
+      vi.mocked(invoke).mockResolvedValueOnce(mockOutput);
+
+      await startInteractiveSliceExecution(flow, ['http-node-uuid']);
+
+      expect(invoke).toHaveBeenCalledWith(
+        'execute_flow',
+        expect.objectContaining({
+          flow: expect.objectContaining({
+            uuid: expect.stringMatching(/^slice-\d+/),
+            name: 'Test: HTTP 请求',
+          }),
+        })
+      );
+      expect(useUIStore.getState().isBottomPanelExpanded).toBe(true);
+      expect(useUIStore.getState().bottomPanelTab).toBe('running');
+      expect(useExecutionStore.getState().report?.flow_uuid).toMatch(/^slice-\d+/);
+      expect(useExecutionStore.getState().report?.status).toBe('success');
+      expect(useExecutionStore.getState().history).toHaveLength(0);
+      expect(useExecutionStore.getState().isExecuting).toBe(false);
     });
   });
 });

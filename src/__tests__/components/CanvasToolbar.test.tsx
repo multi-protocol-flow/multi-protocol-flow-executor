@@ -22,6 +22,7 @@ vi.mock('@/stores', () => ({
   selectIsDebugging: vi.fn((state) => state.status !== 'idle' && state.status !== 'ended'),
   selectCanUndo: vi.fn((state) => state.past?.length > 0),
   selectCanRedo: vi.fn((state) => state.future?.length > 0),
+  selectIsExecuting: vi.fn((state) => state.isExecuting ?? false),
 }));
 
 // Mock console store
