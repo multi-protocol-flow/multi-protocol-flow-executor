@@ -2,6 +2,7 @@
  * Execution Store 单元测试
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import * as tauriService from '@/services/tauri';
 import {
   useExecutionStore,
   selectIsExecuting,
@@ -1250,6 +1251,174 @@ describe('ExecutionStore', () => {
       useExecutionStore.getState().clearExecutionState();
 
       expect(useExecutionStore.getState().subFlowProgressMap).toEqual({});
+    });
+  });
+  describe('HITL 人机协同交互', () => {
+    it('接收到 waiting_human 事件时记录活跃交互', () => {
+      const store = useExecutionStore.getState();
+      store.handleExecutionEvent({
+        pluginEvent: {
+          flowUuid: 'f1',
+          nodeUuid: 'agent-1',
+          nodeType: 'agent:react',
+          eventType: 'stream',
+          data: {
+            type: 'waiting_human',
+            interaction: {
+              interaction_id: 'ask_1',
+              execution_id: 'e1',
+              interaction_type: 'ask_human',
+              prompt: 'Please provide test message',
+              created_at_ms: 1234567,
+            },
+          },
+          timestamp: new Date().toISOString(),
+        },
+      });
+
+      const state = useExecutionStore.getState();
+      expect(state.activeInteractions['agent-1']).toBeDefined();
+      expect(state.activeInteractions['agent-1'].interaction_id).toBe('ask_1');
+      expect(state.activeInteractions['agent-1'].prompt).toBe('Please provide test message');
+    });
+
+    it('接收到 human_resumed / human_timeout 时清除活跃交互', () => {
+      const store = useExecutionStore.getState();
+      store.handleExecutionEvent({
+        pluginEvent: {
+          flowUuid: 'f1',
+          nodeUuid: 'agent-1',
+          nodeType: 'agent:react',
+          eventType: 'stream',
+          data: {
+            type: 'waiting_human',
+            interaction: {
+              interaction_id: 'ask_1',
+              execution_id: 'e1',
+              interaction_type: 'ask_human',
+              prompt: 'Please provide test message',
+              created_at_ms: 1234567,
+            },
+          },
+          timestamp: new Date().toISOString(),
+        },
+      });
+
+      expect(useExecutionStore.getState().activeInteractions['agent-1']).toBeDefined();
+
+      store.handleExecutionEvent({
+        pluginEvent: {
+          flowUuid: 'f1',
+          nodeUuid: 'agent-1',
+          nodeType: 'agent:react',
+          eventType: 'stream',
+          data: {
+            type: 'human_resumed',
+            interaction_id: 'ask_1',
+          },
+          timestamp: new Date().toISOString(),
+        },
+      });
+
+      expect(useExecutionStore.getState().activeInteractions['agent-1']).toBeUndefined();
+    });
+
+    it('节点完成或流程取消时清除活跃交互', () => {
+      const store = useExecutionStore.getState();
+      store.handleExecutionEvent({
+        pluginEvent: {
+          flowUuid: 'f1',
+          nodeUuid: 'agent-1',
+          nodeType: 'agent:react',
+          eventType: 'stream',
+          data: {
+            type: 'waiting_human',
+            interaction: {
+              interaction_id: 'ask_1',
+              execution_id: 'e1',
+              interaction_type: 'ask_human',
+              prompt: 'Waiting',
+              created_at_ms: 1234567,
+            },
+          },
+          timestamp: new Date().toISOString(),
+        },
+      });
+
+      expect(useExecutionStore.getState().activeInteractions['agent-1']).toBeDefined();
+
+      store.handleExecutionEvent({
+        nodeCompleted: { report: createMockNodeReport('agent-1') },
+      });
+
+      expect(useExecutionStore.getState().activeInteractions['agent-1']).toBeUndefined();
+    });
+    it('submitHumanResponse 提交失败时保留活跃交互并向调用方抛出错误', async () => {
+      const store = useExecutionStore.getState();
+      store.handleExecutionEvent({
+        pluginEvent: {
+          flowUuid: 'f1',
+          nodeUuid: 'agent-1',
+          nodeType: 'agent:react',
+          eventType: 'stream',
+          data: {
+            type: 'waiting_human',
+            interaction: {
+              interaction_id: 'ask_1',
+              execution_id: 'e1',
+              interaction_type: 'ask_human',
+              prompt: 'Waiting',
+              created_at_ms: 1234567,
+            },
+          },
+          timestamp: new Date().toISOString(),
+        },
+      });
+
+      // 当 pluginUiCall 抛出异常时，应保留活跃交互并不捕获吞掉错误
+      vi.spyOn(tauriService, 'pluginUiCall').mockRejectedValueOnce(new Error('IPC failed'));
+      await expect(
+        store.submitHumanResponse('agent-1', 'ask_1', { text: 'my answer' })
+      ).rejects.toThrow('IPC failed');
+
+      expect(useExecutionStore.getState().activeInteractions['agent-1']).toBeDefined();
+    });
+  });
+
+  describe('切片执行与历史记录隔离', () => {
+    it('startExecution 正确初始化 activeFlowUuid 与 totalNodes', () => {
+      useExecutionStore.getState().startExecution({
+        flow_uuid: 'slice-999',
+        total_nodes: 3,
+      });
+
+      const state = useExecutionStore.getState();
+      expect(state.isExecuting).toBe(true);
+      expect(state.activeFlowUuid).toBe('slice-999');
+      expect(state.totalNodes).toBe(3);
+      expect(state.completedNodeCount).toBe(0);
+    });
+
+    it('setReport 针对 slice- 流程不写入历史记录', () => {
+      const sliceReport = createMockReport({ flow_uuid: 'slice-123' });
+      useExecutionStore.getState().setReport(sliceReport);
+
+      expect(useExecutionStore.getState().report?.flow_uuid).toBe('slice-123');
+      expect(useExecutionStore.getState().history).toHaveLength(0);
+    });
+
+    it('在切片执行后执行正常流程，正常流程报告能正常写入历史记录', () => {
+      // 先执行切片
+      const sliceReport = createMockReport({ flow_uuid: 'slice-123' });
+      useExecutionStore.getState().setReport(sliceReport);
+      expect(useExecutionStore.getState().history).toHaveLength(0);
+
+      // 再执行正常流程
+      const normalReport = createMockReport({ flow_uuid: 'normal-flow-456' });
+      useExecutionStore.getState().setReport(normalReport);
+      expect(useExecutionStore.getState().history).toHaveLength(1);
+      expect(useExecutionStore.getState().history[0].flow_uuid).toBe('normal-flow-456');
+      expect(useExecutionStore.getState().activeFlowUuid).toBe('normal-flow-456');
     });
   });
 });

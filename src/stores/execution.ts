@@ -3,13 +3,24 @@
  */
 import { create } from 'zustand';
 import type { FlowExecutionReport, NodeExecutionReport } from '@/types';
-import type { ExecutionEvent, PluginEventData, NodeStreamData, NodeStreamChunk, SubFlowProgress } from '@/types/execution_event';
+import type {
+  ExecutionEvent,
+  PluginEventData,
+  NodeStreamData,
+  NodeStreamChunk,
+  SubFlowProgress,
+  PendingInteraction,
+  HumanResponsePayload,
+} from '@/types/execution_event';
 import { useWsStreamStore } from './wsStream';
 import { useConsoleStore } from './console';
-import { useFlowStore, getNodeStage } from './flow';
+import { useFlowStore, getNodeStage, findNodeInFlow } from './flow';
+import { pluginUiCall } from '@/services/tauri';
 interface ExecutionState {
   /** 是否正在执行 */
   isExecuting: boolean;
+  /** 当前/最近执行的流程 UUID */
+  activeFlowUuid: string | null;
   /** 执行报告 */
   report: FlowExecutionReport | null;
   /** 错误信息 */
@@ -41,10 +52,12 @@ interface ExecutionState {
    * `parentNodeUuid` 归属到这里，用于在 SubFlow 节点上展示嵌套进度。
    */
   subFlowProgressMap: Record<string, SubFlowProgress>;
+  /** 活跃的人机协同交互请求 (nodeUuid -> PendingInteraction) */
+  activeInteractions: Record<string, PendingInteraction>;
 
   // ===== Actions =====
   /** 开始执行 */
-  startExecution: () => void;
+  startExecution: (init?: { flow_uuid?: string; total_nodes?: number }) => void;
   /** 设置执行报告 */
   setReport: (report: FlowExecutionReport | null) => void;
   /** 设置错误 */
@@ -61,6 +74,12 @@ interface ExecutionState {
   handleExecutionEvent: (event: ExecutionEvent) => void;
   /** 清空增量执行状态 */
   clearExecutionState: () => void;
+  /** 提交人机协同交互响应 (HITL) */
+  submitHumanResponse: (
+    nodeUuid: string,
+    interactionId: string,
+    response: HumanResponsePayload,
+  ) => Promise<void>;
   /** 按需从冷通道拉取节点的完整执行详情 */
   fetchNodeDetail: (flowUuid: string, nodeUuid: string) => Promise<void>;
   /** 打开报告对话框 */
@@ -86,6 +105,7 @@ const MAX_PLUGIN_EVENTS = 200;
 
 const initialState = {
   isExecuting: false,
+  activeFlowUuid: null as string | null,
   report: null,
   error: null,
   history: [],
@@ -98,6 +118,7 @@ const initialState = {
   pluginEvents: [] as PluginEventData[],
   nodeStreamMap: {} as Record<string, NodeStreamData>,
   subFlowProgressMap: {} as Record<string, SubFlowProgress>,
+  activeInteractions: {} as Record<string, PendingInteraction>,
 };
 
 export const useExecutionStore = create<ExecutionState>((set, get) => {
@@ -167,23 +188,28 @@ export const useExecutionStore = create<ExecutionState>((set, get) => {
     ...initialState,
 
     // ===== Actions =====
-    startExecution: () =>
+    startExecution: (init) =>
       set({
         isExecuting: true,
         report: null,
         error: null,
+        activeFlowUuid: init?.flow_uuid ?? null,
+        totalNodes: init?.total_nodes ?? 0,
+        completedNodeCount: 0,
       }),
 
     setReport: (report) => {
+      flushBuffer();
       useConsoleStore.getState().flushLogs();
       set((state) => {
-        // 更新历史记录
-        const newHistory = report
+        const activeFlowUuid = report?.flow_uuid ?? state.activeFlowUuid;
+        const isSlice = Boolean(activeFlowUuid?.startsWith('slice-'));
+        const newHistory = report && !isSlice
           ? [report, ...state.history].slice(0, MAX_HISTORY_SIZE)
           : state.history;
-
         return {
           isExecuting: false,
+          activeFlowUuid,
           report,
           history: newHistory,
           // 从最终报告同步增量计数器，确保面板计数与报告一致
@@ -224,7 +250,7 @@ export const useExecutionStore = create<ExecutionState>((set, get) => {
       }
       flushBuffer();
       useConsoleStore.getState().flushLogs();
-      set({ isExecuting: false });
+      set({ isExecuting: false, activeInteractions: {} });
     },
 
     handleExecutionEvent: (event: ExecutionEvent) => {
@@ -253,6 +279,7 @@ export const useExecutionStore = create<ExecutionState>((set, get) => {
         flushBuffer();
         set({
           isExecuting: true,
+          activeFlowUuid: event.flowStarted.flowUuid,
           nodeReportsMap: {},
           currentNodeUuid: null,
           completedNodeCount: 0,
@@ -262,6 +289,7 @@ export const useExecutionStore = create<ExecutionState>((set, get) => {
           pluginEvents: [],
           nodeStreamMap: {},
           subFlowProgressMap: {},
+          activeInteractions: {},
         });
       } else if ('nodeStarted' in event) {
         const { nodeUuid, nodeName, parentNodeUuid } = event.nodeStarted;
@@ -310,14 +338,23 @@ export const useExecutionStore = create<ExecutionState>((set, get) => {
           });
           return;
         }
-        queueEventUpdate((state) => ({
-          nodeReportsMap: {
-            ...state.nodeReportsMap,
-            [report.node_uuid]: report,
-          },
-          completedNodeCount: state.completedNodeCount + 1,
-          currentNodeUuid: null,
-        }));
+        queueEventUpdate((state) => {
+          let nextActiveInteractions = state.activeInteractions;
+          if (state.activeInteractions[report.node_uuid]) {
+            const next = { ...state.activeInteractions };
+            delete next[report.node_uuid];
+            nextActiveInteractions = next;
+          }
+          return {
+            nodeReportsMap: {
+              ...state.nodeReportsMap,
+              [report.node_uuid]: report,
+            },
+            completedNodeCount: state.completedNodeCount + 1,
+            currentNodeUuid: null,
+            activeInteractions: nextActiveInteractions,
+          };
+        });
       } else if ('flowCompleted' in event) {
         // 嵌套流程结束：顶层流程仍在运行，报告树随 SubFlow 节点的 NodeCompleted 到达
         if (event.flowCompleted.parentNodeUuid) return;
@@ -325,7 +362,12 @@ export const useExecutionStore = create<ExecutionState>((set, get) => {
         useConsoleStore.getState().flushLogs();
         const { report } = event.flowCompleted;
         set((state) => {
-          const newHistory = [report, ...state.history].slice(0, MAX_HISTORY_SIZE);
+          const isSlice =
+            Boolean(report?.flow_uuid?.startsWith('slice-')) ||
+            Boolean(state.activeFlowUuid?.startsWith('slice-'));
+          const newHistory = !isSlice
+            ? [report, ...state.history].slice(0, MAX_HISTORY_SIZE)
+            : state.history;
           return {
             isExecuting: false,
             report,
@@ -333,6 +375,7 @@ export const useExecutionStore = create<ExecutionState>((set, get) => {
             // 从最终报告同步增量计数器，保证面板计数与报告保持一致
             completedNodeCount: report.node_reports.length,
             totalNodes: report.total_nodes,
+            activeInteractions: {},
           };
         });
       } else if ('flowCancelled' in event) {
@@ -340,17 +383,35 @@ export const useExecutionStore = create<ExecutionState>((set, get) => {
         if (event.flowCancelled.parentNodeUuid) return;
         flushBuffer();
         useConsoleStore.getState().flushLogs();
-        set({ isExecuting: false });
+        set({ isExecuting: false, activeInteractions: {} });
       } else if ('pluginEvent' in event) {
         const pluginEvt = event.pluginEvent;
         const isStream = pluginEvt.eventType === 'stream';
         queueEventUpdate((state) => {
           let nextNodeStreamMap = state.nodeStreamMap;
+          let nextActiveInteractions = state.activeInteractions;
           if (isStream) {
             const dataObj =
               typeof pluginEvt.data === 'object' && pluginEvt.data !== null
                 ? (pluginEvt.data as Record<string, unknown>)
                 : {};
+
+            if (dataObj.type === 'waiting_human' && dataObj.interaction) {
+              nextActiveInteractions = {
+                ...state.activeInteractions,
+                [pluginEvt.nodeUuid]: dataObj.interaction as PendingInteraction,
+              };
+            } else if (
+              dataObj.type === 'human_resumed' ||
+              dataObj.type === 'human_timeout' ||
+              dataObj.type === 'step_completed'
+            ) {
+              if (state.activeInteractions[pluginEvt.nodeUuid]) {
+                const next = { ...state.activeInteractions };
+                delete next[pluginEvt.nodeUuid];
+                nextActiveInteractions = next;
+              }
+            }
             const deltaContent = typeof dataObj.delta_content === 'string' ? dataObj.delta_content : '';
             const deltaReasoning = typeof dataObj.delta_reasoning === 'string' ? dataObj.delta_reasoning : '';
             const text =
@@ -400,6 +461,7 @@ export const useExecutionStore = create<ExecutionState>((set, get) => {
           return {
             pluginEvents: [...state.pluginEvents, pluginEvt].slice(-MAX_PLUGIN_EVENTS),
             nodeStreamMap: nextNodeStreamMap,
+            activeInteractions: nextActiveInteractions,
           };
         });
       }
@@ -409,6 +471,7 @@ export const useExecutionStore = create<ExecutionState>((set, get) => {
       eventBuffer = [];
       useWsStreamStore.getState().resetWsStreams();
       set({
+        activeFlowUuid: null,
         nodeReportsMap: {},
         currentNodeUuid: null,
         completedNodeCount: 0,
@@ -418,7 +481,28 @@ export const useExecutionStore = create<ExecutionState>((set, get) => {
         pluginEvents: [],
         nodeStreamMap: {},
         subFlowProgressMap: {},
+        activeInteractions: {},
       });
+    },
+
+    submitHumanResponse: async (nodeUuid, interactionId, response) => {
+      const flow = useFlowStore.getState().flow;
+      const node = flow ? findNodeInFlow(flow, nodeUuid) : null;
+      const nodeType = node?.type || 'agent:react';
+      try {
+        await pluginUiCall(nodeType, 'submit_human_response', {
+          interaction_id: interactionId,
+          response,
+        });
+        set((state) => {
+          const next = { ...state.activeInteractions };
+          delete next[nodeUuid];
+          return { activeInteractions: next };
+        });
+      } catch (err) {
+        console.error('Failed to submit human response:', err);
+        throw err;
+      }
     },
 
     fetchNodeDetail: async (flowUuid: string, nodeUuid: string) => {
@@ -558,3 +642,8 @@ export const selectNodeStreamByUuid = (nodeUuid: string) => (state: ExecutionSta
 /** 工厂选择器：选择特定 SubFlow 节点的嵌套执行进度 */
 export const selectSubFlowProgress = (nodeUuid: string) => (state: ExecutionState) =>
   state.subFlowProgressMap[nodeUuid];
+/** 选择活跃的人机交互请求字典 */
+export const selectActiveInteractions = (state: ExecutionState) => state.activeInteractions;
+/** 选择特定节点的人机交互请求 */
+export const selectActiveInteractionByNode = (nodeUuid: string) => (state: ExecutionState) =>
+  state.activeInteractions[nodeUuid] ?? null;
