@@ -12,6 +12,7 @@ import {
   Clock,
   MousePointerClick,
   Ban,
+  Square,
 } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import {
@@ -28,11 +29,13 @@ import {
   selectCompletedNodeCount,
   selectTotalNodes,
   selectReport,
+  selectActiveInteractions,
 } from '@/stores/execution';
 import { selectIsDebugging, selectCurrentNodeUuid } from '@/stores/debug';
 import { useWsStreamStore } from '@/stores/wsStream';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { NodeExecutionDetails } from './NodeExecutionDetails';
+import { HumanInteractionCard } from './HumanInteractionCard';
 import { StreamInspectorPanel } from './StreamInspectorPanel';
 import { VariableTreeView } from './VariableTreeView';
 import { VariableTimelineDrawer } from './VariableTimelineDrawer';
@@ -88,6 +91,7 @@ const NodeStatusItem = memo(function NodeStatusItem({
   durationMs,
   onSelect,
 }: NodeStatusItemProps) {
+  const hasInteraction = useExecutionStore((s) => Boolean(s.activeInteractions[node.uuid]));
   const meta = getNodeMeta(node.data.type);
   const nodeTypeLabel = meta?.name ?? node.data.type;
   const flow = useFlowStore((s) => s.flow);
@@ -127,6 +131,11 @@ const NodeStatusItem = memo(function NodeStatusItem({
           {stage === 'setup' ? stageLl.short_setup() : stageLl.short_teardown()}
         </span>
       )}
+      {hasInteraction && (
+        <span className="shrink-0 rounded px-1.5 py-0.5 text-[9px] font-semibold leading-none border bg-purple-500/15 text-purple-600 dark:text-purple-400 border-purple-500/30 animate-pulse">
+          HITL
+        </span>
+      )}
       <span
         className={cn(
           'text-[10px] px-1.5 py-0.5 rounded shrink-0 font-medium leading-none',
@@ -156,6 +165,11 @@ const ExecutionProgressBar = memo(function ExecutionProgressBar({
   const ll = getLL();
   const completedNodeCount = useExecutionStore(selectCompletedNodeCount);
   const totalNodes = useExecutionStore(selectTotalNodes);
+  const activeFlowUuid = useExecutionStore((s) => s.activeFlowUuid);
+  const report = useExecutionStore(selectReport);
+  const isSlice = Boolean(
+    activeFlowUuid?.startsWith('slice-') || report?.flow_uuid?.startsWith('slice-')
+  );
   const progressPercent =
     totalNodes > 0 ? Math.round((completedNodeCount / totalNodes) * 100) : 0;
 
@@ -179,6 +193,22 @@ const ExecutionProgressBar = memo(function ExecutionProgressBar({
           style={{ width: `${progressPercent}%` }}
         />
       </div>
+      {isSlice && (
+        <span className="px-1.5 py-0.5 text-[10px] font-medium rounded bg-purple-500/15 text-purple-600 dark:text-purple-300 border border-purple-500/30 shrink-0">
+          {ll.flow.slice_badge_ephemeral()}
+        </span>
+      )}
+      {isExecuting && (
+        <button
+          type="button"
+          onClick={() => useExecutionStore.getState().cancelExecution()}
+          className="flex items-center gap-1 px-2 py-0.5 text-xs text-red-600 dark:text-red-400 hover:bg-red-500/10 border border-red-500/30 rounded font-medium cursor-pointer transition-colors shrink-0"
+          title={ll.flow.stop_execution()}
+        >
+          <Square className="w-3 h-3" fill="currentColor" />
+          <span>{ll.flow.stop_execution()}</span>
+        </button>
+      )}
     </div>
   );
 });
@@ -265,10 +295,12 @@ const NodeOutputPane = memo(function NodeOutputPane({
     nodeUuid ? state.getNodeExecutionReport(nodeUuid) : null,
   );
   const isExecuting = useExecutionStore(selectIsExecuting);
+  const activeInteraction = useExecutionStore((state) =>
+    nodeUuid ? state.activeInteractions[nodeUuid] ?? null : null,
+  );
   const nodeName = useFlowStore((state) =>
     nodeUuid ? findNodeInFlow(state.flow, nodeUuid)?.name ?? null : null,
   );
-
   // ===== 冷通道按需拉取完整报文 =====
   useEffect(() => {
     // 关键优化：执行期间自动跟随模式下不预拉取大报文，避免频繁 IPC 与重渲染导致页面卡顿；
@@ -291,6 +323,13 @@ const NodeOutputPane = memo(function NodeOutputPane({
     );
   }
 
+  if (activeInteraction) {
+    return (
+      <div className="h-full overflow-y-auto scrollbar-thin p-3">
+        <HumanInteractionCard nodeUuid={nodeUuid} interaction={activeInteraction} />
+      </div>
+    );
+  }
   if (status === 'pending') {
     return (
       <div className="h-full flex items-center justify-center text-muted-foreground">
@@ -442,6 +481,15 @@ export const ExecutionPanel = memo(function ExecutionPanel() {
       setSelectedNodeUuid(currentNodeUuid);
     }
   }, [currentNodeUuid]);
+
+  // ===== 当有待处理人机交互时，自动切换到该交互节点 =====
+  const activeInteractions = useExecutionStore(selectActiveInteractions);
+  useEffect(() => {
+    const interactUuids = Object.keys(activeInteractions);
+    if (interactUuids.length > 0) {
+      setSelectedNodeUuid(interactUuids[0]);
+    }
+  }, [activeInteractions]);
 
   // ===== 自动滚动节点列表（用户手动选择后暂停跟踪，使用 instant auto 滚动消除动画卡顿） =====
   useEffect(() => {

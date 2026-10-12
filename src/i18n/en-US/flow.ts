@@ -262,6 +262,11 @@ const en_US_flow = {
   context_rename: 'Rename',
   context_delete_node: 'Delete Node',
   context_test_node: 'Test this Node',
+  context_run_selected_nodes: 'Run Selected Nodes ({count:number})',
+  selected_nodes_count: '{count:number} Nodes Selected',
+  slice_test_completed: 'Slice Test Completed',
+  slice_test_failed: 'Slice Test Failed',
+  slice_badge_ephemeral: 'Test Run / Ephemeral',
 
   // Confirm dialog
   delete_node_title: 'Delete Node',

@@ -662,6 +662,25 @@ const en_US_execution = {
     delete_confirm: 'Are you sure you want to delete this report? This action cannot be undone.',
     unknown_error: 'Unknown error',
   },
+  hitl: {
+    title: 'Human-in-the-Loop Interaction',
+    ask_human_title: 'Agent Question',
+    confirm_title: 'Tool Execution Confirmation',
+    step_title: 'Step-by-Step Paused',
+    input_placeholder: 'Type your answer or instruction...',
+    submit_button: 'Submit Answer',
+    confirm_approve: 'Approve Tool',
+    confirm_reject: 'Reject Tool',
+    reject_reason_placeholder: 'Rejection reason (optional)...',
+    step_next: 'Next Step',
+    step_continue: 'Run to End',
+    step_cancel: 'Cancel Flow',
+    submitting: 'Submitting...',
+    submit_failed: 'Failed to submit interaction response',
+    waiting_desc: 'The agent is awaiting your decision to continue...',
+    tool_name_label: 'Tool Name',
+    tool_args_label: 'Arguments',
+  },
 };
 
 export default en_US_execution;

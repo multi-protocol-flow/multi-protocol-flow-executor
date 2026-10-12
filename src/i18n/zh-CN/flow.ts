@@ -259,6 +259,11 @@ const zh_CN_flow: BaseTranslation = {
   context_rename: '重命名',
   context_delete_node: '删除节点',
   context_test_node: '测试此节点',
+  context_run_selected_nodes: '运行所选节点 ({count:number} 个)',
+  selected_nodes_count: '已选中 {count:number} 个节点',
+  slice_test_completed: '切片测试完成',
+  slice_test_failed: '切片测试失败',
+  slice_badge_ephemeral: '测试运行 / 不入历史',
 
   // 复制/重命名
   duplicate_suffix: '副本',

@@ -7500,6 +7500,76 @@ type RootTranslation = {
 			 */
 			unknown_error: string
 		}
+		hitl: {
+			/**
+			 * 人​机​协​同​交​互
+			 */
+			title: string
+			/**
+			 * 智​能​体​向​您​提​问
+			 */
+			ask_human_title: string
+			/**
+			 * 敏​感​工​具​执​行​确​认
+			 */
+			confirm_title: string
+			/**
+			 * 单​步​调​试​暂​停
+			 */
+			step_title: string
+			/**
+			 * 请​输​入​您​的​回​答​或​补​充​信​息​.​.​.
+			 */
+			input_placeholder: string
+			/**
+			 * 提​交​回​答
+			 */
+			submit_button: string
+			/**
+			 * 批​准​执​行
+			 */
+			confirm_approve: string
+			/**
+			 * 拒​绝​执​行
+			 */
+			confirm_reject: string
+			/**
+			 * 拒​绝​原​因​（​可​选​）​.​.​.
+			 */
+			reject_reason_placeholder: string
+			/**
+			 * 单​步​执​行
+			 */
+			step_next: string
+			/**
+			 * 执​行​到​底
+			 */
+			step_continue: string
+			/**
+			 * 中​止​流​程
+			 */
+			step_cancel: string
+			/**
+			 * 提​交​中​.​.​.
+			 */
+			submitting: string
+			/**
+			 * 提​交​交​互​响​应​失​败
+			 */
+			submit_failed: string
+			/**
+			 * 智​能​体​正​在​等​待​您​的​决​策​以​继​续​流​程​.​.​.
+			 */
+			waiting_desc: string
+			/**
+			 * 工​具​名​称
+			 */
+			tool_name_label: string
+			/**
+			 * 参​数​预​览
+			 */
+			tool_args_label: string
+		}
 	}
 	settings: {
 		/**
@@ -9324,6 +9394,28 @@ type RootTranslation = {
 		 * 测​试​此​节​点
 		 */
 		context_test_node: string
+		/**
+		 * 运​行​所​选​节​点​ ​(​{​c​o​u​n​t​}​ ​个​)
+		 * @param {number} count
+		 */
+		context_run_selected_nodes: RequiredParams<'count'>
+		/**
+		 * 已​选​中​ ​{​c​o​u​n​t​}​ ​个​节​点
+		 * @param {number} count
+		 */
+		selected_nodes_count: RequiredParams<'count'>
+		/**
+		 * 切​片​测​试​完​成
+		 */
+		slice_test_completed: string
+		/**
+		 * 切​片​测​试​失​败
+		 */
+		slice_test_failed: string
+		/**
+		 * 测​试​运​行​ ​/​ ​不​入​历​史
+		 */
+		slice_badge_ephemeral: string
 		/**
 		 * 副​本
 		 */
@@ -22273,6 +22365,76 @@ export type TranslationFunctions = {
 			 */
 			unknown_error: () => LocalizedString
 		}
+		hitl: {
+			/**
+			 * 人机协同交互
+			 */
+			title: () => LocalizedString
+			/**
+			 * 智能体向您提问
+			 */
+			ask_human_title: () => LocalizedString
+			/**
+			 * 敏感工具执行确认
+			 */
+			confirm_title: () => LocalizedString
+			/**
+			 * 单步调试暂停
+			 */
+			step_title: () => LocalizedString
+			/**
+			 * 请输入您的回答或补充信息...
+			 */
+			input_placeholder: () => LocalizedString
+			/**
+			 * 提交回答
+			 */
+			submit_button: () => LocalizedString
+			/**
+			 * 批准执行
+			 */
+			confirm_approve: () => LocalizedString
+			/**
+			 * 拒绝执行
+			 */
+			confirm_reject: () => LocalizedString
+			/**
+			 * 拒绝原因（可选）...
+			 */
+			reject_reason_placeholder: () => LocalizedString
+			/**
+			 * 单步执行
+			 */
+			step_next: () => LocalizedString
+			/**
+			 * 执行到底
+			 */
+			step_continue: () => LocalizedString
+			/**
+			 * 中止流程
+			 */
+			step_cancel: () => LocalizedString
+			/**
+			 * 提交中...
+			 */
+			submitting: () => LocalizedString
+			/**
+			 * 提交交互响应失败
+			 */
+			submit_failed: () => LocalizedString
+			/**
+			 * 智能体正在等待您的决策以继续流程...
+			 */
+			waiting_desc: () => LocalizedString
+			/**
+			 * 工具名称
+			 */
+			tool_name_label: () => LocalizedString
+			/**
+			 * 参数预览
+			 */
+			tool_args_label: () => LocalizedString
+		}
 	}
 	settings: {
 		/**
@@ -24066,6 +24228,26 @@ export type TranslationFunctions = {
 		 * 测试此节点
 		 */
 		context_test_node: () => LocalizedString
+		/**
+		 * 运行所选节点 ({count} 个)
+		 */
+		context_run_selected_nodes: (arg: { count: number }) => LocalizedString
+		/**
+		 * 已选中 {count} 个节点
+		 */
+		selected_nodes_count: (arg: { count: number }) => LocalizedString
+		/**
+		 * 切片测试完成
+		 */
+		slice_test_completed: () => LocalizedString
+		/**
+		 * 切片测试失败
+		 */
+		slice_test_failed: () => LocalizedString
+		/**
+		 * 测试运行 / 不入历史
+		 */
+		slice_badge_ephemeral: () => LocalizedString
 		/**
 		 * 副本
 		 */

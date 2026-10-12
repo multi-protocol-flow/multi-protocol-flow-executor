@@ -663,6 +663,25 @@ const zh_CN_execution: BaseTranslation = {
     delete_confirm: '确定要删除此报告吗？删除后无法恢复。',
     unknown_error: '未知错误',
   },
+  hitl: {
+    title: '人机协同交互',
+    ask_human_title: '智能体向您提问',
+    confirm_title: '敏感工具执行确认',
+    step_title: '单步调试暂停',
+    input_placeholder: '请输入您的回答或补充信息...',
+    submit_button: '提交回答',
+    confirm_approve: '批准执行',
+    confirm_reject: '拒绝执行',
+    reject_reason_placeholder: '拒绝原因（可选）...',
+    step_next: '单步执行',
+    step_continue: '执行到底',
+    step_cancel: '中止流程',
+    submitting: '提交中...',
+    submit_failed: '提交交互响应失败',
+    waiting_desc: '智能体正在等待您的决策以继续流程...',
+    tool_name_label: '工具名称',
+    tool_args_label: '参数预览',
+  },
 };
 
 export default zh_CN_execution;
