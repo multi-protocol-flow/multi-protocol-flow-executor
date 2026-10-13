@@ -366,6 +366,14 @@ export function formatToolTitle(
       }
       break;
     }
+    case 'ask_user': {
+      const q = cleanName(args.question);
+      if (q) {
+        const truncatedQ = q.length > 40 ? `${q.slice(0, 37)}...` : q;
+        target = `"${truncatedQ}"`;
+      }
+      break;
+    }
 
     default:
       break;

@@ -9379,11 +9379,11 @@ type RootTranslation = {
 		 */
 		context_run_from_snapshot: string
 		/**
-		 * 复​制​节​点
+		 * 创​建​副​本
 		 */
 		context_duplicate_node: string
 		/**
-		 * 复​制​节​点
+		 * 创​建​副​本
 		 */
 		context_copy_node: string
 		/**
@@ -14321,6 +14321,31 @@ type RootTranslation = {
 			 * @param {unknown} cwd
 			 */
 			run_terminal_command_diff_cwd: RequiredParams<'command' | 'cwd'>
+			/**
+			 * A​I​ ​请​求​交​互​输​入
+			 */
+			ask_user_title: string
+			/**
+			 * 提​交​回​复
+			 */
+			ask_user_submit: string
+			/**
+			 * 拒​绝​回​复
+			 */
+			ask_user_decline: string
+			/**
+			 * 输​入​您​的​回​复​内​容​.​.​.
+			 */
+			ask_user_placeholder: string
+			/**
+			 * 已​提​供​回​复​:​ ​{​a​n​s​w​e​r​}
+			 * @param {unknown} answer
+			 */
+			ask_user_status_answered: RequiredParams<'answer'>
+			/**
+			 * 用​户​已​拒​绝​提​供​回​复
+			 */
+			ask_user_status_declined: string
 		}
 		tool_call: {
 			/**
@@ -14493,6 +14518,10 @@ type RootTranslation = {
 			 * 解​析​接​口​文​档
 			 */
 			inspect_api_spec: string
+			/**
+			 * 交​互​询​问
+			 */
+			ask_user: string
 		}
 		code: {
 			/**
@@ -14732,6 +14761,10 @@ type RootTranslation = {
 			 * 按​住​拖​拽​移​动​窗​口​ ​(​拖​动​至​右​侧​可​重​新​吸​附​)
 			 */
 			drag_to_move: string
+			/**
+			 * 一​键​置​底
+			 */
+			scroll_to_bottom: string
 			/**
 			 * 完​全​信​任
 			 */
@@ -24230,11 +24263,11 @@ export type TranslationFunctions = {
 		 */
 		context_run_from_snapshot: () => LocalizedString
 		/**
-		 * 复制节点
+		 * 创建副本
 		 */
 		context_duplicate_node: () => LocalizedString
 		/**
-		 * 复制节点
+		 * 创建副本
 		 */
 		context_copy_node: () => LocalizedString
 		/**
@@ -29035,6 +29068,30 @@ export type TranslationFunctions = {
 		工作目录: {cwd}
 			 */
 			run_terminal_command_diff_cwd: (arg: { command: unknown, cwd: unknown }) => LocalizedString
+			/**
+			 * AI 请求交互输入
+			 */
+			ask_user_title: () => LocalizedString
+			/**
+			 * 提交回复
+			 */
+			ask_user_submit: () => LocalizedString
+			/**
+			 * 拒绝回复
+			 */
+			ask_user_decline: () => LocalizedString
+			/**
+			 * 输入您的回复内容...
+			 */
+			ask_user_placeholder: () => LocalizedString
+			/**
+			 * 已提供回复: {answer}
+			 */
+			ask_user_status_answered: (arg: { answer: unknown }) => LocalizedString
+			/**
+			 * 用户已拒绝提供回复
+			 */
+			ask_user_status_declined: () => LocalizedString
 		}
 		tool_call: {
 			/**
@@ -29207,6 +29264,10 @@ export type TranslationFunctions = {
 			 * 解析接口文档
 			 */
 			inspect_api_spec: () => LocalizedString
+			/**
+			 * 交互询问
+			 */
+			ask_user: () => LocalizedString
 		}
 		code: {
 			/**
@@ -29435,6 +29496,10 @@ export type TranslationFunctions = {
 			 * 按住拖拽移动窗口 (拖动至右侧可重新吸附)
 			 */
 			drag_to_move: () => LocalizedString
+			/**
+			 * 一键置底
+			 */
+			scroll_to_bottom: () => LocalizedString
 			/**
 			 * 完全信任
 			 */

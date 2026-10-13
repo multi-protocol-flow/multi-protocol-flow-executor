@@ -32,6 +32,7 @@ import {
   terminalToolHandlers,
   isSafeTerminalCommand,
 } from './tools/terminalTools';
+import { interactiveToolDefinitions } from './tools/interactiveTools';
 
 /**
  * 获取所有可供 LLM 调用的工具定义列表
@@ -47,6 +48,7 @@ export function getAllAIToolDefinitions(): AIToolDefinition[] {
     ...executionToolDefinitions,
     ...workspaceToolDefinitions,
     ...terminalToolDefinitions,
+    ...interactiveToolDefinitions,
   ];
 }
 
@@ -174,6 +176,10 @@ const ALL_HANDLERS: Record<
     terminalToolHandlers.run_terminal_command(
       args as Parameters<typeof terminalToolHandlers.run_terminal_command>[0],
     ),
+  ask_user: async (args) => ({
+    success: true,
+    answer: typeof args.answer === 'string' ? args.answer : '',
+  }),
 };
 /**
  * 判断是否为高风险操作（需 UI 拦截确认）
@@ -240,6 +246,12 @@ export function buildActionDescription(
         diffSummary: cwd
           ? ll.ai.confirm_card.run_terminal_command_diff_cwd({ cwd, command: cmd })
           : ll.ai.confirm_card.run_terminal_command_diff({ command: cmd }),
+      };
+    }
+    case 'ask_user': {
+      const q = String(args.question || '');
+      return {
+        description: q || ll.ai.confirm_card.ask_user_title(),
       };
     }
 

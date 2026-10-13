@@ -88,4 +88,69 @@ describe('AIConfirmCard', () => {
     rerender(<AIConfirmCard action={{ ...mockAction, status: 'rejected' }} />);
     expect(screen.getByText(ll.ai.confirm_card.status_rejected())).toBeInTheDocument();
   });
+
+  it('6. 正确渲染 ask_user 交互卡片、选项按钮及输入框', async () => {
+    const ll = getLL();
+    const askUserAction: AIPendingAction = {
+      id: 'ask-user-1',
+      toolCallId: 'tc-ask-1',
+      toolName: 'ask_user',
+      isUserInput: true,
+      args: {
+        question: '请选择部署目标环境',
+        options: ['dev', 'prod'],
+      },
+      description: '请选择部署目标环境',
+      status: 'pending',
+      createdAt: Date.now(),
+    };
+
+    const spy = vi.spyOn(useAIStore.getState(), 'resolvePendingAction').mockResolvedValue();
+    render(<AIConfirmCard action={askUserAction} />);
+
+    expect(screen.getByText(ll.ai.confirm_card.ask_user_title())).toBeInTheDocument();
+    expect(screen.getByText('请选择部署目标环境')).toBeInTheDocument();
+    expect(screen.getByText('dev')).toBeInTheDocument();
+    expect(screen.getByText('prod')).toBeInTheDocument();
+
+    // 点击选项按钮提交
+    await act(async () => {
+      fireEvent.click(screen.getByText('prod'));
+    });
+    expect(spy).toHaveBeenCalledWith('ask-user-1', true, false, 'prod');
+    spy.mockRestore();
+  });
+
+  it('7. ask_user 卡片通过输入框提交文本内容', async () => {
+    const ll = getLL();
+    const askUserAction: AIPendingAction = {
+      id: 'ask-user-2',
+      toolCallId: 'tc-ask-2',
+      toolName: 'ask_user',
+      isUserInput: true,
+      args: {
+        question: '请输入密码',
+        input_type: 'password',
+      },
+      description: '请输入密码',
+      status: 'pending',
+      createdAt: Date.now(),
+    };
+
+    const spy = vi.spyOn(useAIStore.getState(), 'resolvePendingAction').mockResolvedValue();
+    render(<AIConfirmCard action={askUserAction} />);
+
+    const input = screen.getByPlaceholderText(ll.ai.confirm_card.ask_user_placeholder());
+    await act(async () => {
+      fireEvent.change(input, { target: { value: 'secret123' } });
+    });
+
+    const submitBtn = screen.getByText(ll.ai.confirm_card.ask_user_submit());
+    await act(async () => {
+      fireEvent.click(submitBtn);
+    });
+
+    expect(spy).toHaveBeenCalledWith('ask-user-2', true, false, 'secret123');
+    spy.mockRestore();
+  });
 });

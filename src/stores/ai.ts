@@ -96,8 +96,12 @@ let sessionAbortController: AbortController | null = null;
 
 // 用于控制当前单次 LLM streamChatCompletion 调用的 AbortController (中途插话纠偏时可中止单轮并进入下一轮)
 let currentIterationAbortController: AbortController | null = null;
-// 用于挂起等待用户确认高风险操作的 Promise 回调映射
-const pendingResolvers = new Map<string, (approved: boolean) => void>();
+interface PendingResolution {
+  approved: boolean;
+  userResponse?: string;
+}
+// 用于挂起等待用户确认高风险操作或提供交互输入的 Promise 回调映射
+const pendingResolvers = new Map<string, (res: PendingResolution) => void>();
 
 export interface AIActions {
   /** 设置 Copilot 侧边栏开启状态 */
@@ -148,8 +152,8 @@ export interface AIActions {
   sendMessage: (prompt: string, images?: string[]) => Promise<void>;
   /** 发送中途纠偏/补充指令 (正在生成时插话纠正，无需中断整个任务) */
   steerGeneration: (prompt: string, images?: string[]) => Promise<void>;
-  /** 响应高风险操作确认或拒绝 (可附带完全信任后续所有操作) */
-  resolvePendingAction: (actionId: string, approved: boolean, trustAll?: boolean) => Promise<void>;
+  /** 响应高风险操作确认或拒绝 (可附带完全信任后续所有操作与用户输入内容) */
+  resolvePendingAction: (actionId: string, approved: boolean, trustAll?: boolean, userResponse?: string) => Promise<void>;
   /** 重试上一条发送失败的消息 (清理错误状态并重新触发 ReAct 循环) */
   retryLastMessage: () => Promise<void>;
   /** 重置（测试隔离） */
@@ -248,13 +252,20 @@ export const useAIStore = create<AIStore>((set, get) => ({
     }
     set({ alwaysTrustHighRisk: trust });
     if (trust) {
+      const state = get();
       for (const [id, resolver] of pendingResolvers.entries()) {
-        resolver(true);
+        const action = state.pendingActions.find((a) => a.id === id);
+        if (action?.isUserInput || action?.toolName === 'ask_user') {
+          continue; // 人机交互输入不可被完全信任模式静默跳过
+        }
+        resolver({ approved: true });
         pendingResolvers.delete(id);
       }
-      set((state) => ({
-        pendingActions: state.pendingActions.map((act) =>
-          act.status === 'pending' ? { ...act, status: 'approved' } : act,
+      set((s) => ({
+        pendingActions: s.pendingActions.map((act) =>
+          act.status === 'pending' && !act.isUserInput && act.toolName !== 'ask_user'
+            ? { ...act, status: 'approved' }
+            : act,
         ),
       }));
     }
@@ -639,7 +650,7 @@ export const useAIStore = create<AIStore>((set, get) => ({
       currentIterationAbortController = null;
     }
     for (const resolver of pendingResolvers.values()) {
-      resolver(false);
+      resolver({ approved: false });
     }
     pendingResolvers.clear();
 
@@ -664,7 +675,7 @@ export const useAIStore = create<AIStore>((set, get) => ({
 
     // 挂起确认的高风险操作标记为被纠偏取消
     for (const resolver of pendingResolvers.values()) {
-      resolver(false);
+      resolver({ approved: false });
     }
     pendingResolvers.clear();
 
@@ -715,7 +726,7 @@ export const useAIStore = create<AIStore>((set, get) => ({
     }
   },
 
-  resolvePendingAction: async (actionId: string, approved: boolean, trustAll = false) => {
+  resolvePendingAction: async (actionId: string, approved: boolean, trustAll = false, userResponse?: string) => {
     if (trustAll) {
       try {
         localStorage.setItem(ALWAYS_TRUST_HIGH_RISK_KEY, 'true');
@@ -727,25 +738,36 @@ export const useAIStore = create<AIStore>((set, get) => ({
 
     const resolver = pendingResolvers.get(actionId);
     if (resolver) {
-      resolver(approved);
+      resolver({ approved, userResponse });
       pendingResolvers.delete(actionId);
     }
 
     if (trustAll && approved) {
+      const state = get();
       for (const [id, otherResolver] of pendingResolvers.entries()) {
-        otherResolver(true);
+        const action = state.pendingActions.find((a) => a.id === id);
+        if (action?.isUserInput || action?.toolName === 'ask_user') {
+          continue; // 跳过交互输入请求
+        }
+        otherResolver({ approved: true });
         pendingResolvers.delete(id);
       }
-      set((state) => ({
-        pendingActions: state.pendingActions.map((act) =>
-          act.status === 'pending' ? { ...act, status: 'approved' } : act,
-        ),
+      set((s) => ({
+        pendingActions: s.pendingActions.map((act) => {
+          if (act.id === actionId) {
+            return { ...act, status: 'approved', userResponse };
+          }
+          if (act.status === 'pending' && !act.isUserInput && act.toolName !== 'ask_user') {
+            return { ...act, status: 'approved' };
+          }
+          return act;
+        }),
       }));
     } else {
       set((state) => ({
         pendingActions: state.pendingActions.map((act) =>
           act.id === actionId
-            ? { ...act, status: approved ? 'approved' : 'rejected' }
+            ? { ...act, status: approved ? 'approved' : 'rejected', userResponse }
             : act,
         ),
       }));
@@ -1072,47 +1094,83 @@ export const useAIStore = create<AIStore>((set, get) => ({
 
           let toolOutputStr = '';
 
-          // 检查是否为高风险操作
-          const isHighRisk = isHighRiskTool(tc.function.name, parsedArgs);
-          const needsConfirmation = isHighRisk && !get().alwaysTrustHighRisk;
-
-          if (needsConfirmation) {
-            const pendingAction = createPendingAction(tc, parsedArgs);
+          if (tc.function.name === 'ask_user') {
+            // ask_user 显式要求用户交互输入，无论是否开启 full trust，均挂起等待用户响应
+            const pendingAction: AIPendingAction = {
+              id: `action-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+              toolCallId: tc.id,
+              toolName: tc.function.name,
+              args: parsedArgs,
+              description: String(parsedArgs.question || ''),
+              status: 'pending',
+              createdAt: Date.now(),
+              isUserInput: true,
+            };
 
             set((s) => ({
               pendingActions: [...s.pendingActions, pendingAction],
               agentStatus: 'waiting_confirmation',
             }));
 
-            // 挂起等待用户点击确认
-            const userApproved = await new Promise<boolean>((resolve) => {
+            const resolution = await new Promise<PendingResolution>((resolve) => {
               pendingResolvers.set(pendingAction.id, resolve);
             });
+            set({ agentStatus: 'executing_tools' });
 
-            if (userApproved) {
-              set({ agentStatus: 'executing_tools' });
-              try {
-                const toolResult = await dispatchToolCall(
-                  tc.function.name,
-                  parsedArgs,
-                );
-                toolOutputStr = JSON.stringify(toolResult);
-              } catch (err: unknown) {
-                toolOutputStr = JSON.stringify({
-                  success: false,
-                  error: err instanceof Error ? err.message : String(err),
-                });
-              }
+            if (resolution.approved) {
+              toolOutputStr = JSON.stringify({
+                success: true,
+                answer: resolution.userResponse ?? '',
+              });
             } else {
               toolOutputStr = JSON.stringify({
                 success: false,
                 cancelled: true,
-                message: 'User rejected the operation.',
+                message: 'User declined to provide input.',
               });
             }
           } else {
-            // 普通安全工具，或开启完全信任模式下的高风险操作直接执行
-            if (isHighRisk) {
+            // 检查是否为高风险操作
+            const isHighRisk = isHighRiskTool(tc.function.name, parsedArgs);
+            const needsConfirmation = isHighRisk && !get().alwaysTrustHighRisk;
+
+            if (needsConfirmation) {
+              const pendingAction = createPendingAction(tc, parsedArgs);
+
+              set((s) => ({
+                pendingActions: [...s.pendingActions, pendingAction],
+                agentStatus: 'waiting_confirmation',
+              }));
+
+              // 挂起等待用户点击确认
+              const resolution = await new Promise<PendingResolution>((resolve) => {
+                pendingResolvers.set(pendingAction.id, resolve);
+              });
+
+              if (resolution.approved) {
+                set({ agentStatus: 'executing_tools' });
+                try {
+                  const toolResult = await dispatchToolCall(
+                    tc.function.name,
+                    parsedArgs,
+                  );
+                  toolOutputStr = JSON.stringify(toolResult);
+                } catch (err: unknown) {
+                  toolOutputStr = JSON.stringify({
+                    success: false,
+                    error: err instanceof Error ? err.message : String(err),
+                  });
+                }
+              } else {
+                toolOutputStr = JSON.stringify({
+                  success: false,
+                  cancelled: true,
+                  message: 'User rejected the operation.',
+                });
+              }
+            } else {
+              // 普通安全工具，或开启完全信任模式下的高风险操作直接执行
+              if (isHighRisk) {
               const pendingAction: AIPendingAction = {
                 ...createPendingAction(tc, parsedArgs),
                 status: 'approved',
@@ -1133,6 +1191,7 @@ export const useAIStore = create<AIStore>((set, get) => ({
                 error: err instanceof Error ? err.message : String(err),
               });
             }
+          }
           }
 
           // 添加 Tool 结果消息

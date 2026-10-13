@@ -227,6 +227,60 @@ describe('aiStore', () => {
     expect(useAIStore.getState().pendingActions[1].status).toBe('approved');
   });
 
+  it('resolvePendingAction 正确记录用户回复内容 userResponse', async () => {
+    useAIStore.setState({
+      pendingActions: [
+        {
+          id: 'action-ask-1',
+          toolCallId: 'tc-ask-1',
+          toolName: 'ask_user',
+          args: { question: '请输入密码' },
+          description: '请输入密码',
+          status: 'pending',
+          createdAt: Date.now(),
+          isUserInput: true,
+        },
+      ],
+    });
+
+    await useAIStore.getState().resolvePendingAction('action-ask-1', true, false, 'my-pass-123');
+    const act = useAIStore.getState().pendingActions[0];
+    expect(act.status).toBe('approved');
+    expect(act.userResponse).toBe('my-pass-123');
+  });
+
+  it('开启完全信任模式时跳过普通高风险操作，但保留 ask_user 等人机交互输入', async () => {
+    useAIStore.setState({
+      alwaysTrustHighRisk: false,
+      pendingActions: [
+        {
+          id: 'act-normal',
+          toolCallId: 'tc-1',
+          toolName: 'delete_nodes',
+          args: {},
+          description: '删除节点',
+          status: 'pending',
+          createdAt: Date.now(),
+        },
+        {
+          id: 'act-ask',
+          toolCallId: 'tc-2',
+          toolName: 'ask_user',
+          args: { question: '需要输入密码' },
+          description: '需要输入密码',
+          status: 'pending',
+          createdAt: Date.now(),
+          isUserInput: true,
+        },
+      ],
+    });
+
+    useAIStore.getState().setAlwaysTrustHighRisk(true);
+    const actions = useAIStore.getState().pendingActions;
+    expect(actions.find((a) => a.id === 'act-normal')?.status).toBe('approved');
+    expect(actions.find((a) => a.id === 'act-ask')?.status).toBe('pending');
+  });
+
 
   it('中途纠偏 steerGeneration 正常插入纠偏消息并重置待确认高风险状态', async () => {
     useAIStore.setState({

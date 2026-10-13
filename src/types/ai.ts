@@ -158,8 +158,11 @@ export interface AIPendingAction {
   diffSummary?: string;
   /** 确认状态 */
   status: AIPendingActionStatus;
-  /** 创建时间戳 */
   createdAt: number;
+  /** 是否为人机交互输入 (如 ask_user) */
+  isUserInput?: boolean;
+  /** 用户回复内容 (提交后) */
+  userResponse?: string;
 }
 
 

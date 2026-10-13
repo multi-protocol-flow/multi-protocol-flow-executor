@@ -55,6 +55,12 @@ const ai = {
     run_terminal_command_desc: 'Execute terminal command: {command}',
     run_terminal_command_diff: 'Command: {command}',
     run_terminal_command_diff_cwd: 'Command: {command}\nWorking Dir: {cwd}',
+    ask_user_title: 'AI Input Request',
+    ask_user_submit: 'Submit Response',
+    ask_user_decline: 'Decline',
+    ask_user_placeholder: 'Enter your response...',
+    ask_user_status_answered: 'Response provided: {answer}',
+    ask_user_status_declined: 'User declined to provide response',
   },
 
   tool_call: {
@@ -102,6 +108,7 @@ const ai = {
     search_project_code: 'Search Project Code',
     read_source_code: 'Read Source Code',
     inspect_api_spec: 'Inspect API Spec',
+    ask_user: 'Ask User',
   },
   code: {
     copy: 'Copy code',
@@ -163,6 +170,7 @@ const ai = {
     dock_to_right: 'Dock to right',
     undock_panel: 'Undock (Floating window)',
     drag_to_move: 'Drag header to move (drag to right edge to dock)',
+    scroll_to_bottom: 'Scroll to bottom',
     trust_mode: 'Full Trust',
     trust_mode_tip: 'When enabled, fully trust AI and automatically approve and execute all high-risk actions without manual confirmation',
     trust_mode_active_hint: 'Full Trust mode active: high-risk actions will execute automatically',

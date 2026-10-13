@@ -55,6 +55,12 @@ const ai = {
     run_terminal_command_desc: '在系统终端中执行命令: {command}',
     run_terminal_command_diff: '命令: {command}',
     run_terminal_command_diff_cwd: '命令: {command}\n工作目录: {cwd}',
+    ask_user_title: 'AI 请求交互输入',
+    ask_user_submit: '提交回复',
+    ask_user_decline: '拒绝回复',
+    ask_user_placeholder: '输入您的回复内容...',
+    ask_user_status_answered: '已提供回复: {answer}',
+    ask_user_status_declined: '用户已拒绝提供回复',
   },
 
   tool_call: {
@@ -102,6 +108,7 @@ const ai = {
     search_project_code: '检索项目代码',
     read_source_code: '切片阅读代码',
     inspect_api_spec: '解析接口文档',
+    ask_user: '交互询问',
   },
   code: {
     copy: '复制代码',
@@ -163,6 +170,7 @@ const ai = {
     dock_to_right: '吸附至右侧',
     undock_panel: '脱离吸附 (浮动窗口)',
     drag_to_move: '按住拖拽移动窗口 (拖动至右侧可重新吸附)',
+    scroll_to_bottom: '一键置底',
     trust_mode: '完全信任',
     trust_mode_tip: '开启后完全信任 AI，自动批准并执行所有高风险操作（如清空画布、批量删除、终端命令等），无需每次手动确认',
     trust_mode_active_hint: '完全信任模式生效中：高风险操作将自动执行',
