@@ -10,7 +10,6 @@ import {
   Bot,
   User,
   PanelRightClose,
-  Loader2,
   X,
   AlertCircle,
   Brain,
@@ -25,6 +24,7 @@ import { useSettingsStore } from '@/stores/settings';
 import { AIToolCallItem } from './AIToolCallItem';
 import { AIConfirmCard } from './AIConfirmCard';
 import { AIErrorMessageCard } from './AIErrorMessageCard';
+import { ThinkingDots } from './ThinkingSpinner';
 import { getLL } from '@/i18n/i18n-lazy';
 import type { AIMessage } from '@/types/ai';
 
@@ -246,13 +246,14 @@ export function AISpotlightDialog() {
                               <span className="font-medium truncate min-w-0 flex-1">
                                 {ll.ai.copilot.thought_process()}
                                 {isStreaming && (
-                                  <span className="ml-1 text-[10px] text-primary animate-pulse font-normal">
-                                    ({ll.ai.copilot.thinking()})
+                                  <span className="inline-flex items-center gap-1 ml-1 text-[10px] text-primary font-normal">
+                                    <ThinkingDots dotClassName="w-1 h-1" />
+                                    <span>({ll.ai.copilot.thinking()})</span>
                                   </span>
                                 )}
                               </span>
                               <span className="text-[10px] text-muted-foreground/70 font-mono mr-1">
-                                {msg.thought.length} 字
+                                {ll.ai.copilot.thought_chars({ count: msg.thought.length })}
                               </span>
                               {thoughtOpen ? (
                                 <ChevronDown className="h-3 w-3 shrink-0" />
@@ -276,7 +277,7 @@ export function AISpotlightDialog() {
                         </div>
                       ) : isStreaming && !msg.thought && (!msg.tool_calls || msg.tool_calls.length === 0) ? (
                         <div className="flex items-center gap-1.5 text-muted-foreground py-1">
-                          <Loader2 className="h-3 w-3 animate-spin text-primary" />
+                          <ThinkingDots />
                           <span className="text-xs">{ll.ai.copilot.thinking()}</span>
                         </div>
                       ) : null}
