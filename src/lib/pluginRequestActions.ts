@@ -35,7 +35,12 @@ import { invoke } from '@tauri-apps/api/core';
 import type { PluginIframeHostApi } from '@/types/plugin-iframe';
 
 /** 白名单动作（新增动作 = 显式安全审查；与 HANDLERS 的 Record 完整性互锁） */
-export const PLUGIN_REQUEST_ACTIONS = ['testConnection', 'openFileDialog', 'uiCall'] as const;
+export const PLUGIN_REQUEST_ACTIONS = [
+  'testConnection',
+  'openFileDialog',
+  'uiCall',
+  'getRegisteredNodes',
+] as const;
 export type PluginRequestAction = (typeof PLUGIN_REQUEST_ACTIONS)[number];
 
 /** testConnection 硬超时（ms）—— 插件不能挂起宿主 */
@@ -231,6 +236,7 @@ const HANDLERS: Readonly<Record<PluginRequestAction, PluginActionHandler>> = {
   testConnection: handleTestConnection,
   openFileDialog: handleOpenFileDialog,
   uiCall: handleUiCall,
+  getRegisteredNodes: () => invoke<unknown>('get_registered_node_types'),
 };
 
 /**
@@ -253,6 +259,7 @@ export function resolvePluginAction(action: string): PluginActionHandler | undef
     case 'testConnection':
     case 'openFileDialog':
     case 'uiCall':
+    case 'getRegisteredNodes':
       return HANDLERS[action];
     default:
       return undefined;

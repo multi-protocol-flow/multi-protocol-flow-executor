@@ -94,9 +94,12 @@ function lastPostMessage(fake: ReturnType<typeof makeFakeIframe>) {
 }
 
 describe('resolvePluginAction 白名单（安全闸）', () => {
-  it.each(['testConnection', 'openFileDialog'] as const)('允许 %s', (action) => {
-    expect(resolvePluginAction(action)).toBeTypeOf('function');
-  });
+  it.each(['testConnection', 'openFileDialog', 'uiCall', 'getRegisteredNodes'] as const)(
+    '允许 %s',
+    (action) => {
+      expect(resolvePluginAction(action)).toBeTypeOf('function');
+    }
+  );
 
   it('白名单枚举内的每个动作都能解析出 handler（声明不漂移）', () => {
     for (const action of PLUGIN_REQUEST_ACTIONS) {
@@ -413,6 +416,16 @@ describe('uiCall（宿主转发发现查询）', () => {
     await expect(
       handlerFor('uiCall')({ method: 'mcp.discover' }, { config: {}, nodeType: 'mcp:nope' })
     ).rejects.toThrow('unknown plugin node type mcp:nope');
+  });
+});
+
+describe('getRegisteredNodes（已注册节点动态发现）', () => {
+  it('合法调用：invoke("get_registered_node_types") 并回传', async () => {
+    const sampleNodes = [{ type_id: 'redis:command', display_name: 'Redis Command' }];
+    vi.mocked(invoke).mockResolvedValue(sampleNodes);
+    const result = await handlerFor('getRegisteredNodes')();
+    expect(invoke).toHaveBeenCalledWith('get_registered_node_types');
+    expect(result).toEqual(sampleNodes);
   });
 });
 
