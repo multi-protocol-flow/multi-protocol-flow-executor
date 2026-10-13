@@ -18,6 +18,7 @@ import {
   GripVertical,
   GripHorizontal,
   ArrowRightToLine,
+  ArrowDown,
   ShieldCheck,
   Archive,
   ChevronDown,
@@ -86,6 +87,7 @@ export function AICopilotPanel() {
   const [editTitleInput, setEditTitleInput] = useState('');
   // 大图查看弹窗状态
   const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
+  const [showScrollBottom, setShowScrollBottom] = useState(false);
 
   // 拖拽拉伸宽度状态
   const [isResizing, setIsResizing] = useState(false);
@@ -145,11 +147,27 @@ export function AICopilotPanel() {
         activeStreamingThoughtRef.current.scrollTop = activeStreamingThoughtRef.current.scrollHeight;
       }
     });
-
     return () => {
       cancelAnimationFrame(rafId);
     };
   }, [messages, isCopilotOpen]);
+
+  const handleMessagesScroll = useCallback(() => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+    const isFarFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight > 80;
+    setShowScrollBottom(isFarFromBottom);
+  }, []);
+
+  const scrollToBottom = useCallback((smooth = true) => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+    if (smooth) {
+      container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
+    } else {
+      container.scrollTop = container.scrollHeight;
+    }
+  }, []);
 
   // 打开面板时自动聚焦输入框
   useEffect(() => {
@@ -341,7 +359,7 @@ export function AICopilotPanel() {
       {/* AI 面板容器：支持右侧吸附与浮动窗口两种形态 */}
       {(() => {
         const effectiveWidth = isFloating ? floatingPosition.width : panelWidth;
-        const Container = isFloating ? 'div' : 'aside';
+        const Container = 'aside';
         const containerClasses = isFloating
           ? 'fixed bg-background border border-border rounded-xl z-50 flex flex-col shadow-2xl animate-in fade-in-50 zoom-in-95 duration-150 overflow-hidden'
           : 'fixed right-0 top-14 bottom-0 bg-background border-l border-border z-30 flex flex-col shadow-2xl animate-in slide-in-from-right duration-200';
@@ -736,10 +754,12 @@ export function AICopilotPanel() {
             )}
 
         {/* 消息列表区域 (不透明背景，独立滚动并添加 min-h-0 防止撑开父容器) */}
-        <div
-          ref={messagesContainerRef}
-          className="flex-1 min-h-0 overflow-y-auto p-3 space-y-4 text-xs bg-background"
-        >
+        <div className="relative flex-1 min-h-0 flex flex-col">
+          <div
+            ref={messagesContainerRef}
+            onScroll={handleMessagesScroll}
+            className="flex-1 min-h-0 overflow-y-auto p-3 space-y-4 text-xs bg-background"
+          >
           {/* 未配置 Provider 提示 */}
           {!activeProvider && (
             <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 text-center space-y-3">
@@ -904,8 +924,22 @@ export function AICopilotPanel() {
               </div>
             );
           })()}
+            <div ref={messagesEndRef} />
+          </div>
 
-          <div ref={messagesEndRef} />
+          {/* 一键置底按钮 */}
+          {showScrollBottom && (
+            <Button
+              size="icon"
+              variant="secondary"
+              className="absolute bottom-3 right-4 h-8 w-8 rounded-full shadow-lg border border-border/80 bg-background/90 hover:bg-muted text-muted-foreground hover:text-foreground z-20 transition-all duration-200 animate-in fade-in zoom-in-90"
+              onClick={() => scrollToBottom(true)}
+              aria-label={ll.ai.copilot.scroll_to_bottom()}
+              title={ll.ai.copilot.scroll_to_bottom()}
+            >
+              <ArrowDown className="h-4 w-4" />
+            </Button>
+          )}
         </div>
 
         {/* 底部输入框区 */}
