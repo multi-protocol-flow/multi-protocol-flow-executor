@@ -136,10 +136,12 @@ export const AIMessageRow = memo(function AIMessageRow({
                 onClick={() => onToggleThought?.(msg.id)}
               >
                 <Brain className="h-3 w-3 text-indigo-500 shrink-0" />
-                <span className="font-medium text-[11px] truncate min-w-0 flex-1">
-                  {ll.ai.copilot.thought_process()}
+                <span className="inline-flex items-center gap-1.5 min-w-0 flex-1 overflow-hidden">
+                  <span className="font-medium text-[11px] truncate">
+                    {ll.ai.copilot.thought_process()}
+                  </span>
                   {isStreaming && (
-                    <span className="inline-flex items-center gap-1 ml-1.5 text-[10px] text-primary font-normal">
+                    <span className="inline-flex items-center gap-1 text-[10px] text-primary font-normal shrink-0">
                       <ThinkingDots dotClassName="w-1 h-1" />
                       <span>({ll.ai.copilot.thinking()})</span>
                     </span>
