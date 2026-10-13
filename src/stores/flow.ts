@@ -808,6 +808,10 @@ export const useFlowStore = create<FlowState>((set, get) => {
     addNode: (node) =>
       set((state) => {
         if (!state.flow) return state;
+        const currentStageGraph = getStageGraph(state.flow, state.activeStage);
+        if (node.type === 'entry' && currentStageGraph.nodes.some((n) => n.type === 'entry')) {
+          return state;
+        }
         const newFlow = mapStageGraph(state.flow, state.activeStage, (graph) => ({
           ...graph,
           nodes: [...graph.nodes, node],

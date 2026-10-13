@@ -151,7 +151,8 @@ const NODE_TYPE_ORDER: Record<string, number> = {
   'udp:close': 3,
 
 
-  // 工具: 条件判断 → 脚本 → 断言 → 变量提取 → 代理 → 结束
+  // 工具: 入口 → 条件判断 → 脚本 → 断言 → 变量提取 → 代理 → 结束
+  entry: -1,
   conditional: 0,
   script: 1,
   assertion: 2,
@@ -303,6 +304,8 @@ export interface CatalogGroup {
 
 /** 内置逻辑节点类型列表 */
 const CORE_LOGIC_TYPES = [
+  'entry',
+  'flow:sub',
   'conditional',
   'script',
   'assertion',
@@ -339,6 +342,7 @@ const CORE_NETWORK_TYPES = [
 
 /** 内置节点默认兜底列表（用于 Mock 或离线模式） */
 export const BUILTIN_FALLBACK_METADATA: NodeMetadata[] = [
+  { type_id: 'entry', display_name: '入口', category: 'logic', icon: 'play', color: '#22C55E', ports: [{ id: 'out', label: 'Output', position: 'right' }], default_config: {} },
   { type_id: 'http:request', display_name: 'HTTP 请求', category: 'http', icon: 'globe', color: '#3B82F6', ports: [{ id: 'flow_in', label: 'In', position: 'top' }, { id: 'true', label: 'True', position: 'right' }, { id: 'false', label: 'False', position: 'bottom' }], default_config: {} },
   { type_id: 'http:ingress', display_name: 'HTTP Ingress 监听', category: 'network', icon: 'log-in', color: '#6366F1', ports: [{ id: 'out', label: 'Out', position: 'right' }], default_config: { port: 9527, path_pattern: '/*', methods: ['GET', 'POST'] } },
   { type_id: 'http:respond', display_name: 'HTTP Respond 响应', category: 'network', icon: 'log-out', color: '#14B8A6', ports: [{ id: 'in', label: 'In', position: 'left' }, { id: 'out', label: 'Out', position: 'right' }], default_config: { status_code: 200, headers: {}, body_type: 'json', body: '{"success": true}' } },
@@ -418,8 +422,7 @@ export function buildCatalogGroups(
   recentTypeIds: string[] = []
 ): CatalogGroup[] {
   const source = metadata.length > 0 ? metadata : BUILTIN_FALLBACK_METADATA;
-  const filtered = source.filter((m) => m.type_id !== 'entry');
-  const allItems = filtered.map(convertToCatalogItem);
+  const allItems = source.map(convertToCatalogItem);
 
   const groups: CatalogGroup[] = [];
 

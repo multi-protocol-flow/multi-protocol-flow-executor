@@ -11,6 +11,8 @@ import {
   Settings,
   Layers,
 } from 'lucide-react';
+import { toast } from 'sonner';
+import { getStageGraph } from '@/stores/flow';
 import { getLL } from '@/i18n/i18n-lazy';
 import { useFlowStore, useUIStore } from '@/stores';
 import type { NodeType } from '@/types';
@@ -148,6 +150,7 @@ export function NodePalette() {
   const t = LL.nodes.palette;
   const setPendingAddNodeType = useFlowStore((s) => s.setPendingAddNodeType);
   const flow = useFlowStore((s) => s.flow);
+  const activeStage = useFlowStore((s) => s.activeStage);
   const isOpen = useUIStore((s) => s.isNodePaletteOpen);
   const palettePosition = useUIStore((s) => s.nodePalettePosition);
   const closePalette = useUIStore((s) => s.closeNodePalette);
@@ -174,6 +177,13 @@ export function NodePalette() {
     () => buildCatalogGroups(metadata, recentTypeIds),
     [metadata, recentTypeIds]
   );
+
+  // 判断当前阶段子图中是否已有 entry 节点
+  const hasEntryNode = useMemo(() => {
+    if (!flow) return false;
+    const stageGraph = getStageGraph(flow, activeStage);
+    return stageGraph.nodes.some((n) => n.type === 'entry');
+  }, [flow, activeStage]);
 
   // 搜索评分与过滤
   const isSearching = searchQuery.trim().length > 0;
@@ -266,16 +276,25 @@ export function NodePalette() {
   const handleSelectNode = useCallback(
     (typeId: string) => {
       if (!flow) return;
+      if (typeId === 'entry' && hasEntryNode) {
+        toast.warning(LL.flow.entry_node_already_exists());
+        return;
+      }
       recordNodeUsage(typeId);
       setPendingAddNodeType(typeId as NodeType);
       closePalette();
     },
-    [flow, setPendingAddNodeType, closePalette]
+    [flow, hasEntryNode, LL, setPendingAddNodeType, closePalette]
   );
 
   // 拖拽动作
   const handleDragStart = useCallback(
     (e: React.DragEvent, typeId: string) => {
+      if (typeId === 'entry' && hasEntryNode) {
+        e.preventDefault();
+        toast.warning(LL.flow.entry_node_already_exists());
+        return;
+      }
       e.dataTransfer.setData('application/reactflow/nodeType', typeId);
       e.dataTransfer.effectAllowed = 'move';
       recordNodeUsage(typeId);
@@ -283,7 +302,7 @@ export function NodePalette() {
         closePalette();
       });
     },
-    [closePalette]
+    [hasEntryNode, LL, closePalette]
   );
 
   // 键盘导航
@@ -523,22 +542,23 @@ export function NodePalette() {
                   const isHovered = hoveredItem?.typeId === item.typeId;
                   const isHighlighted = isSelected || isHovered;
                   const ItemIcon = item.icon;
+                  const isDisabled = item.typeId === 'entry' && hasEntryNode;
 
                   return (
                     <div
                       key={item.typeId}
-                      draggable
+                      draggable={!isDisabled}
                       onDragStart={(e) => handleDragStart(e, item.typeId)}
                       onClick={() => handleSelectNode(item.typeId)}
                       onMouseEnter={() => setHoveredItem(item)}
                       onMouseLeave={() => setHoveredItem(null)}
                       className={cn(
-                        // 边框宽度恒定（始终 1px），仅切换颜色：避免 hover 时
-                        // border-width 0↔1 被 transition-all 补间成“边框出现又消失”
-                        'flex items-center justify-between px-3 py-2 rounded-xl border text-xs cursor-pointer transition-colors duration-150',
-                        isHighlighted
-                          ? 'bg-primary/10 border-primary/35 text-foreground shadow-xs'
-                          : 'border-transparent text-muted-foreground hover:bg-accent/60 hover:text-foreground',
+                        'flex items-center justify-between px-3 py-2 rounded-xl border text-xs transition-colors duration-150',
+                        isDisabled
+                          ? 'opacity-50 cursor-not-allowed border-transparent text-muted-foreground'
+                          : isHighlighted
+                          ? 'bg-primary/10 border-primary/35 text-foreground shadow-xs cursor-pointer'
+                          : 'border-transparent text-muted-foreground hover:bg-accent/60 hover:text-foreground cursor-pointer',
                       )}
                     >
                       <div className="flex items-center gap-2.5 min-w-0">
@@ -561,12 +581,17 @@ export function NodePalette() {
                       </div>
 
                       <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                        {isDisabled && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground border border-border/50 font-medium">
+                            {LL.flow.entry_node_exists_badge()}
+                          </span>
+                        )}
                         {item.isPlugin && (
                           <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 font-medium">
                             {item.pluginName || 'Plugin'}
                           </span>
                         )}
-                        {isHighlighted && (
+                        {isHighlighted && !isDisabled && (
                           <span className="text-[10px] text-muted-foreground/60 flex items-center gap-0.5">
                             ↵ {t.insert_hint()}
                           </span>

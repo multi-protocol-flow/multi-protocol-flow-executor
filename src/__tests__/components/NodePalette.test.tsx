@@ -135,4 +135,51 @@ describe('NodePalette Component', () => {
 
     expect(screen.getAllByText('HTTP 请求').length).toBeGreaterThan(0);
   });
+
+  it('当流程缺少 entry 节点时，节点选择器中包含入口节点且可点击添加', async () => {
+    localStorage.setItem('locale', 'zh-CN');
+    useFlowStore.setState({
+      flow: {
+        uuid: 'flow-no-entry',
+        name: 'No Entry Flow',
+        nodes: [],
+        connections: [],
+        initial_variables: {},
+      },
+    });
+
+    render(<NodePalette />);
+    const searchInput = screen.getByPlaceholderText(/搜索节点/);
+    fireEvent.change(searchInput, { target: { value: 'entry' } });
+    const entryItems = screen.getAllByText('入口');
+    expect(entryItems.length).toBeGreaterThan(0);
+    fireEvent.click(entryItems[0]);
+    expect(useFlowStore.getState().pendingAddNodeType).toBe('entry');
+  });
+
+  it('当流程已有 entry 节点时，入口节点显示已存在标识且无法重复添加', async () => {
+    localStorage.setItem('locale', 'zh-CN');
+    useFlowStore.setState({
+      flow: {
+        uuid: 'flow-with-entry',
+        name: 'With Entry Flow',
+        nodes: [
+          { uuid: 'entry-1', type: 'entry', name: '入口', position: { x: 0, y: 0 }, data: { type: 'entry' } },
+        ],
+        connections: [],
+        initial_variables: {},
+      },
+      pendingAddNodeType: null,
+    });
+
+    render(<NodePalette />);
+    const searchInput = screen.getByPlaceholderText(/搜索节点/);
+    fireEvent.change(searchInput, { target: { value: 'entry' } });
+
+    expect(screen.getByText('已存在')).toBeInTheDocument();
+    const entryItems = screen.getAllByText('入口');
+    fireEvent.click(entryItems[0]);
+    // 重复点击不会将 entry 设置到 pendingAddNodeType
+    expect(useFlowStore.getState().pendingAddNodeType).toBeNull();
+  });
 });

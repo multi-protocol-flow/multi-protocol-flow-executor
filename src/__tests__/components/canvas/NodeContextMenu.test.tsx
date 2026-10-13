@@ -141,4 +141,58 @@ describe('NodeContextMenu', () => {
     });
     expect(onClose).toHaveBeenCalledTimes(2);
   });
+
+  it('普通节点展示“创建副本”选项，点击触发 onCopy', async () => {
+    const onCopy = vi.fn();
+    const onClose = vi.fn();
+
+    render(
+      <ReactFlowProvider>
+        <NodeContextMenu
+          x={100}
+          y={100}
+          nodeId="node-1"
+          nodeType="http:request"
+          nodeName="HTTP 1"
+          onClose={onClose}
+          onCopy={onCopy}
+          onDelete={vi.fn()}
+          onRename={vi.fn()}
+          onCopyConfig={vi.fn()}
+          onPasteConfig={vi.fn()}
+          hasClipboardConfig={false}
+        />
+      </ReactFlowProvider>
+    );
+
+    const duplicateBtn = screen.getByText('创建副本');
+    expect(duplicateBtn).toBeInTheDocument();
+    fireEvent.click(duplicateBtn);
+    expect(onCopy).toHaveBeenCalledWith('node-1');
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it('entry 节点不展示“创建副本”选项（每个流程只允许一个入口节点）', async () => {
+    render(
+      <ReactFlowProvider>
+        <NodeContextMenu
+          x={100}
+          y={100}
+          nodeId="entry-node"
+          nodeType="entry"
+          nodeName="入口节点"
+          onClose={vi.fn()}
+          onCopy={vi.fn()}
+          onDelete={vi.fn()}
+          onRename={vi.fn()}
+          onCopyConfig={vi.fn()}
+          onPasteConfig={vi.fn()}
+          hasClipboardConfig={false}
+        />
+      </ReactFlowProvider>
+    );
+
+    expect(screen.queryByText('创建副本')).toBeNull();
+    expect(screen.queryByText('复制节点')).toBeNull();
+  });
 });

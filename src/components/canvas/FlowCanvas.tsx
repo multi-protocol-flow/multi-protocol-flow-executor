@@ -430,7 +430,7 @@ function FlowCanvasInner() {
       if (!currentFlow) return;
 
       const sourceNode = getStageGraph(currentFlow, activeStage).nodes.find((n) => n.uuid === nodeId);
-      if (!sourceNode) return;
+      if (!sourceNode || sourceNode.type === 'entry') return;
 
       const newUuid = crypto.randomUUID();
       const offset = 50;
@@ -711,6 +711,15 @@ function FlowCanvasInner() {
         y: event.clientY,
       });
 
+      if (nodeType === 'entry') {
+        const { activeStage } = useFlowStore.getState();
+        const stageGraph = getStageGraph(flow, activeStage);
+        if (stageGraph.nodes.some((n) => n.type === 'entry')) {
+          toast.warning(getLL().flow.entry_node_already_exists());
+          return;
+        }
+      }
+
       // 获取上游节点（当前选中的节点作为上游推断上下文）
       const { getSelectedNode } = useFlowStore.getState();
       const selectedNode = getSelectedNode();
@@ -741,6 +750,17 @@ function FlowCanvasInner() {
   // 处理点击添加节点请求 - 在当前视口中心添加节点
   useEffect(() => {
     if (!pendingAddNodeType || !flow) return;
+
+    if (pendingAddNodeType === 'entry') {
+      const { activeStage } = useFlowStore.getState();
+      const stageGraph = getStageGraph(flow, activeStage);
+      if (stageGraph.nodes.some((n) => n.type === 'entry')) {
+        toast.warning(getLL().flow.entry_node_already_exists());
+        clearPendingAddNodeType();
+        useUIStore.getState().closeNodePalette();
+        return;
+      }
+    }
 
     // 使用 canvasRef 获取画布容器
     const canvasElement = canvasRef.current;

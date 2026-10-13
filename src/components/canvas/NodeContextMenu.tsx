@@ -117,15 +117,20 @@ export function NodeContextMenu({
           },
         ]
       : []),
-    {
-      key: 'copy',
-      label: LL.flow.context_copy_node(),
-      icon: <Copy className="w-4 h-4" />,
-      action: () => {
-        onCopy(nodeId);
-        onClose();
-      },
-    },
+    // entry 节点不显示创建副本（流程仅允许一个入口节点）
+    ...(nodeType !== 'entry'
+      ? [
+          {
+            key: 'duplicate',
+            label: LL.flow.context_duplicate_node(),
+            icon: <Copy className="w-4 h-4" />,
+            action: () => {
+              onCopy(nodeId);
+              onClose();
+            },
+          },
+        ]
+      : []),
     {
       key: 'copy-config',
       label: LL.flow.context_copy_config(),
