@@ -24,6 +24,11 @@ vi.mock('sonner', () => ({
   },
 }));
 
+const mockCopyToClipboard = vi.fn().mockResolvedValue(true);
+vi.mock('@/lib/clipboard', () => ({
+  copyToClipboard: (...args: unknown[]) => mockCopyToClipboard(...args),
+}));
+
 // Mock flowStorage
 vi.mock('@/services/storage', () => ({
   flowStorage: {
@@ -279,5 +284,22 @@ describe('FlowTabBar', () => {
     await user.click(wrapMenuBtn);
 
     expect(useUIStore.getState().flowTabDisplayMode).toBe('wrap');
+  });
+
+  it('标签右键菜单中包含复制流程的文件绝对路径选项，并能复制成功', async () => {
+    const user = userEvent.setup();
+    useFlowStore.getState().openTab(flow1, '/path/to/my-flow.mpf');
+
+    render(<FlowTabBar />);
+
+    const tab = screen.getByRole('tab');
+    fireEvent.contextMenu(tab);
+
+    const copyPathBtn = screen.getByText('复制流程的文件绝对路径');
+    expect(copyPathBtn).toBeInTheDocument();
+    await user.click(copyPathBtn);
+
+    expect(mockCopyToClipboard).toHaveBeenCalledWith('/path/to/my-flow.mpf');
+    expect(toast.success).toHaveBeenCalledWith('已复制流程文件绝对路径');
   });
 });
