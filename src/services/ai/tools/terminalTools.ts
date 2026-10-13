@@ -284,6 +284,11 @@ export const terminalToolDefinitions: AIToolDefinition[] = [
             description:
               'Optional execution timeout in seconds (default 30, maximum 120).',
           },
+          stdin: {
+            type: 'string',
+            description:
+              'Optional standard input (stdin) string to feed into the process before closing stdin (e.g. password for "sudo -S", piped input, or answers to prompts).',
+          },
         },
         required: ['command'],
       },
@@ -296,6 +301,7 @@ export const terminalToolHandlers = {
     command: string;
     cwd?: string;
     timeout_secs?: number;
+    stdin?: string;
   }) => {
     const activeWs = useAIStore.getState().activeWorkspace;
     const targetDir = args.cwd || activeWs?.path;
@@ -304,6 +310,7 @@ export const terminalToolHandlers = {
       command: args.command,
       cwd: targetDir || null,
       timeoutSecs: args.timeout_secs ?? null,
+      stdin: args.stdin ?? null,
     });
 
     return {

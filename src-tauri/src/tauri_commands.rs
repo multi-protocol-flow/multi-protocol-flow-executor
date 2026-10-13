@@ -2326,6 +2326,7 @@ pub async fn ai_execute_command(
     command: String,
     cwd: Option<String>,
     timeout_secs: Option<u64>,
+    stdin: Option<String>,
 ) -> Result<AiCommandExecutionResult, String> {
     let trimmed = command.trim();
     if trimmed.is_empty() {
@@ -2373,6 +2374,13 @@ pub async fn ai_execute_command(
         cmd.creation_flags(CREATE_NO_WINDOW);
     }
 
+    let has_stdin = stdin.as_ref().map(|s| !s.is_empty()).unwrap_or(false);
+    if has_stdin {
+        cmd.stdin(std::process::Stdio::piped());
+    } else {
+        cmd.stdin(std::process::Stdio::null());
+    }
+
     cmd.stdout(std::process::Stdio::piped());
     cmd.stderr(std::process::Stdio::piped());
 
@@ -2380,9 +2388,20 @@ pub async fn ai_execute_command(
     let mut child = cmd
         .spawn()
         .map_err(|e| format!("Failed to spawn command process: {e}"))?;
+
+    if has_stdin {
+        if let (Some(mut pipe), Some(input_str)) = (child.stdin.take(), stdin) {
+            tokio::spawn(async move {
+                use tokio::io::AsyncWriteExt;
+                let _ = pipe.write_all(input_str.as_bytes()).await;
+                let _ = pipe.flush().await;
+                drop(pipe);
+            });
+        }
+    }
+
     let mut stdout_pipe = child.stdout.take();
     let mut stderr_pipe = child.stderr.take();
-
     let stdout_task = tokio::spawn(async move {
         let mut buf = Vec::new();
         if let Some(mut out) = stdout_pipe.take() {
@@ -2912,7 +2931,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_ai_execute_command_success() {
-        let result = ai_execute_command("echo 'hello mpe'".to_string(), None, Some(5))
+        let result = ai_execute_command("echo 'hello mpe'".to_string(), None, Some(5), None)
             .await
             .expect("ai_execute_command should succeed");
 
@@ -2923,7 +2942,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_ai_execute_command_empty() {
-        let err = ai_execute_command("   ".to_string(), None, Some(5)).await;
+        let err = ai_execute_command("   ".to_string(), None, Some(5), None).await;
         assert!(err.is_err());
     }
 
@@ -2932,13 +2951,46 @@ mod tests {
         // Unix 下使用 sleep 2 测试 1 秒超时
         #[cfg(not(windows))]
         {
-            let result = ai_execute_command("sleep 2".to_string(), None, Some(1))
+            let result = ai_execute_command("sleep 2".to_string(), None, Some(1), None)
                 .await
                 .expect("ai_execute_command call succeeds even on timeout");
 
             assert!(result.timed_out);
             assert_eq!(result.exit_code, None);
             assert!(result.stderr.contains("timed out"));
+        }
+    }
+
+    #[tokio::test]
+    async fn test_ai_execute_command_with_stdin() {
+        #[cfg(not(windows))]
+        {
+            let result = ai_execute_command(
+                "cat".to_string(),
+                None,
+                Some(5),
+                Some("hello from stdin\n".to_string()),
+            )
+            .await
+            .expect("ai_execute_command with stdin should succeed");
+
+            assert_eq!(result.exit_code, Some(0));
+            assert!(result.stdout.contains("hello from stdin"));
+        }
+    }
+
+    #[tokio::test]
+    async fn test_ai_execute_command_eof_no_hang() {
+        #[cfg(not(windows))]
+        {
+            let start = std::time::Instant::now();
+            let result = ai_execute_command("cat".to_string(), None, Some(5), None)
+                .await
+                .expect("cat with Stdio::null should succeed immediately");
+
+            assert_eq!(result.exit_code, Some(0));
+            assert!(!result.timed_out);
+            assert!(start.elapsed().as_secs() < 2);
         }
     }
 
