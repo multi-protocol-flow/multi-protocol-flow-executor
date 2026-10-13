@@ -52,6 +52,8 @@ const en_US_flow = {
   copy_file_path_success: 'Flow absolute path copied to clipboard',
   copy_file_path_failed: 'Failed to copy file path',
   copy_file_path_not_found: 'Flow file path not found',
+  entry_node_already_exists: 'An entry node already exists in this flow',
+  entry_node_exists_badge: 'Already exists',
   move_to: 'Move to...',
   export_flow_menu: 'Export Flow (.mpf)...',
   environment_section_title: 'Environments',
@@ -256,7 +258,8 @@ const en_US_flow = {
 
   // Context menu
   context_run_from_snapshot: 'Run from this node snapshot',
-  context_copy_node: 'Copy Node',
+  context_duplicate_node: 'Duplicate',
+  context_copy_node: 'Duplicate',
   context_copy_config: 'Copy Config',
   context_paste_config: 'Paste Config',
   context_rename: 'Rename',

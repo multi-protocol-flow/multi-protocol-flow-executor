@@ -8601,6 +8601,14 @@ type RootTranslation = {
 		 */
 		copy_file_path_not_found: string
 		/**
+		 * 流​程​中​已​存​在​入​口​节​点​，​仅​允​许​一​个​入​口​节​点
+		 */
+		entry_node_already_exists: string
+		/**
+		 * 已​存​在
+		 */
+		entry_node_exists_badge: string
+		/**
 		 * 移​动​到​.​.​.
 		 */
 		move_to: string
@@ -9370,6 +9378,10 @@ type RootTranslation = {
 		 * 从​该​节​点​快​照​重​新​执​行
 		 */
 		context_run_from_snapshot: string
+		/**
+		 * 复​制​节​点
+		 */
+		context_duplicate_node: string
 		/**
 		 * 复​制​节​点
 		 */
@@ -14588,6 +14600,11 @@ type RootTranslation = {
 			 * 思​考​过​程​ ​(​R​e​a​s​o​n​i​n​g​)
 			 */
 			thought_process: string
+			/**
+			 * {​c​o​u​n​t​}​ ​字
+			 * @param {number} count
+			 */
+			thought_chars: RequiredParams<'count'>
 			/**
 			 * 正​在​思​考​.​.​.
 			 */
@@ -23460,6 +23477,14 @@ export type TranslationFunctions = {
 		 */
 		copy_file_path_not_found: () => LocalizedString
 		/**
+		 * 流程中已存在入口节点，仅允许一个入口节点
+		 */
+		entry_node_already_exists: () => LocalizedString
+		/**
+		 * 已存在
+		 */
+		entry_node_exists_badge: () => LocalizedString
+		/**
 		 * 移动到...
 		 */
 		move_to: () => LocalizedString
@@ -24204,6 +24229,10 @@ export type TranslationFunctions = {
 		 * 从该节点快照重新执行
 		 */
 		context_run_from_snapshot: () => LocalizedString
+		/**
+		 * 复制节点
+		 */
+		context_duplicate_node: () => LocalizedString
 		/**
 		 * 复制节点
 		 */
@@ -29278,6 +29307,10 @@ export type TranslationFunctions = {
 			 * 思考过程 (Reasoning)
 			 */
 			thought_process: () => LocalizedString
+			/**
+			 * {count} 字
+			 */
+			thought_chars: (arg: { count: number }) => LocalizedString
 			/**
 			 * 正在思考...
 			 */

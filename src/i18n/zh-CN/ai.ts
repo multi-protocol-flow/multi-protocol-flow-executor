@@ -131,6 +131,7 @@ const ai = {
     prompt_diagnose_flow_failures: '当前流程执行失败了，失败节点包括：{failedNodes}。请帮我深度诊断报错原因，向我提供修复方向选项并询问我，确认后帮我修复流程。',
     prompt_diagnose_flow_generic: '当前流程执行报错了（状态：failed）。请帮我诊断流程中的问题，向我询问修复方向，并在确认后帮我修复。',
     thought_process: '思考过程 (Reasoning)',
+    thought_chars: '{count:number} 字',
     thinking: '正在思考...',
     executing_tools: '正在执行工具联动画布...',
     executing_tool_named: '正在执行: {name}...',

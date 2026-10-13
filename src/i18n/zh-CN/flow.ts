@@ -53,6 +53,8 @@ const zh_CN_flow: BaseTranslation = {
   copy_file_path_success: '已复制流程文件绝对路径',
   copy_file_path_failed: '复制文件路径失败',
   copy_file_path_not_found: '未找到流程文件路径',
+  entry_node_already_exists: '流程中已存在入口节点，仅允许一个入口节点',
+  entry_node_exists_badge: '已存在',
   move_to: '移动到...',
   export_flow_menu: '导出流程 (.mpf)...',
   environment_section_title: '环境管理',
@@ -253,7 +255,8 @@ const zh_CN_flow: BaseTranslation = {
 
   // 右键菜单
   context_run_from_snapshot: '从该节点快照重新执行',
-  context_copy_node: '复制节点',
+  context_duplicate_node: '创建副本',
+  context_copy_node: '创建副本',
   context_copy_config: '复制配置',
   context_paste_config: '粘贴配置',
   context_rename: '重命名',

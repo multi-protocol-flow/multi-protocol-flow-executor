@@ -131,6 +131,7 @@ const ai = {
     prompt_diagnose_flow_failures: 'Current workflow execution failed. Failed nodes include: {failedNodes}. Please perform a deep diagnosis of the error causes, propose repair options, ask for my preference, and fix the workflow after confirmation.',
     prompt_diagnose_flow_generic: 'Current workflow execution failed (status: failed). Please diagnose the issues in the workflow, ask me about the repair direction, and fix the workflow after confirmation.',
     thought_process: 'Reasoning Process',
+    thought_chars: '{count:number} chars',
     thinking: 'Thinking...',
     executing_tools: 'Executing canvas actions...',
     executing_tool_named: 'Executing: {name}...',
