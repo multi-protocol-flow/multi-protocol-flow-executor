@@ -37,30 +37,35 @@ const PRESETS: Array<{
   baseUrl: string;
   model: string;
   description: string;
+  temperature?: number;
 }> = [
   {
     name: 'DeepSeek Official',
     baseUrl: 'https://api.deepseek.com/v1',
     model: 'deepseek-chat',
     description: 'DeepSeek V3 高性能模型',
+    temperature: 0.1,
   },
   {
     name: 'DeepSeek Reasoner',
     baseUrl: 'https://api.deepseek.com/v1',
     model: 'deepseek-reasoner',
     description: 'DeepSeek R1 深度思考推理模型',
+    temperature: 0.1,
   },
   {
     name: 'Local Ollama',
     baseUrl: 'http://localhost:11434/v1',
     model: 'qwen2.5:latest',
     description: '本地 Ollama 实例 (无需 API Key)',
+    temperature: 0.1,
   },
   {
     name: 'OpenAI Official',
     baseUrl: 'https://api.openai.com/v1',
     model: 'gpt-4o',
     description: 'OpenAI GPT-4o 旗舰模型',
+    temperature: 0.1,
   },
 ];
 
@@ -103,7 +108,7 @@ export function AIProviderSettingsCard({ className }: { className?: string } = {
       baseUrl: preset ? preset.baseUrl : 'https://api.openai.com/v1',
       apiKey: '',
       model: preset ? preset.model : 'gpt-4o',
-      temperature: 0.7,
+      temperature: preset?.temperature ?? 0.1,
     };
     setEditingProvider(newConfig);
     setIsCreating(true);

@@ -20,7 +20,7 @@ export interface AIProviderConfig {
   apiKey: string;
   /** 模型名称 (如: deepseek-chat, gpt-4o, qwen2.5) */
   model: string;
-  /** 生成温度 (0.0 ~ 2.0，默认 0.7) */
+  /** 生成温度 (0.0 ~ 2.0，默认 0.1) */
   temperature?: number;
   /** 最大生成 Token 数 */
   maxTokens?: number;

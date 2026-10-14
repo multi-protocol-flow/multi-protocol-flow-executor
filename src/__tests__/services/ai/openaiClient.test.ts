@@ -243,6 +243,35 @@ describe('openaiClient', () => {
         }),
       );
     });
+    it('未指定 temperature 时默认回退到 0.1', async () => {
+      const stream = new ReadableStream({
+        start(controller) {
+          controller.enqueue(new TextEncoder().encode('data: {"choices":[{"delta":{"content":"ok"}}]}\n\ndata: [DONE]\n\n'));
+          controller.close();
+        },
+      });
+      const fetchMock = vi.fn().mockResolvedValue({
+        ok: true,
+        body: stream,
+      });
+      global.fetch = fetchMock;
+
+      const configWithoutTemp: AIProviderConfig = {
+        id: 'p1',
+        name: 'P1',
+        baseUrl: 'https://api.deepseek.com/v1',
+        apiKey: 'sk',
+        model: 'deepseek-chat',
+      };
+
+      await streamChatCompletion(configWithoutTemp, [{ id: '1', role: 'user', content: 'hi', timestamp: Date.now() }]);
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          body: expect.stringContaining('"temperature":0.1'),
+        }),
+      );
+    });
   });
 
   describe('testConnection', () => {

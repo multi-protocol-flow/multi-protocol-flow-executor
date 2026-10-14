@@ -345,7 +345,7 @@ export async function streamChatCompletion(
     model: config.model,
     messages: formattedMessages,
     stream: true,
-    temperature: config.temperature ?? 0.7,
+    temperature: config.temperature ?? 0.1,
   };
 
   if (config.maxTokens) {
