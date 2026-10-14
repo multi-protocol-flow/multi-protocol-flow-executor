@@ -49,6 +49,49 @@ const HTTP_POST_FLOW: Flow = {
   ],
 } as Flow & { _meta?: { version: number; isBuiltin: boolean } };
 
+/** HTTP Ingress Webhook Mock Service */
+const HTTP_INGRESS_FLOW: Flow = {
+  uuid: 'template-http-ingress',
+  name: 'HTTP Mock Service',
+  initial_variables: {},
+  nodes: [
+    {
+      uuid: 'ingress-mock-001',
+      type: 'http:ingress',
+      name: 'HTTP Ingress',
+      position: { x: 0, y: 0 },
+      data: {
+        type: 'http:ingress',
+        port: 9527,
+        path_pattern: '/*',
+        methods: ['GET', 'POST'],
+      },
+    },
+    {
+      uuid: 'respond-mock-001',
+      type: 'http:respond',
+      name: 'HTTP Respond',
+      position: { x: 300, y: 0 },
+      data: {
+        type: 'http:respond',
+        status_code: 200,
+        headers: {},
+        body_type: 'json',
+        body: '{\n  "code": 0,\n  "message": "success",\n  "received_path": "{{request.path}}"\n}',
+      },
+    },
+  ],
+  connections: [
+    {
+      id: 'conn-ingress-1',
+      source_node_uuid: 'ingress-mock-001',
+      target_node_uuid: 'respond-mock-001',
+      source_port_id: 'out',
+      target_port_id: 'in',
+    },
+  ],
+} as Flow & { _meta?: { version: number; isBuiltin: boolean } };
+
 /** Database SQLite Query */
 const DB_SQLITE_FLOW: Flow = {
   uuid: 'template-db-sqlite',
@@ -446,6 +489,16 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
     tags: ['HTTP', 'POST', 'JSON'],
     difficulty: 'beginner',
     flow: HTTP_POST_FLOW,
+  },
+  {
+    id: 'template-http-ingress',
+    name: 'HTTP Mock Service',
+    description: 'Listen for incoming HTTP webhook requests and return mock responses',
+    category: 'http',
+    icon: 'Radio',
+    tags: ['HTTP', 'Ingress', 'Mock', 'Webhook'],
+    difficulty: 'beginner',
+    flow: HTTP_INGRESS_FLOW,
   },
   // ── WebSocket 模板 ──
   {
