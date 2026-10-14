@@ -676,17 +676,32 @@ impl FlowExecutor {
         }
         let main_start_time = tokio::time::Instant::now();
 
-        // 查找开始节点：优先标准 entry 节点，缺失时回退到 http:ingress（Mock 服务入口）
-        // 若切片中均无 entry 节点，则自动回退至入度为 0 的节点或首个节点
-        let start_node = flow
-            .nodes
-            .iter()
-            .find(|node| node.node_type == node_types::ENTRY)
-            .or_else(|| {
-                flow.nodes
-                    .iter()
-                    .find(|node| node_types::is_entry_node_type(&node.node_type))
-            })
+        // 查找开始节点：
+        // 在 Ingress Mock 执行模式下（存在 INGRESS_RESPONSE_PROVIDER），优先以 http:ingress 为起点；
+        // 普通模式下优先标准 entry 节点，缺失时回退到 http:ingress（Mock 服务入口）
+        // 若均无匹配节点，则自动回退至入度为 0 的节点或首个节点
+        let is_ingress_mode = self
+            .extra_providers
+            .contains_key(crate::ingress::INGRESS_RESPONSE_PROVIDER);
+        let start_node = if is_ingress_mode {
+            flow.nodes
+                .iter()
+                .find(|node| node.node_type == node_types::HTTP_INGRESS)
+                .or_else(|| {
+                    flow.nodes
+                        .iter()
+                        .find(|node| node.node_type == node_types::ENTRY)
+                })
+        } else {
+            flow.nodes
+                .iter()
+                .find(|node| node.node_type == node_types::ENTRY)
+                .or_else(|| {
+                    flow.nodes
+                        .iter()
+                        .find(|node| node_types::is_entry_node_type(&node.node_type))
+                })
+        }
             .or_else(|| {
                 let node_uuids: HashSet<&str> =
                     flow.nodes.iter().map(|n| n.uuid.as_str()).collect();

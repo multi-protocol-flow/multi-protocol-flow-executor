@@ -122,6 +122,19 @@ impl FlowValidator {
         // 1. 多个 Entry node（Entry node可以用于流程入口和终止点）
         // 2. Entry node可以没有输出连接（正常流程终止）
 
+        // 规则 1b: 验证 HTTP Ingress 节点数量（流程仅支持单一 HTTP Ingress 作为 Mock 服务入口）
+        let ingress_nodes: Vec<&Node> = flow
+            .nodes
+            .iter()
+            .filter(|node| node.node_type == node_types::HTTP_INGRESS)
+            .collect();
+        if ingress_nodes.len() > 1 {
+            warnings.push(
+                "Flow contains multiple HTTP Ingress nodes; only the first node will take effect as the mock service listener."
+                    .to_string(),
+            );
+        }
+
         // 规则 2: 验证输出端口唯一性（每个输出端口只能有一条出边）
         let port_validation = self.validate_output_port_uniqueness(flow);
         if !port_validation.valid {
@@ -2120,5 +2133,43 @@ mod tests {
 
         assert!(!result.valid);
         assert!(result.errors.iter().any(|e| e.message.contains("cycle")));
+    }
+
+    #[test]
+    fn test_multiple_http_ingress_nodes_warning() {
+        let ingress1 = Node {
+            uuid: "in-1".to_string(),
+            node_type: "http:ingress".to_string(),
+            name: "Ingress 1".to_string(),
+            position: Default::default(),
+            data: NodeData::HttpIngress(Default::default()),
+            ports: None,
+            has_breakpoint: None,
+            on_error: None,
+        };
+        let ingress2 = Node {
+            uuid: "in-2".to_string(),
+            node_type: "http:ingress".to_string(),
+            name: "Ingress 2".to_string(),
+            position: Default::default(),
+            data: NodeData::HttpIngress(Default::default()),
+            ports: None,
+            has_breakpoint: None,
+            on_error: None,
+        };
+        let flow = Flow {
+            uuid: Uuid::new_v4().to_string(),
+            name: "Multiple Ingress".to_string(),
+            description: None,
+            initial_variables: None,
+            nodes: vec![ingress1, ingress2],
+            connections: vec![],
+            setup: None,
+            teardown: None,
+        };
+        let validator = FlowValidator::new();
+        let result = validator.validate(&flow);
+        assert!(result.valid);
+        assert!(result.warnings.iter().any(|w| w.contains("multiple HTTP Ingress nodes")));
     }
 }

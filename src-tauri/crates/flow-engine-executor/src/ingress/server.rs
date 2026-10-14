@@ -819,6 +819,115 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_ingress_server_with_coexisting_entry_node() {
+        let registry = Arc::new(crate::default_registry::default_registry());
+        let port = 19533;
+
+        let entry_node = flow_engine_core::node::Node {
+            uuid: "default-entry".to_string(),
+            node_type: "entry".to_string(),
+            name: "Start".to_string(),
+            position: Default::default(),
+            data: flow_engine_core::node_config::NodeData::entry(),
+            ports: None,
+            has_breakpoint: None,
+            on_error: None,
+        };
+
+        let ingress_node = flow_engine_core::node::Node {
+            uuid: "node-in".to_string(),
+            node_type: "http:ingress".to_string(),
+            name: "Ingress".to_string(),
+            position: Default::default(),
+            data: flow_engine_core::node_config::NodeData::HttpIngress(
+                flow_engine_core::node_config::HttpIngressConfig {
+                    port,
+                    path_pattern: "/webhook/*".to_string(),
+                    methods: vec!["POST".to_string()],
+                },
+            ),
+            ports: None,
+            has_breakpoint: None,
+            on_error: None,
+        };
+
+        let respond_node = flow_engine_core::node::Node {
+            uuid: "node-out".to_string(),
+            node_type: "http:respond".to_string(),
+            name: "Respond".to_string(),
+            position: Default::default(),
+            data: flow_engine_core::node_config::NodeData::HttpRespond(
+                flow_engine_core::node_config::HttpRespondConfig {
+                    status_code: 200,
+                    headers: HashMap::new(),
+                    body_type: "json".to_string(),
+                    body: r#"{"ok": true, "user": "{{body.user}}"}"#.to_string(),
+                },
+            ),
+            ports: None,
+            has_breakpoint: None,
+            on_error: None,
+        };
+
+        let conn = flow_engine_core::connection::Connection {
+            id: "c1".to_string(),
+            source_node_uuid: "node-in".to_string(),
+            target_node_uuid: "node-out".to_string(),
+            source_port_id: "out".to_string(),
+            target_port_id: "in".to_string(),
+        };
+
+        // 画布中同时包含孤立的 entry 节点与 ingress -> respond 链路
+        let flow = Flow {
+            uuid: "coexist-flow".to_string(),
+            name: "Coexist Flow".to_string(),
+            description: None,
+            nodes: vec![entry_node, ingress_node, respond_node],
+            connections: vec![conn],
+            initial_variables: None,
+            setup: None,
+            teardown: None,
+        };
+
+        let manager = IngressManager::new();
+        manager
+            .start_listener(
+                port,
+                IngressListenerConfig {
+                    flow,
+                    registry,
+                    debug_launcher: None,
+                    request_timeout: Duration::from_secs(60),
+                },
+            )
+            .await
+            .expect("Failed to start listener");
+
+        tokio::time::sleep(Duration::from_millis(50)).await;
+
+        let mut stream = tokio::net::TcpStream::connect(format!("127.0.0.1:{}", port))
+            .await
+            .expect("Failed to connect");
+
+        let req = b"POST /webhook/test HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Type: application/json\r\nContent-Length: 16\r\n\r\n{\"user\": \"alice\"}";
+        stream.write_all(req).await.expect("Failed to write");
+        stream.flush().await.expect("Failed to flush");
+
+        let mut resp_buf = vec![0u8; 1024];
+        let n = stream.read(&mut resp_buf).await.expect("Failed to read");
+        let resp_str = String::from_utf8_lossy(&resp_buf[..n]);
+
+        assert!(
+            resp_str.starts_with("HTTP/1.1 200 OK"),
+            "Ingress 应优先以 http:ingress 为起点，忽略孤立的 entry 节点: {}",
+            resp_str
+        );
+        assert!(resp_str.contains("{\"ok\": true, \"user\": \"alice\"}"));
+
+        assert!(manager.stop_listener(port).await.is_ok());
+    }
+
+    #[tokio::test]
     async fn test_ingress_server_with_assertion_and_respond() {
         let registry = Arc::new(crate::default_registry::default_registry());
         let port = 19528;

@@ -369,16 +369,29 @@ impl DebuggableFlowExecutor {
         // 记录调试开始时间（用于报告生成）
         let debug_start_time_ms = context.flow_trigger_time;
 
-        // 查找开始节点：Main 阶段必须具备 entry 节点或 ingress 节点
-        let main_start_node = flow
-            .nodes
-            .iter()
-            .find(|node| node.node_type == node_types::ENTRY)
-            .or_else(|| {
-                flow.nodes
-                    .iter()
-                    .find(|node| node_types::is_entry_node_type(&node.node_type))
-            });
+        // 查找开始节点：Ingress 模式下优先 http:ingress，否则优先 entry
+        let is_ingress_mode = self
+            .extra_providers
+            .contains_key(crate::ingress::INGRESS_RESPONSE_PROVIDER);
+        let main_start_node = if is_ingress_mode {
+            flow.nodes
+                .iter()
+                .find(|node| node.node_type == node_types::HTTP_INGRESS)
+                .or_else(|| {
+                    flow.nodes
+                        .iter()
+                        .find(|node| node.node_type == node_types::ENTRY)
+                })
+        } else {
+            flow.nodes
+                .iter()
+                .find(|node| node.node_type == node_types::ENTRY)
+                .or_else(|| {
+                    flow.nodes
+                        .iter()
+                        .find(|node| node_types::is_entry_node_type(&node.node_type))
+                })
+        };
         let main_start_node = match main_start_node {
             Some(node) => node,
             None => {
