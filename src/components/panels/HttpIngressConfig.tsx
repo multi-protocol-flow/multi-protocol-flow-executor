@@ -63,7 +63,7 @@ export function HttpIngressConfig({ data, onSave, disabled = false }: HttpIngres
   };
 
   return (
-    <div className="space-y-6 p-4 text-xs">
+    <div className="w-full space-y-4 text-xs">
       {/* 端口配置 */}
       <div className="space-y-2">
         <label className="flex items-center gap-1.5 font-medium text-foreground">
