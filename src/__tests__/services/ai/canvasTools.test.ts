@@ -1,13 +1,15 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { useFlowStore } from '@/stores/flow';
+import { useExecutionStore } from '@/stores/execution';
 import {
   resolveDefaultPorts,
   buildDefaultNodeData,
   normalizeJsonPath,
   canvasToolHandlers,
 } from '@/services/ai/tools/canvasTools';
+import { executionToolHandlers } from '@/services/ai/tools/executionTools';
 import { buildSystemPrompt } from '@/services/ai/contextBuilder';
-import type { Flow } from '@/types';
+import type { Flow, Node } from '@/types';
 
 describe('resolveDefaultPorts', () => {
   it('entry -> http: 应该将源端口解析为 out，目标端口解析为 in', () => {
@@ -45,6 +47,7 @@ describe('resolveDefaultPorts', () => {
     expect(sourcePort).toBe('out');
     expect(targetPort).toBe('in');
   });
+
   it('flow:sub -> http: 源端口默认应为 out，目标端口为 in', () => {
     const { sourcePort, targetPort } = resolveDefaultPorts('flow:sub', 'http:request');
     expect(sourcePort).toBe('out');
@@ -119,6 +122,7 @@ describe('buildDefaultNodeData 格式规范化与容错', () => {
     expect(mappings[1].source).toBe('$.status');
     expect(mappings[1].target).toBe('http_status');
   });
+
   it('flow:sub 节点：配置标准化与默认继承配置', () => {
     const data = buildDefaultNodeData('flow:sub', {
       target_flow_path: './subflows/auth.json',
@@ -212,25 +216,16 @@ describe('canvasToolHandlers 集成测试', () => {
     expect(result.created_count).toBe(4);
 
     const flow = useFlowStore.getState().flow;
-    // 包含初始 entry 节点 + 4 个新节点 = 5 个节点
     expect(flow?.nodes).toHaveLength(5);
-    // 应该自动建立 4 条连线：entry -> http -> assertion -> extractor -> end
     expect(flow?.connections).toHaveLength(4);
 
     const [c1, c2, c3, c4] = flow!.connections;
-    // entry -> http
     expect(c1.source_port_id).toBe('out');
     expect(c1.target_port_id).toBe('in');
-
-    // http -> assertion
     expect(c2.source_port_id).toBe('true');
     expect(c2.target_port_id).toBe('in');
-
-    // assertion -> extractor
     expect(c3.source_port_id).toBe('true');
     expect(c3.target_port_id).toBe('in');
-
-    // extractor -> end
     expect(c4.source_port_id).toBe('out');
     expect(c4.target_port_id).toBe('in');
   });
@@ -276,6 +271,7 @@ describe('canvasToolHandlers 集成测试', () => {
       expect.fail('flow:sub builtin_schema missing display_name');
     }
   });
+
   it('get_flow_nodes_config: 批量获取节点完整配置', async () => {
     const allConfigs = await canvasToolHandlers.get_flow_nodes_config();
     expect(allConfigs.success).toBe(true);
@@ -290,6 +286,187 @@ describe('canvasToolHandlers 集成测试', () => {
     const adaptRes = await canvasToolHandlers.auto_layout({ mode: 'adaptive', viewport_width: 1000 });
     expect(adaptRes.success).toBe(true);
     expect(adaptRes.mode).toBe('adaptive');
+  });
+});
+
+describe('canvasTools - batch_create_pipeline declarative topology & auto_run', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    useFlowStore.getState().reset();
+    useExecutionStore.getState().reset();
+
+    const initialFlow: Flow = {
+      uuid: 'flow-test-1',
+      name: 'Test Flow',
+      nodes: [
+        {
+          uuid: 'entry-uuid-1',
+          type: 'entry',
+          name: 'Entry',
+          position: { x: 50, y: 150 },
+        } as Node,
+      ],
+      connections: [],
+      initial_variables: {},
+    };
+    useFlowStore.getState().setFlow(initialFlow);
+  });
+
+  it('未提供 edges 时保持向下兼容：按顺序线性串联节点', async () => {
+    const result = await canvasToolHandlers.batch_create_pipeline({
+      nodes: [
+        { type: 'http:request', name: 'HTTP_1' },
+        { type: 'assertion', name: 'ASSERT_1' },
+      ],
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.created_count).toBe(2);
+    expect(result.created_nodes).toHaveLength(2);
+
+    const flow = useFlowStore.getState().flow;
+    expect(flow?.nodes).toHaveLength(3); // entry + 2 new nodes
+
+    // 包含从 entry 到 HTTP_1，以及 HTTP_1 到 ASSERT_1 的线性连线
+    expect(flow?.connections.length).toBeGreaterThanOrEqual(2);
+    const conn1 = flow?.connections.find((c) => c.source_node_uuid === 'entry-uuid-1');
+    expect(conn1).toBeDefined();
+    expect(conn1?.source_port_id).toBe('out');
+    expect(conn1?.target_port_id).toBe('in');
+  });
+
+  it('提供显式 edges 时，根据节点 id 别名精确构建多分支拓扑，并自动将画布起始 entry 节点连入首个新建节点', async () => {
+    const result = await canvasToolHandlers.batch_create_pipeline({
+      nodes: [
+        {
+          id: 'login',
+          type: 'http:request',
+          name: '用户登录',
+          config: { url: 'https://api.test/login', method: 'post' },
+        },
+        {
+          id: 'getUser',
+          type: 'http:request',
+          name: '获取用户信息',
+          config: { url: 'https://api.test/user', method: 'get' },
+        },
+        {
+          id: 'errorHandler',
+          type: 'script',
+          name: '登录失败告警',
+          config: { script: 'console.error("Login failed");' },
+        },
+      ],
+      edges: [
+        { source: 'login', target: 'getUser', source_port: 'true' },
+        { source: 'login', target: 'errorHandler', source_port: 'false' },
+      ],
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.created_count).toBe(3);
+
+    const flow = useFlowStore.getState().flow;
+    const loginNode = flow?.nodes.find((n) => n.name === '用户登录');
+    const getUserNode = flow?.nodes.find((n) => n.name === '获取用户信息');
+    const errorNode = flow?.nodes.find((n) => n.name === '登录失败告警');
+
+    expect(loginNode).toBeDefined();
+    expect(getUserNode).toBeDefined();
+    expect(errorNode).toBeDefined();
+
+    // 验证起始 entry 节点自动连入首个新建节点 (entry:out -> login:in)
+    const entryConn = flow?.connections.find(
+      (c) =>
+        c.source_node_uuid === 'entry-uuid-1' &&
+        c.target_node_uuid === loginNode?.uuid &&
+        c.source_port_id === 'out' &&
+        c.target_port_id === 'in',
+    );
+    expect(entryConn).toBeDefined();
+
+    // 校验成功分支连线 (login:true -> getUser:in)
+    const trueConn = flow?.connections.find(
+      (c) =>
+        c.source_node_uuid === loginNode?.uuid &&
+        c.target_node_uuid === getUserNode?.uuid &&
+        c.source_port_id === 'true' &&
+        c.target_port_id === 'in',
+    );
+    expect(trueConn).toBeDefined();
+
+    // 校验失败异常路由分支 (login:false -> errorHandler:in)
+    const falseConn = flow?.connections.find(
+      (c) =>
+        c.source_node_uuid === loginNode?.uuid &&
+        c.target_node_uuid === errorNode?.uuid &&
+        c.source_port_id === 'false' &&
+        c.target_port_id === 'in',
+    );
+    expect(falseConn).toBeDefined();
+  });
+
+  it('当 edges 中的 source 或 target 无法解析时抛出明确异常', async () => {
+    await expect(
+      canvasToolHandlers.batch_create_pipeline({
+        nodes: [{ id: 'valid_node', type: 'http:request' }],
+        edges: [{ source: 'valid_node', target: 'non_existent_target' }],
+      }),
+    ).rejects.toThrow('Cannot resolve edge target "non_existent_target"');
+  });
+
+  it('指定 auto_run: true 时自动触发执行并挂载结构化测试结果', async () => {
+    const runFlowSpy = vi.spyOn(executionToolHandlers, 'run_flow').mockResolvedValue({
+      success: true,
+      execution_time_ms: 120,
+      status: 'success',
+      failed_nodes: [],
+      failed_node_reports: [],
+      diagnostic_summary: 'All executed nodes succeeded.',
+      flow_error: undefined,
+      error: undefined,
+    });
+
+    const result = await canvasToolHandlers.batch_create_pipeline({
+      nodes: [
+        {
+          id: 'n1',
+          type: 'http:request',
+          name: 'Test Endpoint',
+        },
+      ],
+      auto_run: true,
+    });
+
+    expect(runFlowSpy).toHaveBeenCalledTimes(1);
+    expect(result.success).toBe(true);
+    expect(result.execution).toBeDefined();
+    expect(result.execution?.status).toBe('success');
+    expect(result.execution?.duration_ms).toBe(120);
+    expect(result.execution?.failed_nodes).toEqual([]);
+  });
+
+  it('当 auto_run 出现执行异常时，平滑捕获并在 execution 字段中返回失败信息，不抛出异常', async () => {
+    vi.spyOn(executionToolHandlers, 'run_flow').mockRejectedValue(
+      new Error('Engine connection timeout'),
+    );
+
+    const result = await canvasToolHandlers.batch_create_pipeline({
+      nodes: [
+        {
+          id: 'n1',
+          type: 'http:request',
+          name: 'Timeout Node',
+        },
+      ],
+      auto_run: true,
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.created_count).toBe(1);
+    expect(result.execution).toBeDefined();
+    expect(result.execution?.status).toBe('failed');
+    expect(result.execution?.flow_error).toContain('Engine connection timeout');
   });
 });
 

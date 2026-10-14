@@ -4,6 +4,7 @@
 
 import { useFlowStore } from '@/stores/flow';
 import { useExecutionStore } from '@/stores/execution';
+import { executionToolHandlers } from './executionTools';
 import { getCachedDefaultConfig } from '@/lib/NodeRegistry';
 import { getLayoutedPositions, getAdaptiveLayoutedPositions } from '@/components/canvas/layout';
 import { createDefaultNodeData } from '@/components/canvas/utils';
@@ -258,7 +259,7 @@ export const canvasToolDefinitions: AIToolDefinition[] = [
     function: {
       name: 'batch_create_pipeline',
       description:
-        'Create an entire multi-node pipeline or workflow branch in a single atomic step. Creates all nodes with their configs, connects them sequentially (source -> target), and applies auto-layout. PREFER THIS tool when creating 2 or more connected workflow steps to avoid multi-turn latency and connection errors.',
+        'Create an entire multi-node pipeline or workflow branch in a single atomic step. Creates all nodes with their configs, connects them sequentially or via explicit declarative edges, and applies auto-layout. PREFER THIS tool when creating 2 or more connected workflow steps to avoid multi-turn latency and connection errors.',
       parameters: {
         type: 'object',
         properties: {
@@ -268,6 +269,11 @@ export const canvasToolDefinitions: AIToolDefinition[] = [
             items: {
               type: 'object',
               properties: {
+                id: {
+                  type: 'string',
+                  description:
+                    'Optional string alias/identifier for this node (e.g. "login", "getUser", "assertSuccess"). Can be referenced in edges.',
+                },
                 type: {
                   type: 'string',
                   description:
@@ -290,6 +296,39 @@ export const canvasToolDefinitions: AIToolDefinition[] = [
               },
               required: ['type'],
             },
+          },
+          edges: {
+            type: 'array',
+            description:
+              'Optional explicit topological edges between nodes. If provided, overrides default sequential linking. Allows creating branches, joins, and error handling paths.',
+            items: {
+              type: 'object',
+              properties: {
+                source: {
+                  type: 'string',
+                  description: 'Source node alias id, node name, or existing node UUID.',
+                },
+                target: {
+                  type: 'string',
+                  description: 'Target node alias id, node name, or existing node UUID.',
+                },
+                source_port: {
+                  type: 'string',
+                  description:
+                    "Outgoing port: 'true' (success/main branch), 'false' (error/condition false branch), or 'out' (entry/extractor/proxy). Defaults to auto-resolved port.",
+                },
+                target_port: {
+                  type: 'string',
+                  description: "Incoming port on target node. Defaults to 'in'.",
+                },
+              },
+              required: ['source', 'target'],
+            },
+          },
+          auto_run: {
+            type: 'boolean',
+            description:
+              'Whether to immediately execute and verify the workflow after creation and layout. Returns the execution report in the result.',
           },
           connect_from_node_uuid: {
             type: 'string',
@@ -887,11 +926,19 @@ export const BUILTIN_SCHEMAS: Record<string, unknown> = {
 export const canvasToolHandlers = {
   async batch_create_pipeline(args: {
     nodes: Array<{
+      id?: string;
       type: string;
       name?: string;
       config?: Record<string, unknown>;
       on_error?: ExecutionErrorStrategy;
     }>;
+    edges?: Array<{
+      source: string;
+      target: string;
+      source_port?: string;
+      target_port?: string;
+    }>;
+    auto_run?: boolean;
     connect_from_node_uuid?: string;
     connect_from_port?: string;
   }) {
@@ -904,25 +951,34 @@ export const canvasToolHandlers = {
       throw new Error('Pipeline nodes array cannot be empty.');
     }
 
-    // 1. 判断起始连接节点
-    let prevNodeUuid: string | undefined = args.connect_from_node_uuid;
-    let prevNodeType: string | undefined;
+    // 建立节点引用映射表 (alias id, name, index, uuid -> { uuid, type })
+    const nodeIdMap = new Map<string, { uuid: string; type: string }>();
+    for (const existingNode of currentFlow.nodes) {
+      nodeIdMap.set(existingNode.uuid, { uuid: existingNode.uuid, type: existingNode.type });
+      nodeIdMap.set(existingNode.name, { uuid: existingNode.uuid, type: existingNode.type });
+    }
 
-    if (!prevNodeUuid && currentFlow.nodes.length === 1 && currentFlow.nodes[0].type === 'entry') {
+    // 1. 判断起始连接节点 (未显式提供 edges，或 edges 中未显式包含起始前驱连线时自动连入首个新建节点)
+    let initialPredecessorUuid: string | undefined = args.connect_from_node_uuid;
+    let initialPredecessorType: string | undefined;
+
+    if (!initialPredecessorUuid && currentFlow.nodes.length === 1 && currentFlow.nodes[0].type === 'entry') {
       const entryNode = currentFlow.nodes[0];
       const hasOutConn = currentFlow.connections.some((c) => c.source_node_uuid === entryNode.uuid);
       if (!hasOutConn) {
-        prevNodeUuid = entryNode.uuid;
-        prevNodeType = 'entry';
+        initialPredecessorUuid = entryNode.uuid;
+        initialPredecessorType = 'entry';
       }
-    } else if (prevNodeUuid) {
-      const found = currentFlow.nodes.find((n) => n.uuid === prevNodeUuid);
+    } else if (initialPredecessorUuid) {
+      const found = currentFlow.nodes.find((n) => n.uuid === initialPredecessorUuid);
       if (found) {
-        prevNodeType = found.type;
+        initialPredecessorType = found.type;
       }
     }
 
-    const createdNodes: Array<{ uuid: string; name: string; type: string }> = [];
+    let prevNodeUuid: string | undefined = initialPredecessorUuid;
+    let prevNodeType: string | undefined = initialPredecessorType;
+    const createdNodes: Array<{ uuid: string; name: string; type: string; id?: string }> = [];
     const createdConnections: Array<{ id: string; source: string; target: string }> = [];
 
     let startX = 100;
@@ -950,10 +1006,17 @@ export const canvasToolHandlers = {
       };
 
       flowState.addNode(newNode);
-      createdNodes.push({ uuid, name, type: nodeSpec.type });
+      createdNodes.push({ uuid, name, type: nodeSpec.type, ...(nodeSpec.id ? { id: nodeSpec.id } : {}) });
 
-      // 如果有前驱节点，自动建立连线
-      if (prevNodeUuid && prevNodeType) {
+      nodeIdMap.set(uuid, { uuid, type: nodeSpec.type });
+      nodeIdMap.set(name, { uuid, type: nodeSpec.type });
+      nodeIdMap.set(String(i), { uuid, type: nodeSpec.type });
+      if (nodeSpec.id) {
+        nodeIdMap.set(nodeSpec.id, { uuid, type: nodeSpec.type });
+      }
+
+      // 如果未指定显式 edges 且有前驱节点，自动建立线性连线
+      if ((!args.edges || args.edges.length === 0) && prevNodeUuid && prevNodeType) {
         const requestedSourcePort = i === 0 && args.connect_from_port ? args.connect_from_port : undefined;
         const { sourcePort, targetPort } = resolveDefaultPorts(
           prevNodeType,
@@ -984,6 +1047,95 @@ export const canvasToolHandlers = {
       prevNodeType = nodeSpec.type;
     }
 
+    // 建立起始前驱节点与管道首个节点的连线（若 edges 未显式包含以起始前驱为源的连线）
+    const hasPredecessorInEdges = args.edges?.some(
+      (e) =>
+        e.source === initialPredecessorUuid ||
+        e.source === 'entry' ||
+        e.source === 'Entry' ||
+        (initialPredecessorType && e.source === initialPredecessorType),
+    );
+
+    if (
+      initialPredecessorUuid &&
+      initialPredecessorType &&
+      args.edges &&
+      args.edges.length > 0 &&
+      !hasPredecessorInEdges &&
+      createdNodes.length > 0
+    ) {
+      const firstNodeSpec = args.nodes[0];
+      const firstCreatedNode = createdNodes[0];
+      const { sourcePort, targetPort } = resolveDefaultPorts(
+        initialPredecessorType,
+        firstNodeSpec.type,
+        args.connect_from_port,
+        'in',
+      );
+      const connId = `conn_${initialPredecessorUuid}_${sourcePort}_to_${firstCreatedNode.uuid}_${targetPort}`;
+      const connection: Connection = {
+        id: connId,
+        source_node_uuid: initialPredecessorUuid,
+        source_port_id: sourcePort,
+        target_node_uuid: firstCreatedNode.uuid,
+        target_port_id: targetPort,
+      };
+      flowState.addConnection(connection);
+      createdConnections.push({
+        id: connId,
+        source: `${initialPredecessorUuid}:${sourcePort}`,
+        target: `${firstCreatedNode.uuid}:${targetPort}`,
+      });
+    }
+
+    // 如果指定了显式 edges，按 edges 构建拓扑连线
+    if (args.edges && args.edges.length > 0) {
+      const latestFlow = useFlowStore.getState().flow;
+      const allNodes = latestFlow ? latestFlow.nodes : currentFlow.nodes;
+
+      for (const edge of args.edges) {
+        const sourceInfo =
+          nodeIdMap.get(edge.source) ||
+          allNodes.find((n) => n.uuid === edge.source || n.name === edge.source);
+        const targetInfo =
+          nodeIdMap.get(edge.target) ||
+          allNodes.find((n) => n.uuid === edge.target || n.name === edge.target);
+
+        if (!sourceInfo) {
+          throw new Error(
+            `Cannot resolve edge source "${edge.source}". Valid aliases or names are: ${Array.from(nodeIdMap.keys()).join(', ')}`,
+          );
+        }
+        if (!targetInfo) {
+          throw new Error(
+            `Cannot resolve edge target "${edge.target}". Valid aliases or names are: ${Array.from(nodeIdMap.keys()).join(', ')}`,
+          );
+        }
+
+        const { sourcePort, targetPort } = resolveDefaultPorts(
+          sourceInfo.type,
+          targetInfo.type,
+          edge.source_port,
+          edge.target_port,
+        );
+
+        const connId = `conn_${sourceInfo.uuid}_${sourcePort}_to_${targetInfo.uuid}_${targetPort}`;
+        const connection: Connection = {
+          id: connId,
+          source_node_uuid: sourceInfo.uuid,
+          source_port_id: sourcePort,
+          target_node_uuid: targetInfo.uuid,
+          target_port_id: targetPort,
+        };
+
+        flowState.addConnection(connection);
+        createdConnections.push({
+          id: connId,
+          source: `${sourceInfo.uuid}:${sourcePort}`,
+          target: `${targetInfo.uuid}:${targetPort}`,
+        });
+      }
+    }
     // 自动重排布局
     const refreshedFlow = useFlowStore.getState().flow;
     if (refreshedFlow && refreshedFlow.nodes.length > 0) {
@@ -996,11 +1148,51 @@ export const canvasToolHandlers = {
       flowState.centerOnNode(createdNodes[0].uuid);
     }
 
+    let executionResult: {
+      status?: string;
+      duration_ms?: number;
+      executed_count?: number;
+      flow_error?: string | null;
+      failed_nodes?: string[];
+      diagnostic_summary?: string;
+      error?: string;
+    } | undefined;
+
+    if (args.auto_run) {
+      try {
+        const runRes = await executionToolHandlers.run_flow();
+        const execReport = useExecutionStore.getState().report;
+        const executedCount = execReport?.executed_count ?? execReport?.node_reports?.length;
+        let flowErrorStr: string | null = null;
+        if ('flow_error' in runRes && runRes.flow_error?.message) {
+          flowErrorStr = runRes.flow_error.message;
+        } else if (runRes.error) {
+          flowErrorStr = runRes.error;
+        }
+        executionResult = {
+          status: 'status' in runRes && runRes.status ? runRes.status : (runRes.success ? 'success' : 'failed'),
+          duration_ms: 'execution_time_ms' in runRes ? runRes.execution_time_ms : undefined,
+          executed_count: executedCount,
+          flow_error: flowErrorStr,
+          failed_nodes: 'failed_nodes' in runRes ? runRes.failed_nodes : [],
+          diagnostic_summary: 'diagnostic_summary' in runRes ? runRes.diagnostic_summary : undefined,
+          error: runRes.error,
+        };
+      } catch (err: unknown) {
+        executionResult = {
+          status: 'failed',
+          flow_error: err instanceof Error ? err.message : String(err),
+          failed_nodes: [],
+        };
+      }
+    }
+
     return {
       success: true,
       created_count: createdNodes.length,
       created_nodes: createdNodes,
       created_connections: createdConnections,
+      ...(executionResult ? { execution: executionResult } : {}),
     };
   },
 
