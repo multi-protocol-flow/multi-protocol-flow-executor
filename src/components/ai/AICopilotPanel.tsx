@@ -36,10 +36,10 @@ import { useExecutionStore } from '@/stores/execution';
 import { AIConfirmCard } from './AIConfirmCard';
 import { AICompactedMessageCard } from './AICompactedMessageCard';
 import { AIMessageRow } from './AIMessageRow';
+import { AIAssistantTurnCard, groupMessagesIntoTurns } from './AIAssistantTurnCard';
 import { AICopilotInput } from './AICopilotInput';
 import { formatToolTitle } from '@/services/ai/toolTitleFormatter';
 import { getLL } from '@/i18n/i18n-lazy';
-import type { AIMessage } from '@/types/ai';
 
 export function AICopilotPanel() {
   const ll = getLL();
@@ -78,7 +78,6 @@ export function AICopilotPanel() {
   const { aiProviders, activeAiProviderId } = useSettingsStore();
   const openSettingsDialog = useUIStore((s) => s.openSettingsDialog);
 
-  const [openThoughts, setOpenThoughts] = useState<Record<string, boolean>>({});
 
   // 历史会话下拉弹层状态
   const [showSessionMenu, setShowSessionMenu] = useState(false);
@@ -105,12 +104,6 @@ export function AICopilotPanel() {
     agentStatus === 'executing_tools' ||
     agentStatus === 'waiting_confirmation';
 
-  const latestAssistantMsgId = useMemo(() => {
-    for (let i = messages.length - 1; i >= 0; i--) {
-      if (messages[i].role === 'assistant') return messages[i].id;
-    }
-    return undefined;
-  }, [messages]);
 
   // 预建工具输出结果映射，避免各消息行在大量消息下重复搜索
   const toolResultsMap = useMemo(() => {
@@ -123,6 +116,11 @@ export function AICopilotPanel() {
     }
     return map;
   }, [messages]);
+
+  // 将平铺消息聚合为 Turn-based 视图数据
+  const turns = useMemo(() => {
+    return groupMessagesIntoTurns(messages, toolResultsMap);
+  }, [messages, toolResultsMap]);
 
   // 初始化会话列表
   useEffect(() => {
@@ -341,10 +339,6 @@ export function AICopilotPanel() {
     },
     [sendMessage],
   );
-
-  const toggleThought = useCallback((msgId: string) => {
-    setOpenThoughts((prev) => ({ ...prev, [msgId]: !prev[msgId] }));
-  }, []);
   const handleSaveRename = (sessionId: string) => {
     if (editTitleInput.trim()) {
       renameSession(sessionId, editTitleInput.trim());
@@ -828,73 +822,50 @@ export function AICopilotPanel() {
             </div>
           )}
 
-          {/* 消息对话气泡与上下文压缩卡片 */}
-          {(() => {
-            const elements: React.ReactNode[] = [];
-            let pendingArchived: AIMessage[] = [];
+          {/* 消息对话气泡与上下文压缩卡片 (Turn-based 视图层聚合) */}
+          {turns.map((turn, idx) => {
+            if (turn.type === 'summary') {
+              return (
+                <AICompactedMessageCard
+                  key={turn.message.id}
+                  message={turn.message}
+                  archivedMessages={turn.archivedMessages}
+                />
+              );
+            }
 
-            for (let i = 0; i < messages.length; i++) {
-              const msg = messages[i];
-              if (msg.role === 'system') continue;
-
-              if (msg.isArchived) {
-                pendingArchived.push(msg);
-                continue;
-              }
-
-              if (msg.isSummary) {
-                const archivedForThis = pendingArchived;
-                pendingArchived = [];
-                elements.push(
-                  <AICompactedMessageCard
-                    key={msg.id}
-                    message={msg}
-                    archivedMessages={archivedForThis}
-                  />,
-                );
-                continue;
-              }
-
-              const isStreamingThis = activeStreamingMessageId === msg.id;
-              const isLatestAssistant = msg.id === latestAssistantMsgId;
-
-              elements.push(
+            if (turn.type === 'user') {
+              return (
                 <AIMessageRow
-                  key={msg.id}
-                  message={msg}
-                  isStreaming={isStreamingThis}
+                  key={turn.message.id}
+                  message={turn.message}
+                  onPreviewImage={setPreviewImageUrl}
+                />
+              );
+            }
+
+            if (turn.type === 'assistant') {
+              const isTurnStreaming = turn.turn.messages.some(
+                (m) => m.id === activeStreamingMessageId,
+              );
+              const isLatestTurn = idx === turns.length - 1;
+
+              return (
+                <AIAssistantTurnCard
+                  key={turn.turn.id}
+                  turn={turn.turn}
+                  isStreaming={isTurnStreaming}
                   isGenerating={isGenerating}
-                  isLatestAssistant={isLatestAssistant}
-                  isThoughtOpen={openThoughts[msg.id]}
+                  isLatest={isLatestTurn}
                   toolResults={toolResultsMap}
                   activeStreamingThoughtRef={activeStreamingThoughtRef}
-                  onToggleThought={toggleThought}
                   onPreviewImage={setPreviewImageUrl}
-                />,
+                />
               );
             }
 
-            if (pendingArchived.length > 0) {
-              elements.unshift(
-                <AICompactedMessageCard
-                  key="fallback_archived"
-                  message={{
-                    id: 'fallback_archived',
-                    role: 'assistant',
-                    content: '',
-                    timestamp: Date.now(),
-                    compactMeta: {
-                      compressedMessageCount: pendingArchived.length,
-                      timestamp: Date.now(),
-                    },
-                  }}
-                  archivedMessages={pendingArchived}
-                />,
-              );
-            }
-
-            return elements;
-          })()}
+            return null;
+          })}
 
           {/* 高风险待确认卡片 */}
           {pendingActions

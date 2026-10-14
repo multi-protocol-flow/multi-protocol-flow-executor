@@ -14652,6 +14652,16 @@ type RootTranslation = {
 			 */
 			executing_tool_named: RequiredParams<'name'>
 			/**
+			 * 执​行​过​程​ ​(​{​c​o​u​n​t​}​ ​项​操​作​)
+			 * @param {number} count
+			 */
+			execution_steps: RequiredParams<'count'>
+			/**
+			 * 正​在​执​行​ ​(​{​c​o​u​n​t​}​ ​项​操​作​)​.​.​.
+			 * @param {number} count
+			 */
+			execution_steps_in_progress: RequiredParams<'count'>
+			/**
 			 * 给​ ​A​I​ ​助​手​发​送​指​令​.​.​.​ ​(​E​n​t​e​r​ ​发​送​,​ ​S​h​i​f​t​+​E​n​t​e​r​ ​换​行​)
 			 */
 			input_placeholder: string
@@ -23518,13 +23528,13 @@ export type TranslationFunctions = {
 		 */
 		entry_node_already_exists: () => LocalizedString
 		/**
-		 * 已存在
-		 */
-		entry_node_exists_badge: () => LocalizedString
-		/**
 		 * 流程中已存在 HTTP Ingress 节点，仅允许一个 Ingress 入口
 		 */
 		ingress_node_already_exists: () => LocalizedString
+		/**
+		 * 已存在
+		 */
+		entry_node_exists_badge: () => LocalizedString
 		/**
 		 * 移动到...
 		 */
@@ -29392,6 +29402,14 @@ export type TranslationFunctions = {
 			 * 正在执行: {name}...
 			 */
 			executing_tool_named: (arg: { name: unknown }) => LocalizedString
+			/**
+			 * 执行过程 ({count} 项操作)
+			 */
+			execution_steps: (arg: { count: number }) => LocalizedString
+			/**
+			 * 正在执行 ({count} 项操作)...
+			 */
+			execution_steps_in_progress: (arg: { count: number }) => LocalizedString
 			/**
 			 * 给 AI 助手发送指令... (Enter 发送, Shift+Enter 换行)
 			 */

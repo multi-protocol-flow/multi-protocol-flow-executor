@@ -11,3 +11,5 @@ export { AIErrorMessageCard } from './AIErrorMessageCard';
 export { AICompactedMessageCard } from './AICompactedMessageCard';
 export { AIMessageRow } from './AIMessageRow';
 export { AICopilotInput } from './AICopilotInput';
+export { AIAssistantTurnCard, groupMessagesIntoTurns } from './AIAssistantTurnCard';
+export type { AssistantTurnData, CopilotTurn } from './AIAssistantTurnCard';
