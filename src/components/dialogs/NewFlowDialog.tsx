@@ -130,13 +130,32 @@ export function NewFlowDialog() {
         await flowStorage.moveFlowToFolder(newFlow.uuid, selectedFolder);
       }
 
-      setFlow(newFlow);
+      let matched: { uuid: string; filePath?: string } | undefined;
+      try {
+        const list = await flowStorage.listFlows();
+        if (Array.isArray(list)) {
+          const folderMatches = list.filter((f) =>
+            selectedFolder ? f.folderPath === selectedFolder : !f.folderPath
+          );
+          const nameCandidates = folderMatches.filter(
+            (f) => f.name === newFlow.name || f.name.startsWith(`${newFlow.name}_`)
+          );
+          matched =
+            nameCandidates.sort((a, b) => b.updatedAt - a.updatedAt)[0] ??
+            folderMatches.find((f) => f.name === newFlow.name);
+        }
+      } catch (err) {
+        console.warn('[NewFlowDialog] Failed to query flow list for filePath binding:', err);
+      }
+
+      setFlow(newFlow, matched?.filePath);
 
       addFlow({
-        uuid: newFlow.uuid,
+        uuid: matched?.uuid ?? newFlow.uuid,
         name: newFlow.name,
         updated_at: Date.now(),
         folder_path: selectedFolder,
+        file_path: matched?.filePath,
       });
 
       handleClose();
@@ -168,14 +187,29 @@ export function NewFlowDialog() {
       if (selectedFolder) {
         await flowStorage.moveFlowToFolder(templatedFlow.uuid, selectedFolder);
       }
-
-      setFlow(templatedFlow);
-
+      let matched: { uuid: string; filePath?: string } | undefined;
+      try {
+        const list = await flowStorage.listFlows();
+        if (Array.isArray(list)) {
+          const folderMatches = list.filter((f) =>
+            selectedFolder ? f.folderPath === selectedFolder : !f.folderPath
+          );
+          const nameCandidates = folderMatches.filter(
+            (f) => f.name === templatedFlow.name || f.name.startsWith(`${templatedFlow.name}_`)
+          );
+          matched =
+            nameCandidates.sort((a, b) => b.updatedAt - a.updatedAt)[0] ??
+            folderMatches.find((f) => f.name === templatedFlow.name);
+        }
+      } catch (err) {
+        console.warn('[NewFlowDialog] Failed to query flow list for filePath binding:', err);
+      }
       addFlow({
-        uuid: templatedFlow.uuid,
+        uuid: matched?.uuid ?? templatedFlow.uuid,
         name: templatedFlow.name,
         updated_at: Date.now(),
         folder_path: selectedFolder,
+        file_path: matched?.filePath,
       });
 
       handleClose();
