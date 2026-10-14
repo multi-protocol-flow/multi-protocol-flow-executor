@@ -726,25 +726,46 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
   }, [setSortBy, setSortOrder]);
   // ===== 定位流程 =====
   const handleLocateFlow = useCallback((target?: { uuid?: string; filePath?: string }) => {
-    const currentActiveTab = tabs.find((t) => t.uuid === activeTabUuid);
-    const targetUuid = target?.uuid ?? currentActiveTab?.uuid ?? currentFlow?.uuid;
-    const targetFilePath = target?.filePath ?? currentActiveTab?.filePath;
+    const targetTab =
+      (target?.uuid ? tabs.find((t) => t.uuid === target.uuid) : null) ??
+      tabs.find((t) => t.uuid === activeTabUuid);
+    const targetUuid = target?.uuid ?? targetTab?.uuid ?? currentFlow?.uuid;
+    const targetFilePath = target?.filePath ?? targetTab?.filePath;
+    const targetName = targetTab?.name ?? currentFlow?.name;
 
-    if (!targetUuid && !targetFilePath) {
+    if (!targetUuid && !targetFilePath && !targetName) {
       toast.info(getLL().flow.locate_flow_not_found());
       return;
     }
 
-    const targetFlow = flows.find(
-      (f) => (targetUuid && f.uuid === targetUuid) || (targetFilePath && f.file_path && f.file_path === targetFilePath)
+    // 1. 精确匹配：文件路径完全相同，或列表项标识与目标 UUID 匹配
+    let targetFlow = flows.find(
+      (f) =>
+        (targetFilePath && f.file_path && f.file_path === targetFilePath) ||
+        (targetUuid && f.uuid === targetUuid)
     );
+
+    // 2. 兜底回退：若未通过 UUID/路径命中（例如 AI 或未绑路径创建的流程），尝试按名称在列表中匹配
+    let isAmbiguousMatch = false;
+    if (!targetFlow && targetName) {
+      const nameMatches = flows.filter((f) => f.name === targetName);
+      if (nameMatches.length === 1) {
+        targetFlow = nameMatches[0];
+      } else if (nameMatches.length > 1) {
+        targetFlow = nameMatches.find((f) => !f.folder_path) || nameMatches[0];
+        isAmbiguousMatch = true;
+      }
+    }
 
     if (!targetFlow) {
       toast.info(getLL().flow.locate_flow_not_found());
       return;
     }
 
-    // 1. 如果在文件夹中，展开所有祖先文件夹
+    // 3. 自动回填修复：若对应 Tab 缺失 filePath 且匹配无歧义，将找到的目标文件绝对路径回填更新
+    if (targetFlow.file_path && targetTab && !targetTab.filePath && !isAmbiguousMatch) {
+      useFlowStore.getState().updateTabFilePath(targetTab.uuid, targetFlow.file_path);
+    }
     if (targetFlow.folder_path) {
       const segments = targetFlow.folder_path.split('/').filter(Boolean);
       const ancestorPaths: string[] = [];
@@ -768,7 +789,9 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
     const executeScrollAndHighlight = () => {
       const element = document.querySelector(`[data-flow-uuid="${targetFlow.uuid}"]`) as HTMLElement | null;
       if (element) {
-        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        if (typeof element.scrollIntoView === 'function') {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
         setHighlightingFlowUuid(targetFlow.uuid);
         if (highlightTimerRef.current) {
           window.clearTimeout(highlightTimerRef.current);

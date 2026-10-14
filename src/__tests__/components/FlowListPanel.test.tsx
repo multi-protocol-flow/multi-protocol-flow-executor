@@ -523,6 +523,143 @@ describe('FlowListPanel', () => {
       expect(expanded.has('folderA')).toBe(true);
       expect(expanded.has('folderA/subFolderB')).toBe(true);
     });
+
+    it('当 Tab 无 filePath 且列表 uuid 为相对路径时，应通过流程名称兜底定位并回填 filePath 到 Tab', async () => {
+      const realFlowUuid = 'f3c64c78-1a2b-4c3d-8e9f-0123456789ab';
+      const fileRelativeUuid = 'nested/ai_flow.mpf';
+      const fileAbsolutePath = '/home/user/flows/nested/ai_flow.mpf';
+
+      const folderFlow = {
+        uuid: fileRelativeUuid,
+        name: 'AI创建的流程',
+        folder_path: 'nested',
+        folderPath: 'nested',
+        file_path: fileAbsolutePath,
+        filePath: fileAbsolutePath,
+        updated_at: Date.now(),
+        updatedAt: Date.now(),
+      };
+
+      mockFlowStorage.listFlows.mockResolvedValue([folderFlow]);
+      mockFlowStorage.listFolders.mockResolvedValue([{ path: 'nested', name: 'nested' }]);
+      useFlowListStore.getState().setFlows([folderFlow]);
+
+      // 模拟当前活跃 Tab：只有 flow.uuid，filePath 为 undefined
+      useFlowStore.setState({
+        flow: createMockFlow(realFlowUuid, 'AI创建的流程'),
+        tabs: [{ uuid: realFlowUuid, name: 'AI创建的流程', isDirty: false, filePath: undefined }],
+        activeTabUuid: realFlowUuid,
+      });
+
+      await act(async () => {
+        render(<FlowListPanel />);
+      });
+
+      // 触发定位（传入 Tab 的 UUID，此时 filePath 为 undefined）
+      await act(async () => {
+        useUIStore.getState().revealFlowInList({ uuid: realFlowUuid });
+      });
+
+      // 验证通过名称兜底成功识别，展开了所属文件夹
+      const expanded = useFlowListStore.getState().expandedFolders;
+      expect(expanded.has('nested')).toBe(true);
+
+      // 验证 Tab 成功被回填补全了 filePath
+      const updatedTab = useFlowStore.getState().tabs.find((t) => t.uuid === realFlowUuid);
+      expect(updatedTab?.filePath).toBe(fileAbsolutePath);
+    });
+
+    it('当存在多个同名流程（歧义）时，可定位但不回填 filePath 以免串写错误文件', async () => {
+      const realFlowUuid = 'ambiguous-flow-123';
+      const folderFlow1 = {
+        uuid: 'f1/common.mpf',
+        name: '公共流程',
+        folder_path: 'f1',
+        folderPath: 'f1',
+        file_path: '/path/f1/common.mpf',
+        filePath: '/path/f1/common.mpf',
+        updated_at: 1000,
+        updatedAt: 1000,
+      };
+      const folderFlow2 = {
+        uuid: 'f2/common.mpf',
+        name: '公共流程',
+        folder_path: 'f2',
+        folderPath: 'f2',
+        file_path: '/path/f2/common.mpf',
+        filePath: '/path/f2/common.mpf',
+        updated_at: 2000,
+        updatedAt: 2000,
+      };
+
+      mockFlowStorage.listFlows.mockResolvedValue([folderFlow1, folderFlow2]);
+      mockFlowStorage.listFolders.mockResolvedValue([{ path: 'f1', name: 'f1' }, { path: 'f2', name: 'f2' }]);
+      useFlowListStore.getState().setFlows([folderFlow1, folderFlow2]);
+
+      useFlowStore.setState({
+        flow: createMockFlow(realFlowUuid, '公共流程'),
+        tabs: [{ uuid: realFlowUuid, name: '公共流程', isDirty: false, filePath: undefined }],
+        activeTabUuid: realFlowUuid,
+      });
+
+      await act(async () => {
+        render(<FlowListPanel />);
+      });
+
+      await act(async () => {
+        useUIStore.getState().revealFlowInList({ uuid: realFlowUuid });
+      });
+
+      // 验证仍然保留 filePath 为 undefined，不草率覆盖回填
+      const updatedTab = useFlowStore.getState().tabs.find((t) => t.uuid === realFlowUuid);
+      expect(updatedTab?.filePath).toBeUndefined();
+    });
+
+    it('定位非活跃 Tab 时，应解析对应 targetTab 的名称且不污染活跃 Tab 的 filePath', async () => {
+      const activeUuid = 'active-uuid-999';
+      const targetUuid = 'target-uuid-888';
+      const targetFilePath = '/path/target.mpf';
+
+      const targetFlow = {
+        uuid: 'target.mpf',
+        name: '目标非活跃流程',
+        folder_path: '',
+        folderPath: '',
+        file_path: targetFilePath,
+        filePath: targetFilePath,
+        updated_at: 1000,
+        updatedAt: 1000,
+      };
+
+      mockFlowStorage.listFlows.mockResolvedValue([targetFlow]);
+      useFlowListStore.getState().setFlows([targetFlow]);
+
+      useFlowStore.setState({
+        flow: createMockFlow(activeUuid, '当前活跃流程'),
+        tabs: [
+          { uuid: activeUuid, name: '当前活跃流程', isDirty: false, filePath: undefined },
+          { uuid: targetUuid, name: '目标非活跃流程', isDirty: false, filePath: undefined },
+        ],
+        activeTabUuid: activeUuid,
+      });
+
+      await act(async () => {
+        render(<FlowListPanel />);
+      });
+
+      // 定位目标非活跃 Tab
+      await act(async () => {
+        useUIStore.getState().revealFlowInList({ uuid: targetUuid });
+      });
+
+      // 活跃 Tab 的 filePath 不应被污染
+      const activeTab = useFlowStore.getState().tabs.find((t) => t.uuid === activeUuid);
+      expect(activeTab?.filePath).toBeUndefined();
+
+      // 目标 Tab 的 filePath 应被正确回填
+      const updatedTargetTab = useFlowStore.getState().tabs.find((t) => t.uuid === targetUuid);
+      expect(updatedTargetTab?.filePath).toBe(targetFilePath);
+    });
   });
 
 
