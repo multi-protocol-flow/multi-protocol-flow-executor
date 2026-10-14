@@ -26,8 +26,10 @@ describe('contextBuilder', () => {
       expect(prompt).toContain('MPE Copilot & Flow Architect');
       expect(prompt).toContain('RouteToFalse');
       expect(prompt).toContain('auto_layout');
-      expect(prompt).toContain('Error Diagnosis & Collaborative Repair Protocol');
-      expect(prompt).toContain('是否需要我帮您修复？您倾向于按哪个方向修复？');
+      expect(prompt).toContain('Error Diagnosis & Repair Protocol');
+      expect(prompt).toContain('DECISIVE AUTONOMOUS REPAIR & VERIFICATION');
+      expect(prompt).toContain('Standard End-to-End Testing Pattern (Golden Few-Shot)');
+      expect(prompt).toContain('"auto_run": true');
       expect(prompt).toContain('get_node_type_schema');
       expect(prompt).toContain('get_node_detail');
       expect(prompt).toContain('run_terminal_command');
@@ -77,7 +79,8 @@ describe('contextBuilder', () => {
     it('包含目标驱动自主执行与完工原则', () => {
       const prompt = buildSystemPrompt();
       expect(prompt).toContain('Goal-Driven Autonomous Execution Protocol');
-      expect(prompt).toContain('ACTION-FIRST AGENT PARADIGM');
+      expect(prompt).toContain('SILENT EXECUTION PRINCIPLE (CRITICAL)');
+      expect(prompt).toContain('FINAL SUMMARY ONLY');
       expect(prompt).toContain('CONTINUOUS EXECUTION UNTIL GOAL ATTAINED');
       expect(prompt).toContain('DISTINGUISHING ACTION VS INQUIRY');
       expect(prompt).toContain('GENUINE CLARIFICATION VS HESITATION');
@@ -139,10 +142,41 @@ describe('contextBuilder', () => {
       expect(summary).toContain('Login Step');
       expect(summary).toContain('Parse Token');
       expect(summary).toContain('Active Environment: "dev"');
-      // 验证包含节点配置摘要与小流程下的 Config JSON
+      // 验证包含节点配置摘要，且不再包含冗余的全量 Config JSON
       expect(summary).toContain('Config Summary:');
-      expect(summary).toContain('Config JSON:');
+      expect(summary).not.toContain('Config JSON:');
       expect(summary).toContain('https://api.com/login');
+    });
+    it('在多节点场景下验证上下文瘦身：无全量 Config JSON 泄露且摘要紧凑', () => {
+      const mockNodes = Array.from({ length: 5 }, (_, i) => ({
+        uuid: `node-${i}`,
+        type: 'http:request' as const,
+        name: `HTTP_Request_${i}`,
+        position: { x: i * 200, y: 100 },
+        data: {
+          type: 'http:request',
+          method: 'POST',
+          url: `https://api.example.com/v1/resource/${i}`,
+          headers: { 'Content-Type': 'application/json', Authorization: 'Bearer token_xyz_1234567890' },
+          body_type: 'body',
+          body: JSON.stringify({ index: i, query: 'find_all_records', payload: { a: 1, b: 2, c: 3 } }),
+          output_mappings: [{ source: '$.body.id', target: `RES_${i}` }],
+        } as unknown as HttpConfig,
+      }));
+
+      useFlowStore.getState().setFlow({
+        uuid: 'test-flow-5',
+        name: 'Test 5-Node Flow',
+        nodes: mockNodes,
+        connections: [],
+        initial_variables: {},
+      });
+
+      const summary = buildActiveStateSummary();
+      expect(summary).not.toContain('Config JSON:');
+      expect(summary).toContain('HTTP_Request_0');
+      expect(summary).toContain('HTTP_Request_4');
+      expect(summary).not.toContain('token_xyz_1234567890');
     });
 
     it('当流程执行失败时，在上下文中输出详细的失败节点错误与根因线索', () => {
