@@ -26,7 +26,7 @@ import { useWsStreamStore } from '@/stores/wsStream';
 import { useStressTestStore, selectIsStressTestRunning } from '@/stores/stressTest';
 import { executeFlowWithChannel, validateFlow } from '@/services/tauri';
 import { startIngressListener, stopIngressListener, getActiveIngressPorts } from '@/services/tauri/flow';
-import { isHttpIngressConfig } from '@/types';
+import { isHttpIngressConfig, isEntryNodeType } from '@/types';
 import { cn } from '@/lib/utils';
 import type { LogEvent } from '@/types/events';
 import type { ExecutionEvent } from '@/types/execution_event';
@@ -243,7 +243,7 @@ export function CanvasToolbar() {
     if (!flow) return;
 
     // 找到入口节点
-    const entryNode = flow.nodes.find((n) => n.type === 'entry');
+    const entryNode = flow.nodes.find((n) => isEntryNodeType(n.type));
     if (!entryNode) return;
 
     // 收集所有三阶段中有断点的节点
@@ -282,7 +282,7 @@ export function CanvasToolbar() {
 
   const nodes = useFlowStore(selectNodes);
   const hasValidFlow = nodes.length > 0;
-  const hasEntryNode = nodes.some((n) => n.type === 'entry');
+  const hasEntryNode = nodes.some((n) => isEntryNodeType(n.type));
   // 压测运行时禁用执行和调试
   const isDisabled = !hasValidFlow || !hasEntryNode || isExecuting || isStressTestRunning || isDatasetExecuting;
 

@@ -178,11 +178,17 @@ export function NodePalette() {
     [metadata, recentTypeIds]
   );
 
-  // 判断当前阶段子图中是否已有 entry 节点
+  // 判断当前阶段子图中是否已有 entry 或 http:ingress 单例入口节点
   const hasEntryNode = useMemo(() => {
     if (!flow) return false;
     const stageGraph = getStageGraph(flow, activeStage);
     return stageGraph.nodes.some((n) => n.type === 'entry');
+  }, [flow, activeStage]);
+
+  const hasIngressNode = useMemo(() => {
+    if (!flow) return false;
+    const stageGraph = getStageGraph(flow, activeStage);
+    return stageGraph.nodes.some((n) => n.type === 'http:ingress');
   }, [flow, activeStage]);
 
   // 搜索评分与过滤
@@ -280,11 +286,15 @@ export function NodePalette() {
         toast.warning(LL.flow.entry_node_already_exists());
         return;
       }
+      if (typeId === 'http:ingress' && hasIngressNode) {
+        toast.warning(LL.flow.ingress_node_already_exists());
+        return;
+      }
       recordNodeUsage(typeId);
       setPendingAddNodeType(typeId as NodeType);
       closePalette();
     },
-    [flow, hasEntryNode, LL, setPendingAddNodeType, closePalette]
+    [flow, hasEntryNode, hasIngressNode, LL, setPendingAddNodeType, closePalette]
   );
 
   // 拖拽动作
@@ -295,6 +305,11 @@ export function NodePalette() {
         toast.warning(LL.flow.entry_node_already_exists());
         return;
       }
+      if (typeId === 'http:ingress' && hasIngressNode) {
+        e.preventDefault();
+        toast.warning(LL.flow.ingress_node_already_exists());
+        return;
+      }
       e.dataTransfer.setData('application/reactflow/nodeType', typeId);
       e.dataTransfer.effectAllowed = 'move';
       recordNodeUsage(typeId);
@@ -302,7 +317,7 @@ export function NodePalette() {
         closePalette();
       });
     },
-    [hasEntryNode, LL, closePalette]
+    [hasEntryNode, hasIngressNode, LL, closePalette]
   );
 
   // 键盘导航
@@ -542,7 +557,9 @@ export function NodePalette() {
                   const isHovered = hoveredItem?.typeId === item.typeId;
                   const isHighlighted = isSelected || isHovered;
                   const ItemIcon = item.icon;
-                  const isDisabled = item.typeId === 'entry' && hasEntryNode;
+                  const isDisabled =
+                    (item.typeId === 'entry' && hasEntryNode) ||
+                    (item.typeId === 'http:ingress' && hasIngressNode);
 
                   return (
                     <div

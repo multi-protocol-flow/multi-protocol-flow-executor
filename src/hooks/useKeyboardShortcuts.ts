@@ -4,10 +4,11 @@
  */
 import { useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
-import { useFlowStore, useUIStore, useAIStore } from '@/stores';
+import { useFlowStore, useUIStore, useAIStore, getStageGraph } from '@/stores';
 import { flowStorage } from '@/services/storage';
 import { useZoomStore } from '@/stores/zoom';
 import { getLL } from '@/i18n/i18n-lazy';
+import { isEntryNodeType } from '@/types';
 
 function getFlowStoreState() {
   return typeof useFlowStore.getState === 'function'
@@ -57,11 +58,17 @@ export function useKeyboardShortcuts() {
         target.isContentEditable;
       if (isInputting) return;
 
-      // 检查是否有选中的非 entry 节点
-      const { getSelectedNode, removeNode } = getFlowStoreState();
-      const selectedNode = getSelectedNode();
+      // 检查是否有选中的可删除节点（单例入口节点 entry / http:ingress 仅在存在其他可用入口时允许删除）
+      const flowState = getFlowStoreState();
+      const selectedNode = flowState.getSelectedNode();
+      if (!selectedNode) return;
+      const stageNodes = flowState.flow ? getStageGraph(flowState.flow, flowState.activeStage).nodes : [];
+      const hasAlternativeEntry = stageNodes.some(
+        (n) => n.uuid !== selectedNode.uuid && isEntryNodeType(n.type)
+      );
+      const canDelete = !isEntryNodeType(selectedNode.type) || hasAlternativeEntry;
 
-      if (selectedNode && selectedNode.type !== 'entry') {
+      if (canDelete) {
         // 拦截事件，阻止 ReactFlow 的默认删除行为
         e.preventDefault();
         e.stopPropagation();
@@ -74,7 +81,7 @@ export function useKeyboardShortcuts() {
           description: LL.flow.delete_node_desc({ name: selectedNode.name }),
           confirmText: LL.flow.delete_node_confirm(),
           onConfirm: () => {
-            removeNode(selectedNode.uuid);
+            flowState.removeNode(selectedNode.uuid);
             getFlowStoreState().selectNode(null);
           },
         });

@@ -812,6 +812,9 @@ export const useFlowStore = create<FlowState>((set, get) => {
         if (node.type === 'entry' && currentStageGraph.nodes.some((n) => n.type === 'entry')) {
           return state;
         }
+        if (node.type === 'http:ingress' && currentStageGraph.nodes.some((n) => n.type === 'http:ingress')) {
+          return state;
+        }
         const newFlow = mapStageGraph(state.flow, state.activeStage, (graph) => ({
           ...graph,
           nodes: [...graph.nodes, node],

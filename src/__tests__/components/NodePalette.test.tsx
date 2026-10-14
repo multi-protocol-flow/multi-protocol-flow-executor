@@ -182,4 +182,35 @@ describe('NodePalette Component', () => {
     // 重复点击不会将 entry 设置到 pendingAddNodeType
     expect(useFlowStore.getState().pendingAddNodeType).toBeNull();
   });
+
+  it('当流程已有 http:ingress 节点时，HTTP Ingress 节点显示已存在标识且无法重复添加', async () => {
+    localStorage.setItem('locale', 'zh-CN');
+    useFlowStore.setState({
+      flow: {
+        uuid: 'flow-with-ingress',
+        name: 'With Ingress Flow',
+        nodes: [
+          {
+            uuid: 'in-1',
+            type: 'http:ingress',
+            name: 'HTTP Ingress',
+            position: { x: 0, y: 0 },
+            data: { type: 'http:ingress', port: 9527, path_pattern: '/*', methods: ['GET', 'POST'] },
+          },
+        ],
+        connections: [],
+        initial_variables: {},
+      },
+      pendingAddNodeType: null,
+    });
+
+    render(<NodePalette />);
+    const searchInput = screen.getByPlaceholderText(/搜索节点/);
+    fireEvent.change(searchInput, { target: { value: 'ingress' } });
+
+    expect(screen.getByText('已存在')).toBeInTheDocument();
+    const ingressItems = screen.getAllByText('HTTP Ingress 监听');
+    fireEvent.click(ingressItems[0]);
+    expect(useFlowStore.getState().pendingAddNodeType).toBeNull();
+  });
 });

@@ -15,6 +15,7 @@ import { useWsStreamStore } from '@/stores/wsStream';
 import { executeFlowWithChannel } from '@/services/tauri';
 import { cn } from '@/lib/utils';
 import type { LogEvent } from '@/types/events';
+import { isEntryNodeType } from '@/types';
 export function ExecuteButton() {
   const ll = getLL();
   const [isExecuting, setIsExecuting] = useState(false);
@@ -107,7 +108,7 @@ export function ExecuteButton() {
   };
 
   const hasValidFlow = flow && flow.nodes.length > 0;
-  const hasEntryNode = flow?.nodes.some((n) => n.type === 'entry');
+  const hasEntryNode = flow?.nodes.some((n) => isEntryNodeType(n.type));
 
   return (
     <Button

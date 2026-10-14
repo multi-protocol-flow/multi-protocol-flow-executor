@@ -9,7 +9,8 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { getLL } from '@/i18n/i18n-lazy';
 import { startInteractiveSliceExecution } from '@/services/tauri';
-import { useFlowStore, useDebugStore } from '@/stores';
+import { useFlowStore, useDebugStore, getStageGraph } from '@/stores';
+import { isEntryNodeType } from '@/types';
 export interface NodeContextMenuProps {
   /** 菜单显示位置 (屏幕坐标) */
   x: number;
@@ -72,6 +73,16 @@ export function NodeContextMenu({
   const menuRef = useRef<HTMLDivElement>(null);
   const { getNodes } = useReactFlow();
 
+  const isEntryType = isEntryNodeType(nodeType);
+  const currentFlow = useFlowStore.getState().flow;
+  const activeStage = useFlowStore.getState().activeStage;
+  const stageNodes = currentFlow ? getStageGraph(currentFlow, activeStage).nodes : [];
+  const hasAlternativeEntry = stageNodes.some(
+    (n) => n.uuid !== nodeId && isEntryNodeType(n.type)
+  );
+  // 单例入口节点（entry / http:ingress）仅在当前阶段存在其他可用入口时允许删除，避免删至 0 个入口
+  const canDeleteNode = !isEntryType || hasAlternativeEntry;
+
   // 构建菜单项
   const LL = getLL();
   const isDebugPaused = useDebugStore((state) => state.status === 'paused');
@@ -117,8 +128,8 @@ export function NodeContextMenu({
           },
         ]
       : []),
-    // entry 节点不显示创建副本（流程仅允许一个入口节点）
-    ...(nodeType !== 'entry'
+    // entry 与 http:ingress 单例节点不显示创建副本
+    ...(!isEntryType
       ? [
           {
             key: 'duplicate',
@@ -179,8 +190,8 @@ export function NodeContextMenu({
         onClose();
       },
     },
-    // entry 节点不显示删除选项
-    ...(nodeType !== 'entry'
+    // entry 节点默认不显示删除选项，但若画布中已存在 http:ingress 等替代入口则允许删除
+    ...(canDeleteNode
       ? [
           {
             key: 'delete',

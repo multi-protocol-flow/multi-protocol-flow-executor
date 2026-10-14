@@ -14,6 +14,7 @@ import { getCachedNodeMeta } from '@/lib/NodeRegistry';
 import { resolveBackendIcon } from '@/lib/nodeIcons';
 import { cn } from '@/lib/utils';
 import type { NodeType } from '@/types';
+import { isEntryNodeType } from '@/types';
 import { getLL } from '@/i18n/i18n-lazy';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -125,10 +126,32 @@ export function FlowNodeList({ readOnly = false, showHeader = true }: FlowNodeLi
   const selectedNodeId = useFlowStore((s) => s.selectedNodeId);
   const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set());
 
-  // 可选节点数量（排除 entry）
+  // 计算各阶段内的入口节点数量（按阶段隔离）
+  const entryCountByStage = useMemo(() => {
+    const counts: Record<FlowStage, number> = { setup: 0, main: 0, teardown: 0 };
+    for (const entry of stageNodes) {
+      if (isEntryNodeType(entry.node.type)) {
+        counts[entry.stage] = (counts[entry.stage] ?? 0) + 1;
+      }
+    }
+    return counts;
+  }, [stageNodes]);
+
+  // 判断节点是否为受保护的孤立入口（所属阶段仅有该单一入口时禁止勾选删除）
+  const isSolitaryEntryNode = useCallback(
+    (uuid: string, type: string) => {
+      if (!isEntryNodeType(type)) return false;
+      const stage = stageByUuid.get(uuid);
+      if (!stage) return true;
+      return (entryCountByStage[stage] ?? 0) <= 1;
+    },
+    [stageByUuid, entryCountByStage]
+  );
+
+  // 可选节点数量（排除各阶段孤立入口节点）
   const selectableCount = useMemo(
-    () => nodes.filter((n) => n.type !== 'entry').length,
-    [nodes]
+    () => nodes.filter((n) => !isSolitaryEntryNode(n.uuid, n.type)).length,
+    [nodes, isSolitaryEntryNode]
   );
 
   // 全选状态
@@ -155,13 +178,13 @@ export function FlowNodeList({ readOnly = false, showHeader = true }: FlowNodeLi
     } else {
       const all = new Set<string>();
       for (const node of nodes) {
-        if (node.type !== 'entry') {
+        if (!isSolitaryEntryNode(node.uuid, node.type)) {
           all.add(node.uuid);
         }
       }
       setCheckedIds(all);
     }
-  }, [allChecked, nodes]);
+  }, [allChecked, nodes, isSolitaryEntryNode]);
 
   // 点击节点 → 先切到其所属阶段画布，再选中并居中定位
   const handleClickNode = useCallback(
@@ -247,7 +270,7 @@ export function FlowNodeList({ readOnly = false, showHeader = true }: FlowNodeLi
     <ScrollArea className="h-full">
       <div className="px-1.5 py-1 space-y-0.5">
         {nodes.map((node) => {
-          const isEntry = node.type === 'entry';
+          const isEntry = isSolitaryEntryNode(node.uuid, node.type);
           const meta = NODE_META[node.type];
           // 插件节点 badge：内置节点用 NODE_META，插件用后端 display_name
           const badgeName = meta?.name ?? getNodeDisplayName(node.type);

@@ -28,6 +28,7 @@ import {
   getStageGraph,
 } from '@/stores';
 import type { NodeData, NodeType } from '@/types';
+import { isEntryNodeType } from '@/types';
 import { datasourceGetTemplates } from '@/services/tauri/datasource';
 import {
   createDefaultNodeData,
@@ -430,7 +431,7 @@ function FlowCanvasInner() {
       if (!currentFlow) return;
 
       const sourceNode = getStageGraph(currentFlow, activeStage).nodes.find((n) => n.uuid === nodeId);
-      if (!sourceNode || sourceNode.type === 'entry') return;
+      if (!sourceNode || sourceNode.type === 'entry' || sourceNode.type === 'http:ingress') return;
 
       const newUuid = crypto.randomUUID();
       const offset = 50;
@@ -517,8 +518,13 @@ function FlowCanvasInner() {
       const { flow: currentFlow, activeStage, removeNode: removeNodeById, selectNode: deselectNode } = useFlowStore.getState();
       if (!currentFlow) return;
 
-      const node = getStageGraph(currentFlow, activeStage).nodes.find((n) => n.uuid === nodeId);
-      if (!node || node.type === 'entry') return;
+      const stageNodes = getStageGraph(currentFlow, activeStage).nodes;
+      const node = stageNodes.find((n) => n.uuid === nodeId);
+      if (!node) return;
+      const hasAlternativeEntry = stageNodes.some(
+        (n) => n.uuid !== nodeId && isEntryNodeType(n.type)
+      );
+      if (isEntryNodeType(node.type) && !hasAlternativeEntry) return;
       const LL = getLL();
       const { showConfirm } = useUIStore.getState();
       showConfirm({
@@ -719,6 +725,14 @@ function FlowCanvasInner() {
           return;
         }
       }
+      if (nodeType === 'http:ingress') {
+        const { activeStage } = useFlowStore.getState();
+        const stageGraph = getStageGraph(flow, activeStage);
+        if (stageGraph.nodes.some((n) => n.type === 'http:ingress')) {
+          toast.warning(getLL().flow.ingress_node_already_exists());
+          return;
+        }
+      }
 
       // 获取上游节点（当前选中的节点作为上游推断上下文）
       const { getSelectedNode } = useFlowStore.getState();
@@ -756,6 +770,16 @@ function FlowCanvasInner() {
       const stageGraph = getStageGraph(flow, activeStage);
       if (stageGraph.nodes.some((n) => n.type === 'entry')) {
         toast.warning(getLL().flow.entry_node_already_exists());
+        clearPendingAddNodeType();
+        useUIStore.getState().closeNodePalette();
+        return;
+      }
+    }
+    if (pendingAddNodeType === 'http:ingress') {
+      const { activeStage } = useFlowStore.getState();
+      const stageGraph = getStageGraph(flow, activeStage);
+      if (stageGraph.nodes.some((n) => n.type === 'http:ingress')) {
+        toast.warning(getLL().flow.ingress_node_already_exists());
         clearPendingAddNodeType();
         useUIStore.getState().closeNodePalette();
         return;
