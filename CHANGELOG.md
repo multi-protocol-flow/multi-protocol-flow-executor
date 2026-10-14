@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **HTTP Ingress Webhook Mock Template**: Added a built-in flow template (`http_ingress_webhook_mock`) demonstrating webhook ingestion via `http:ingress` coupled with `http:respond` for mock HTTP responses.
+- **Interactive AI Tool (`ask_user`)**: Added the `ask_user` tool and interactive input cards within the AI Copilot stream, allowing the model to request user input (text, choices, confirmations) and suspending tool loop execution until user submission.
+- **Thinking Token Count & Physics Droplet Animation**: Added localized thinking character and word count metrics (`ThinkingSpinner`) and upgraded the thinking step loading indicator to an animated dot stacking and falling effect.
+- **Datasource Read Whitelist for Plugins**: Expanded `pluginRequestActions` with `listDatasources`, `browseDatasource`, and `getDatasourceTemplates`. Sanitizes connection credentials at the host level in accordance with PR-5 sandbox boundaries before proxying datasource calls.
+- **Plugin Dynamic Node Discovery**: Added `getRegisteredNodes` to the `PLUGIN_REQUEST_ACTIONS` whitelist, allowing sandboxed iframe plugins to discover host-registered node types via `get_registered_node_types`.
+- **Canvas Tab Bar File Path Copy**: Added "Copy Flow File Absolute Path" to the canvas flow tab bar context menu.
+- **Entry Node in Palette**: Added the Entry node option into `NodePalette` with uniqueness constraints (disabled if an entry node already exists on the canvas).
+
+### Changed
+- **Node Context Menu Duplication**: Renamed the canvas node context menu item from "Copy" to "Create Duplicate" (`clone_node`) to accurately describe its canvas-cloning behavior.
+- **Terminal Stdio Isolation**: Switched subprocess execution in Tauri terminal commands to default to `Stdio::null` to prevent background process hangs, with stdin piping support for interactive commands.
+- **AI Copilot Navigation & Morphology Stability**: Added a scroll-to-bottom action in the AI Copilot chat panel when scrolled up, and stabilized scroll position across docked and floating panel morphology toggles.
+- **Panel Container Spacing Standard**: Standardized root container padding and spacing across `HttpIngressConfig` and `HttpRespondConfig` panels to align with design tokens.
+
+### Fixed
+- **Ingress Execution Priority & Validation**: Flow executor and debugger now prioritize `http:ingress` as the start node in ingress mode, with pre-execution validation rejecting missing or multiple ingress nodes before server initialization.
+- **Entry Node Deletion & Duplication Guard**: Improved entry node singleton safeguards—prevents duplicate entry/ingress additions while allowing safe deletion of redundant entries when multiples exist, ensuring the last remaining entry cannot be accidentally removed.
+- **Real-Time Streaming Report in Execution Panel**: Optimized `ExecutionPanel` during running state to dynamically construct live reports for nodes with custom/streaming viewers, preventing UI fallback to empty loading states following human-in-the-loop (`ask_human`) prompt submissions.
+- **AI Thinking Indicator Alignment**: Fixed horizontal center alignment between the thinking process header and deep-thinking status badge in `AIMessageRow` and `AISpotlightDialog`.
+
 ## [0.5.0-beta] - 2026-10-12
 
 ### Added
@@ -17,8 +38,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Deterministic Visual Execution & Unlinked Node Warning**: Disconnected root nodes in Setup and Teardown execute deterministically from top-to-bottom and left-to-right based on canvas `(y, x)` coordinates, avoiding random JSON array order. The canvas displays an amber warning pill if multiple unlinked nodes exist, advising users to connect them.
 - **Stage Reports**: `FlowExecutionReport.stages` (`FlowStagesReport`) reports each stage's status, duration and node reports; `main_duration_ms` isolates the business flow. Report details render collapsible Setup / Main / Teardown panels, and the report canvas viewer can switch between the snapshot's stages.
 - **`$report` in Teardown**: Teardown receives the Main stage report as the read-only `$report` variable (usable via `{{$report.status}}`, `{{$report.duration_ms}}`, `{{$report.node_reports}}`), enabling assertions and notification payloads based on the actual outcome.
-- **Debug Stage Sync**: When a debug session pauses on a node belonging to Setup / Teardown, the canvas switches to that stage automatically; the tab bar shows per-stage debug状态 (completed / paused / waiting) and offers a jump-back banner when the paused node is on another stage.
+- **Debug Stage Sync**: When a debug session pauses on a node belonging to Setup / Teardown, the canvas switches to that stage automatically; the tab bar shows per-stage debug status (completed / paused / waiting) and offers a jump-back banner when the paused node is on another stage.
 - **Stress & Dataset Lifecycle Isolation**: Stress tests run Setup once before the ramp-up, loop only Main for every virtual user, then run Teardown once after all users stop. Setup/Teardown nodes never enter `MetricsCollector`, so QPS / P50 / P99 / error rate stay pure Main measurements; the report carries the extra stages in `StressTestReport.lifecycle`. Dataset execution likewise runs Setup once, consumes rows with Main, and runs Teardown over the `DatasetExecutionReport`.
+- **Interactive Flow Slice Execution & Human-in-the-Loop (HITL)**: Run selected subgraphs or single nodes directly from the canvas via right-click "Run Selected Nodes" (`run_slice`), executing without writing ephemeral slice runs to persistent execution history. The execution engine adapts automatically to entry-less slices by deriving execution roots from zero-indegree nodes, and integrates `tool_bridge.rs` for dynamic tool-calling loopback scheduling across AI agents and plugins. Integrated HITL interactive cards (`ask_human`), slice badges, and stop controls directly into `ExecutionPanel`.
+- **AI Copilot Slash Commands**: Built-in slash shortcut command dispatch engine (`/fix`, `/explain`, `/test`, etc.) with autocomplete popup overlay and full bilingual i18n support.
+- **AI Context Compression & Request Pruning**: Automatic conversation context compression and prompt trimming to prevent context window overflow while preserving key execution details, backed by concurrency race protection in the AI store.
+- **AI Copilot Full Trust Mode**: Optional full-trust execution setting for high-risk operations, bypassing manual confirmation cards for uninterrupted agentic workflow execution.
+- **Subflow Exported Variable Inference & Script Extraction**: Static analysis engine in `variableExtraction.ts` statically deduces exported variable keys from subflows and extracts script variables. The subflow configuration panel displays expected exported variables preview with one-click copying, and softens variable validation warnings when dynamic variables are provided by full subflow exports.
+- **Datasource Hierarchy & Cache Isolation**: Re-architected data source sidebar panel into a structured hierarchy with single-project penetration and multi-source default collapse. Strictly isolated browsing cache per connection instance, preventing cross-datasource cache leakage between multiple sources of the same plugin. Added end-to-end RPC and describe integration testing for OpenAPI datasource plugins.
+- **Standardized UI Components & Flow List Navigation**: Introduced a standardized `Checkbox` component replacing native browser checkboxes with dark-mode compliance, enhanced `Switch` component contrast in dark mode, and added flow list active state glowing highlights with smooth scroll-into-view targeting.
 - **CLI Lifecycle Fixture**: `tests/cli/lifecycle_stages.json` exercises the three-stage lifecycle end to end through `mpe run`.
 
 ### Changed
@@ -31,8 +59,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **CLI Environment Management**: new `mpe env` subcommands — `list` (name, variable count, local-override flag, path), `show <name> [--source merged|base|local]`, `set <name> KEY=VALUE... [--local]`, and `delete <name> [--local]` — so environments can be managed from CI without the GUI (`--format table` supported).
 - **GUI Stress Environment**: the stress test dialog now runs with the active global environment merged in (flow fallback → environment file → local override), matching single-run execution and debugging.
 - **Flow Export with Environment Bake**: Exporting a flow can now bake the active environment into `flow.initial_variables`, producing a self-contained `.mpf` file. A credential scan detects `key` / `secret` / `token` / `password` / `auth` / `cred` / `cert` / `private` variables and clears the values the user selects.
-
-### Changed
+- Replaced legacy `autoExecuteToGoal` toggle in favor of goal-driven agent prompt protocols.
+- Refactored `AICopilotPanel` by extracting `AIMessageRow` and `AICopilotInput` with isolated local state, memoized card renderers (`React.memo`), and cached JSON formatting.
+- Optimized `MarkdownViewer` rendering performance with component memoization and static plugin mappings.
 - **Breaking**: Removed `environments` and `active_environment` from the flow data model — no compatibility shim is provided. Existing `.mpf` files still load, but any embedded environment definitions are **ignored**; re-create them as environment files under `<flows_dir>/environments/` (the environment name is the file name).
 - The flow properties panel no longer edits initial variables inline; it links to the environment manager, keeping `flow.initial_variables` as the flow-scoped fallback layer only.
 - **Breaking**: A stage failure decides the overall status: a failing Setup skips Main (`stages.main.status == "skipped"`) and still runs Teardown, while a failing Teardown marks the flow failed even though `stages.main.status` stays `success` — the report keeps the tested business outcome distinguishable from operational cleanup failure.
@@ -53,6 +82,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`fn.flow.abort()` Without a Message**: `fn.flow.abort` lacked the argument shim `fn.flow.stop` already had, so the documented `abort(msg?)` form threw `expected string, got undefined` and crashed the script; both now accept an optional message.
 - **Copilot Advanced-Condition Example Was Invalid**: the prompt's `advanced_expression` example used `TOKEN != null`, but the engine evaluates these with evalexpr, which has no `null` literal (`Variable identifier is not bound to anything by context: null`); the prompt now shows a valid emptiness check and states the limitation.
 - **Plugin Panels Did Not Follow the Host Theme**: plugin frontends run in a sandboxed iframe with an opaque origin, so they could not inherit the host palette and fell back to the OS `prefers-color-scheme`. A dark host on a light OS (or the reverse) left plugin inputs with white backgrounds and near-white text — effectively unreadable. The host now sends its resolved `light` / `dark` theme in the `init` payload and pushes later switches over a new `themeChanged` message; both iframe bridges (config panels and report viewers) are wired up. The Tauri window theme is also synced to the host setting so plugins built against the older contract still follow along. The contract is documented in `docs/plugin-frontend-theme.md`.
+- **Debug Session Variable Synchronization**: Ensured final resolved variables and call stack tabs are retained in the execution panel after a debug session terminates.
+- **Relative Path Flow Moving**: Fixed file resolution errors when moving flow files across folders by relative paths.
+- **Responsive Layout Collisions**: Fixed overlapping titles and action buttons in protocol viewers, node reports, and AI floating windows when displayed in narrow sidebars or compact viewport dimensions.
 
 ## [0.4.1-beta] - 2026-09-18
 
