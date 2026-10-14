@@ -231,10 +231,12 @@ interface FlowState {
   closeAllTabs: () => void;
   /** 更新指定标签的名称 */
   updateTabName: (uuid: string, name: string) => void;
+  /** 更新指定标签的文件绝对路径 */
+  updateTabFilePath: (uuid: string, filePath: string) => void;
 
   // ===== Actions =====
-  /** 设置当前流程 */
-  setFlow: (flow: Flow | null) => void;
+  /** 设置当前流程（可附带文件绝对路径） */
+  setFlow: (flow: Flow | null, filePath?: string) => void;
   /** 切换画布展示的生命周期阶段 */
   setActiveStage: (stage: FlowStage) => void;
   /** 更新流程名称 */
@@ -379,7 +381,7 @@ export const useFlowStore = create<FlowState>((set, get) => {
     ...initialState,
 
     // ===== Actions =====
-    setFlow: (flow) => {
+    setFlow: (flow, filePath) => {
       if (flow === null) {
         useExecutionStore.getState().clearExecutionState();
         return set({
@@ -392,7 +394,7 @@ export const useFlowStore = create<FlowState>((set, get) => {
           future: [],
         });
       }
-      return get().openTab(flow);
+      return get().openTab(flow, filePath);
     },
 
     setActiveStage: (stage) =>
@@ -772,6 +774,13 @@ export const useFlowStore = create<FlowState>((set, get) => {
         };
       });
     },
+    updateTabFilePath: (uuid, filePath) => {
+      set((state) => {
+        const newTabs = state.tabs.map((t) => (t.uuid === uuid ? { ...t, filePath } : t));
+        return { tabs: newTabs };
+      });
+    },
+
 
     updateFlowName: (name) =>
       set((state) => {
