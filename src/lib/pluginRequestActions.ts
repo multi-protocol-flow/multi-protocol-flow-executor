@@ -33,13 +33,22 @@
  */
 import { invoke } from '@tauri-apps/api/core';
 import type { PluginIframeHostApi } from '@/types/plugin-iframe';
-
+import {
+  datasourceBrowse,
+  datasourceGetTemplates,
+  listDatasources,
+  loadConnections,
+} from '@/services/tauri/datasource';
+import type { DataItem, DatasourceDescription, NodeTemplate } from '@/types/datasource';
 /** 白名单动作（新增动作 = 显式安全审查；与 HANDLERS 的 Record 完整性互锁） */
 export const PLUGIN_REQUEST_ACTIONS = [
   'testConnection',
   'openFileDialog',
   'uiCall',
   'getRegisteredNodes',
+  'listDatasources',
+  'browseDatasource',
+  'getDatasourceTemplates',
 ] as const;
 export type PluginRequestAction = (typeof PLUGIN_REQUEST_ACTIONS)[number];
 
@@ -227,6 +236,86 @@ async function handleUiCall(params: unknown, context?: PluginActionContext): Pro
   });
 }
 
+/**
+ * listDatasources —— 列出数据源连接与描述（只读元数据，不泄漏连接配置中的敏感凭据）。
+ */
+async function handleListDatasources(): Promise<{
+  connections: Array<{
+    id: string;
+    datasource_id: string;
+    display_name: string;
+    name?: string;
+    created_at: string;
+  }>;
+  descriptions: DatasourceDescription[];
+}> {
+  const [descriptions, rawConnections] = await Promise.all([
+    listDatasources().catch(() => []),
+    loadConnections().catch(() => []),
+  ]);
+  const safeConnections = rawConnections.map((c) => ({
+    id: c.id,
+    datasource_id: c.datasource_id,
+    display_name: c.display_name,
+    name: c.name,
+    created_at: c.created_at,
+  }));
+  return {
+    connections: safeConnections,
+    descriptions,
+  };
+}
+
+/**
+ * browseDatasource —— 浏览数据源资源树或条目列表。
+ */
+async function handleBrowseDatasource(params: unknown): Promise<DataItem[]> {
+  if (!isPlainObject(params)) {
+    throw new Error('Action not allowed: browseDatasource requires an object parameter');
+  }
+  const connectionId = params['connection_id'];
+  if (typeof connectionId !== 'string' || !connectionId.trim()) {
+    throw new Error('Action not allowed: browseDatasource requires a valid `connection_id`');
+  }
+  const resourceId =
+    typeof params['resource_id'] === 'string' && params['resource_id'].trim() !== ''
+      ? params['resource_id'].trim()
+      : 'api';
+  const parentId =
+    typeof params['parent_id'] === 'string' && params['parent_id'].trim() !== ''
+      ? params['parent_id'].trim()
+      : null;
+  const connections = await loadConnections();
+  const conn = connections.find((c) => c.id === connectionId.trim());
+  if (!conn) {
+    throw new Error(`Datasource connection '${connectionId}' not found`);
+  }
+
+  return datasourceBrowse(conn.datasource_id, resourceId, parentId, conn.config);
+}
+
+/**
+ * getDatasourceTemplates —— 获取选中条目的节点模板。
+ */
+async function handleGetDatasourceTemplates(params: unknown): Promise<NodeTemplate[]> {
+  if (!isPlainObject(params)) {
+    throw new Error('Action not allowed: getDatasourceTemplates requires an object parameter');
+  }
+  const connectionId = params['connection_id'];
+  const itemIds = params['item_ids'];
+  if (typeof connectionId !== 'string' || !connectionId.trim() || !Array.isArray(itemIds)) {
+    throw new Error('Action not allowed: getDatasourceTemplates requires `connection_id` and `item_ids` array');
+  }
+  const connections = await loadConnections();
+  const conn = connections.find((c) => c.id === connectionId.trim());
+  if (!conn) {
+    throw new Error(`Datasource connection '${connectionId}' not found`);
+  }
+
+  const validIds = itemIds.filter((id): id is string => typeof id === 'string');
+  return datasourceGetTemplates(conn.datasource_id, validIds, conn.config);
+}
+
 /* ============================================================================
  * 白名单 + 解析器
  * ========================================================================== */
@@ -237,6 +326,9 @@ const HANDLERS: Readonly<Record<PluginRequestAction, PluginActionHandler>> = {
   openFileDialog: handleOpenFileDialog,
   uiCall: handleUiCall,
   getRegisteredNodes: () => invoke<unknown>('get_registered_node_types'),
+  listDatasources: handleListDatasources,
+  browseDatasource: handleBrowseDatasource,
+  getDatasourceTemplates: handleGetDatasourceTemplates,
 };
 
 /**
@@ -260,6 +352,9 @@ export function resolvePluginAction(action: string): PluginActionHandler | undef
     case 'openFileDialog':
     case 'uiCall':
     case 'getRegisteredNodes':
+    case 'listDatasources':
+    case 'browseDatasource':
+    case 'getDatasourceTemplates':
       return HANDLERS[action];
     default:
       return undefined;

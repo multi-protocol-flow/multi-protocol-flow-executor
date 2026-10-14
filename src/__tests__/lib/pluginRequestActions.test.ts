@@ -32,6 +32,25 @@ vi.mock('@tauri-apps/plugin-dialog', () => ({
 vi.mock('@tauri-apps/api/core', () => ({
   invoke: vi.fn(),
 }));
+vi.mock('@/services/tauri/datasource', () => ({
+  listDatasources: vi.fn().mockResolvedValue([]),
+  loadConnections: vi.fn().mockResolvedValue([]),
+  datasourceBrowse: vi.fn().mockResolvedValue([]),
+  datasourceGetTemplates: vi.fn().mockResolvedValue([]),
+}));
+
+import {
+  datasourceBrowse,
+  datasourceGetTemplates,
+  listDatasources,
+  loadConnections,
+} from '@/services/tauri/datasource';
+import type {
+  DataItem,
+  DatasourceConnection,
+  DatasourceDescription,
+  NodeTemplate,
+} from '@/types/datasource';
 
 import { invoke } from '@tauri-apps/api/core';
 
@@ -426,6 +445,161 @@ describe('getRegisteredNodes（已注册节点动态发现）', () => {
     const result = await handlerFor('getRegisteredNodes')();
     expect(invoke).toHaveBeenCalledWith('get_registered_node_types');
     expect(result).toEqual(sampleNodes);
+  });
+});
+
+describe('listDatasources（数据源连接与描述查询，敏感凭据脱敏）', () => {
+  it('返回脱敏后的 connections 与 descriptions，不泄漏 config 中的密码/Key', async () => {
+    const rawConnections: DatasourceConnection[] = [
+      {
+        id: 'conn-1',
+        datasource_id: 'eolink',
+        display_name: 'Eolink Prod',
+        name: '支付中心',
+        config: { api_key: 'super_secret_token_123', secret: 'must_not_leak' },
+        created_at: '2026-08-05T00:00:00Z',
+      },
+    ];
+    const sampleDescriptions: DatasourceDescription[] = [
+      { id: 'eolink', display_name: 'Eolink', auth: { type: 'api_key' }, resources: [] },
+    ];
+
+    vi.mocked(loadConnections).mockResolvedValue(rawConnections);
+    vi.mocked(listDatasources).mockResolvedValue(sampleDescriptions);
+    const result = (await handlerFor('listDatasources')()) as {
+      connections: Array<Record<string, unknown>>;
+      descriptions: unknown[];
+    };
+
+    expect(result.descriptions).toEqual(sampleDescriptions);
+    expect(result.connections.length).toBe(1);
+    expect(result.connections[0]).toEqual({
+      id: 'conn-1',
+      datasource_id: 'eolink',
+      display_name: 'Eolink Prod',
+      name: '支付中心',
+      created_at: '2026-08-05T00:00:00Z',
+    });
+    // 验证敏感 config 被脱敏剥离
+    expect(result.connections[0]['config']).toBeUndefined();
+  });
+});
+
+describe('browseDatasource（浏览数据源接口树，凭据由宿主代持）', () => {
+  const sampleConnection: DatasourceConnection = {
+    id: 'conn-1',
+    datasource_id: 'swagger',
+    display_name: 'Petstore',
+    config: { base_url: 'https://petstore.example.com', token: 'secret' },
+    created_at: '2026-08-05T00:00:00Z',
+  };
+
+  beforeEach(() => {
+    vi.mocked(loadConnections).mockResolvedValue([sampleConnection]);
+  });
+
+  it('合法调用：宿主代为读取配置并调用 datasourceBrowse', async () => {
+    const sampleItems: DataItem[] = [{ id: 'api_1', name: 'Get Pet', protocol: 'http', extra: [] }];
+    vi.mocked(datasourceBrowse).mockResolvedValue(sampleItems);
+
+    const result = await handlerFor('browseDatasource')({
+      connection_id: 'conn-1',
+      resource_id: 'api',
+      parent_id: 'group_orders',
+    });
+
+    expect(datasourceBrowse).toHaveBeenCalledWith(
+      'swagger',
+      'api',
+      'group_orders',
+      sampleConnection.config
+    );
+    expect(result).toEqual(sampleItems);
+  });
+
+  it('空字符串 parent_id 归一化为 null（根级查询）', async () => {
+    const sampleItems: DataItem[] = [{ id: 'api_1', name: 'Get Pet', protocol: 'http', extra: [] }];
+    vi.mocked(datasourceBrowse).mockResolvedValue(sampleItems);
+
+    await handlerFor('browseDatasource')({
+      connection_id: 'conn-1',
+      parent_id: '   ',
+    });
+
+    expect(datasourceBrowse).toHaveBeenCalledWith(
+      'swagger',
+      'api',
+      null,
+      sampleConnection.config
+    );
+  });
+
+  it('未知 connection_id → 抛出明确异常', async () => {
+    await expect(
+      handlerFor('browseDatasource')({ connection_id: 'non-existent' })
+    ).rejects.toThrow("Datasource connection 'non-existent' not found");
+  });
+
+  it('缺少 connection_id 或非法参数 → 抛出 Action not allowed', async () => {
+    await expect(handlerFor('browseDatasource')(null)).rejects.toThrow(
+      'Action not allowed: browseDatasource requires an object parameter'
+    );
+    await expect(handlerFor('browseDatasource')({})).rejects.toThrow(
+      'Action not allowed: browseDatasource requires a valid `connection_id`'
+    );
+  });
+});
+
+describe('getDatasourceTemplates（获取数据源节点模板）', () => {
+  const sampleConnection: DatasourceConnection = {
+    id: 'conn-1',
+    datasource_id: 'swagger',
+    display_name: 'Petstore',
+    config: { base_url: 'https://petstore.example.com' },
+    created_at: '2026-08-05T00:00:00Z',
+  };
+
+  beforeEach(() => {
+    vi.mocked(loadConnections).mockResolvedValue([sampleConnection]);
+  });
+
+  it('合法调用：调用 datasourceGetTemplates 转换模板', async () => {
+    const sampleTemplates: NodeTemplate[] = [{ type_id: 'http:request', name: 'Get Pet', data: {} }];
+    vi.mocked(datasourceGetTemplates).mockResolvedValue(sampleTemplates);
+
+    const result = await handlerFor('getDatasourceTemplates')({
+      connection_id: 'conn-1',
+      item_ids: ['api_1'],
+    });
+
+    expect(datasourceGetTemplates).toHaveBeenCalledWith(
+      'swagger',
+      ['api_1'],
+      sampleConnection.config
+    );
+    expect(result).toEqual(sampleTemplates);
+  });
+
+  it('未知 connection_id → 抛出明确异常', async () => {
+    await expect(
+      handlerFor('getDatasourceTemplates')({ connection_id: 'non-existent', item_ids: ['api_1'] })
+    ).rejects.toThrow("Datasource connection 'non-existent' not found");
+  });
+
+  it('缺少参数或非法参数 → 抛出 Action not allowed', async () => {
+    await expect(handlerFor('getDatasourceTemplates')(null)).rejects.toThrow(
+      'Action not allowed: getDatasourceTemplates requires an object parameter'
+    );
+    await expect(
+      handlerFor('getDatasourceTemplates')({ connection_id: 'conn-1' })
+    ).rejects.toThrow(
+      'Action not allowed: getDatasourceTemplates requires `connection_id` and `item_ids` array'
+    );
+    await expect(
+      handlerFor('getDatasourceTemplates')({ connection_id: '   ', item_ids: [] })
+    ).rejects.toThrow(
+      'Action not allowed: getDatasourceTemplates requires `connection_id` and `item_ids` array'
+    );
   });
 });
 

@@ -42,12 +42,13 @@ import { VariableTimelineDrawer } from './VariableTimelineDrawer';
 import { ExecutionStackView } from './ExecutionStackView';
 import { DebugReplConsole } from './DebugReplConsole';
 import { getNodeMeta } from '@/lib/nodeMeta';
+import { getCachedNodeMeta } from '@/lib/NodeRegistry';
 import { cn } from '@/lib/utils';
 import { sendDebugCommand } from '@/services/tauri';
 import { toast } from 'sonner';
 import { getLL } from '@/i18n/i18n-lazy';
 import { ResizablePanel } from '@/components/ui/ResizablePanel';
-import type { Node, NodeExecutionReport } from '@/types';
+import type { ExecutionStatus, Node, NodeExecutionReport } from '@/types';
 
 // ============================================================================
 // 子组件：节点状态列表项
@@ -298,9 +299,42 @@ const NodeOutputPane = memo(function NodeOutputPane({
   const activeInteraction = useExecutionStore((state) =>
     nodeUuid ? state.activeInteractions[nodeUuid] ?? null : null,
   );
-  const nodeName = useFlowStore((state) =>
-    nodeUuid ? findNodeInFlow(state.flow, nodeUuid)?.name ?? null : null,
+  const node = useFlowStore((state) =>
+    nodeUuid ? findNodeInFlow(state.flow, nodeUuid) : null,
   );
+  const nodeName = node?.name ?? (nodeUuid ? findNodeInFlow(useFlowStore.getState().flow, nodeUuid)?.name ?? null : null);
+  const nodeType = node?.type || report?.node_type || '';
+  const nodeMeta = getCachedNodeMeta(nodeType);
+  const hasStreamData = useExecutionStore((s) => {
+    const data = nodeUuid ? s.nodeStreamMap[nodeUuid] : undefined;
+    return Boolean(
+      data &&
+        (Boolean(data.fullContent) ||
+          Boolean(data.fullReasoning) ||
+          data.chunks.length > 0)
+    );
+  });
+  const hasViewerOrStream = Boolean(nodeMeta?.viewer || hasStreamData);
+  const isRunning = status === 'running';
+
+  const liveReport = useMemo<NodeExecutionReport | null>(() => {
+    if (!isRunning || !hasViewerOrStream || !nodeUuid) return null;
+    if (report) return report;
+    return {
+      node_uuid: nodeUuid,
+      node_type: nodeType,
+      node_name: nodeName || nodeType,
+      status: 'running' as unknown as ExecutionStatus,
+      start_time: Date.now(),
+      end_time: 0,
+      duration_ms: 0,
+      input_data: (node?.data as unknown as Record<string, unknown>) || null,
+      output_data: null,
+      plugin_data: null,
+      error: undefined,
+      is_detail_stripped: false,
+    };
+  }, [isRunning, hasViewerOrStream, nodeUuid, report, nodeType, nodeName, node?.data]);
   // ===== 冷通道按需拉取完整报文 =====
   useEffect(() => {
     // 关键优化：执行期间自动跟随模式下不预拉取大报文，避免频繁 IPC 与重渲染导致页面卡顿；
@@ -323,13 +357,16 @@ const NodeOutputPane = memo(function NodeOutputPane({
     );
   }
 
-  if (activeInteraction) {
+  if (activeInteraction && (!isRunning || !hasViewerOrStream)) {
     return (
-      <div className="h-full overflow-y-auto scrollbar-thin p-3">
-        <HumanInteractionCard nodeUuid={nodeUuid} interaction={activeInteraction} />
+      <div className="h-full overflow-y-auto scrollbar-thin">
+        <div className="p-3">
+          <HumanInteractionCard nodeUuid={nodeUuid} interaction={activeInteraction} />
+        </div>
       </div>
     );
   }
+
   if (status === 'pending') {
     return (
       <div className="h-full flex items-center justify-center text-muted-foreground">
@@ -338,7 +375,20 @@ const NodeOutputPane = memo(function NodeOutputPane({
     );
   }
 
-  if (status === 'running') {
+  if (isRunning) {
+    if (hasViewerOrStream && liveReport) {
+      return (
+        <div className="h-full overflow-y-auto scrollbar-thin">
+          <div className="p-3 space-y-3">
+            {activeInteraction && (
+              <HumanInteractionCard nodeUuid={nodeUuid} interaction={activeInteraction} />
+            )}
+            <NodeExecutionDetails report={liveReport} />
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="h-full flex flex-col items-center justify-center p-6 text-muted-foreground gap-3">
         <Loader2 className="w-6 h-6 text-blue-500 animate-spin" />
@@ -353,7 +403,6 @@ const NodeOutputPane = memo(function NodeOutputPane({
       </div>
     );
   }
-
   if (!report) return null;
 
   return (
