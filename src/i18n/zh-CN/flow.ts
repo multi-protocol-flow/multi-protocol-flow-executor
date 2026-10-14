@@ -54,6 +54,7 @@ const zh_CN_flow: BaseTranslation = {
   copy_file_path_failed: '复制文件路径失败',
   copy_file_path_not_found: '未找到流程文件路径',
   entry_node_already_exists: '流程中已存在入口节点，仅允许一个入口节点',
+  ingress_node_already_exists: '流程中已存在 HTTP Ingress 节点，仅允许一个 Ingress 入口',
   entry_node_exists_badge: '已存在',
   move_to: '移动到...',
   export_flow_menu: '导出流程 (.mpf)...',

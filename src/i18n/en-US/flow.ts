@@ -53,6 +53,7 @@ const en_US_flow = {
   copy_file_path_failed: 'Failed to copy file path',
   copy_file_path_not_found: 'Flow file path not found',
   entry_node_already_exists: 'An entry node already exists in this flow',
+  ingress_node_already_exists: 'An HTTP Ingress node already exists in this flow',
   entry_node_exists_badge: 'Already exists',
   move_to: 'Move to...',
   export_flow_menu: 'Export Flow (.mpf)...',

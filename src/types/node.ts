@@ -1262,6 +1262,13 @@ export function isHttpIngressConfig(data: NodeData): data is HttpIngressConfig {
 }
 
 /**
+ * 判断节点类型是否可作为流程入口（entry 或 http:ingress）
+ */
+export function isEntryNodeType(nodeType: string): boolean {
+  return nodeType === 'entry' || nodeType === 'http:ingress';
+}
+
+/**
  * 判断是否为 HttpRespondConfig
  */
 export function isHttpRespondConfig(data: NodeData): data is HttpRespondConfig {

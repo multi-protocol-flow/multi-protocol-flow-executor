@@ -73,6 +73,7 @@ export type {
 } from './node';
 export {
   isEntryConfig,
+  isEntryNodeType,
   isEndConfig,
   isHttpConfig,
   isHttpIngressConfig,

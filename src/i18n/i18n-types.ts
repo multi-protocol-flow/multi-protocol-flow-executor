@@ -8605,6 +8605,10 @@ type RootTranslation = {
 		 */
 		entry_node_already_exists: string
 		/**
+		 * 流​程​中​已​存​在​ ​H​T​T​P​ ​I​n​g​r​e​s​s​ ​节​点​，​仅​允​许​一​个​ ​I​n​g​r​e​s​s​ ​入​口
+		 */
+		ingress_node_already_exists: string
+		/**
 		 * 已​存​在
 		 */
 		entry_node_exists_badge: string
@@ -23517,6 +23521,10 @@ export type TranslationFunctions = {
 		 * 已存在
 		 */
 		entry_node_exists_badge: () => LocalizedString
+		/**
+		 * 流程中已存在 HTTP Ingress 节点，仅允许一个 Ingress 入口
+		 */
+		ingress_node_already_exists: () => LocalizedString
 		/**
 		 * 移动到...
 		 */
