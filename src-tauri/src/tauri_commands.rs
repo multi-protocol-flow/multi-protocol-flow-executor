@@ -52,10 +52,22 @@ impl ExecutionSessionManager {
         }
     }
 }
-
 impl Default for ExecutionSessionManager {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+struct SessionCleanupGuard<'a> {
+    cancel_senders: &'a std::sync::Mutex<HashMap<String, tokio::sync::watch::Sender<bool>>>,
+    session_id: String,
+}
+
+impl Drop for SessionCleanupGuard<'_> {
+    fn drop(&mut self) {
+        if let Ok(mut guard) = self.cancel_senders.lock() {
+            guard.remove(&self.session_id);
+        }
     }
 }
 
@@ -96,6 +108,22 @@ pub async fn execute_flow(
     state: State<'_, ExecutionSessionManager>,
     node_registry: State<'_, NodeRegistryState>,
 ) -> Result<ExecuteFlowCommandOutput, String> {
+    // 多层变量合并与预检：基底兜底(flow.initial_variables) -> 环境(input.environment_name) -> 显式覆盖(input.variables)
+    // 在注册会话与启动 Worker 前校验，避免参数校验失败导致会话/Worker 泄漏
+    let runtime_vars_map = input.variables.as_ref().and_then(|v| {
+        v.as_object().map(|obj| {
+            obj.iter()
+                .map(|(k, val)| (k.clone(), val.clone()))
+                .collect::<std::collections::HashMap<_, _>>()
+        })
+    });
+
+    let resolved_variables = crate::resolve_execution_variables(
+        &flow,
+        input.environment_name.as_deref(),
+        runtime_vars_map.as_ref(),
+    )?;
+
     // 创建取消信号通道
     let (cancel_tx, cancel_rx) = tokio::sync::watch::channel(false);
     let session_id = uuid::Uuid::new_v4().to_string();
@@ -111,11 +139,15 @@ pub async fn execute_flow(
         session_id
     );
 
-    // 存储 sender 到会话管理器
+    // 存储 sender 到会话管理器（由 SessionCleanupGuard 确保退出时释放）
     {
         let mut guard = state.cancel_senders.lock().map_err(|e| e.to_string())?;
         guard.insert(session_id.clone(), cancel_tx);
     }
+    let _session_guard = SessionCleanupGuard {
+        cancel_senders: &state.cancel_senders,
+        session_id: session_id.clone(),
+    };
     // 创建队列日志发送器（调试模式同步，发布模式异步）
     let (log_sender, log_worker) = create_log_sender(on_event);
 
@@ -143,7 +175,7 @@ pub async fn execute_flow(
     // 执行流程
     let flow_uuid = flow.uuid.clone();
     let flow_name = flow.name.clone();
-    let input_variables = input.variables.clone();
+
     let snap = node_registry.snapshot();
 
     let default_timeout = crate::resolve_default_execution_timeout(&app);
@@ -160,23 +192,6 @@ pub async fn execute_flow(
         executor = executor.with_cancel_receiver(rx);
     }
 
-    // 多层变量合并：基底兜底(flow.initial_variables) -> 环境(input.environment_name) -> 显式覆盖(input.variables)
-    //
-    // 显式指定环境却加载失败时必须报错返回：静默退回流程内置变量会让流程在错误的
-    // 端点上执行（例如 prod 流程跑在兜底变量指向的 dev 地址）。
-    let runtime_vars_map = input_variables.as_ref().and_then(|v| {
-        v.as_object().map(|obj| {
-            obj.iter()
-                .map(|(k, val)| (k.clone(), val.clone()))
-                .collect::<std::collections::HashMap<_, _>>()
-        })
-    });
-
-    let resolved_variables = crate::resolve_execution_variables(
-        &flow,
-        input.environment_name.as_deref(),
-        runtime_vars_map.as_ref(),
-    )?;
 
     let result = executor
         .execute_flow(&flow, resolved_variables, None, Some(log_sender))
@@ -242,12 +257,8 @@ pub async fn execute_flow(
         execution_time,
     };
 
-    // execution complete后清理会话（take sender 使其 drop，后续 cancel_flow 调用将返回"没有活跃的执行会话"）
-    // execution complete后清理会话
-    {
-        let mut guard = state.cancel_senders.lock().map_err(|e| e.to_string())?;
-        guard.remove(&session_id);
-    }
+    // execution complete后清理会话（由 Drop guard 保证）
+    drop(_session_guard);
     // 插件据此释放 per-execution 资源（如 Mongo 连接池）。
     // 幂等：仅通知已在运行的插件，不拉起空闲插件。
     #[cfg(feature = "plugin-manager")]

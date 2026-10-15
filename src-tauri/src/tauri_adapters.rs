@@ -223,16 +223,31 @@ impl ExecutionEventWorker {
             tokio::select! {
                 biased;
 
-                Some(event) = self.receiver.recv() => {
-                    let is_terminal = matches!(
-                        &event,
-                        ExecutionEvent::FlowCompleted { .. } | ExecutionEvent::FlowCancelled { .. }
-                    );
+                event = self.receiver.recv() => {
+                    match event {
+                        Some(event) => {
+                            let is_terminal = matches!(
+                                &event,
+                                ExecutionEvent::FlowCompleted { parent_node_uuid: None, .. }
+                                    | ExecutionEvent::FlowCancelled { parent_node_uuid: None, .. }
+                            );
 
-                    buffer.push(event);
+                            buffer.push(event);
 
-                    if is_terminal || buffer.len() >= MAX_BATCH_SIZE {
-                        Self::flush(&mut buffer, &self.channel);
+                            if is_terminal || buffer.len() >= MAX_BATCH_SIZE {
+                                Self::flush(&mut buffer, &self.channel);
+                            }
+
+                            if is_terminal {
+                                break;
+                            }
+                        }
+                        None => {
+                            if !buffer.is_empty() {
+                                Self::flush(&mut buffer, &self.channel);
+                            }
+                            break;
+                        }
                     }
                 }
 
@@ -240,13 +255,6 @@ impl ExecutionEventWorker {
                     if !buffer.is_empty() {
                         Self::flush(&mut buffer, &self.channel);
                     }
-                }
-
-                else => {
-                    if !buffer.is_empty() {
-                        Self::flush(&mut buffer, &self.channel);
-                    }
-                    break;
                 }
             }
         }
