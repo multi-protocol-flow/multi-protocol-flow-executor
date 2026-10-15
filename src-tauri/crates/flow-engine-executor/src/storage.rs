@@ -162,6 +162,25 @@ pub fn detect_flow_format(content: &str) -> FlowFormat {
 
 /// 从字符串统一反序列化为 FlowFile（自动适配 JSON 与 YAML）
 pub fn deserialize_flow_file(content: &str) -> Result<FlowFile, String> {
+    // 优先探测是否为声明式 Flow YAML 模型（包含 "main:" 或顶层声明式结构）
+    if content.contains("main:") {
+        match flow_engine_core::dsl::DeclarativeFlow::from_yaml(content) {
+            Ok(decl) => {
+                let flow = decl.to_flow()?;
+                return Ok(FlowFile {
+                    _version: decl.version,
+                    flow,
+                    _meta: None,
+                });
+            }
+            Err(e) => {
+                if !content.contains("flow:") {
+                    return Err(format!("Deserialize Declarative Flow YAML Failed: {}", e));
+                }
+            }
+        }
+    }
+
     match detect_flow_format(content) {
         FlowFormat::Json => serde_json::from_str::<FlowFile>(content).map_err(|e| {
             format!(
@@ -178,8 +197,43 @@ pub fn deserialize_flow_file(content: &str) -> Result<FlowFile, String> {
     }
 }
 
-/// 从字符串快速提取流程元数据（自动适配 JSON 与 YAML）
+/// 从字符串快速提取流程元数据（自动适配 JSON、YAML 及声明式 DSL）
 fn deserialize_flow_file_meta(content: &str) -> Result<FlowFileMeta, String> {
+    if content.contains("main:") {
+        match flow_engine_core::dsl::DeclarativeFlow::from_yaml(content) {
+            Ok(decl) => {
+                let flow_base = decl
+                    .slug
+                    .clone()
+                    .filter(|s| !s.trim().is_empty())
+                    .unwrap_or_else(|| {
+                        let s = flow_engine_core::dsl::slugify(&decl.name);
+                        if s.is_empty() {
+                            "flow".to_string()
+                        } else {
+                            s
+                        }
+                    });
+                let flow_uuid = uuid::Uuid::new_v5(
+                    &flow_engine_core::dsl::FLOW_NAMESPACE,
+                    flow_base.as_bytes(),
+                )
+                .to_string();
+                return Ok(FlowFileMeta {
+                    flow: FlowMeta {
+                        uuid: flow_uuid,
+                        name: decl.name,
+                    },
+                });
+            }
+            Err(e) => {
+                if !content.contains("flow:") {
+                    return Err(format!("failed to parse declarative flow metadata (YAML): {}", e));
+                }
+            }
+        }
+    }
+
     match detect_flow_format(content) {
         FlowFormat::Json => serde_json::from_str::<FlowFileMeta>(content)
             .map_err(|e| format!("failed to parse flow metadata (JSON): {}", e)),
@@ -3770,5 +3824,18 @@ mod tests {
         let meta = rename_environment_file("a", " d ", env_dir).unwrap();
         assert_eq!(meta.name, "d");
         assert!(load_environment_file_raw("d", false, env_dir).is_ok());
+    }
+
+    #[test]
+    fn test_deserialize_declarative_yaml_error_propagation() {
+        let invalid_yaml = r#"
+name: Test Invalid Flow
+main:
+  - id: 123
+    type: [invalid_type_structure]
+"#;
+        let err = deserialize_flow_file(invalid_yaml).unwrap_err();
+        assert!(err.contains("Deserialize Declarative Flow YAML Failed"));
+        assert!(!err.contains("Flow file must use FlowFile wrapper format"));
     }
 }

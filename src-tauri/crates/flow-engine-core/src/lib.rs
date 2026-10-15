@@ -14,6 +14,8 @@ pub mod dataset;
 pub mod debug_types;
 /// 动态变量系统，提供类似 Postman 的随机数、时间戳、UUID 等变量即时生成
 pub mod dynamic_variable;
+/// 声明式 Flow YAML DSL 模块，支持双向无损转换与自动排版
+pub mod dsl;
 /// `OAuth2` + SASL 认证工具模块（服务商预设配置、SASL 字符串构建）
 /// Error类型定义，区分致命Error和可恢复Error
 pub mod error;
@@ -78,3 +80,6 @@ pub use node::ExecutionErrorStrategy;
 
 // Re-export workspace types
 pub use workspace::{CodeMatch, WorkspaceScanResult};
+
+// Re-export dsl types
+pub use dsl::{DeclarativeFlow, DeclarativeNode};

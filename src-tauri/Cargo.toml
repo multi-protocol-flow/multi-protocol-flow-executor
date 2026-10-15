@@ -25,7 +25,7 @@ serde_json = { version = "1.0", features = ["preserve_order"] }
 serde_yml = "0.0.12"
 tokio = { version = "1", features = ["rt", "rt-multi-thread", "macros", "sync", "net", "time", "io-util", "io-std"] }
 async-trait = "0.1"
-uuid = { version = "1.0", features = ["v4", "serde"] }
+uuid = { version = "1.0", features = ["v4", "v5", "serde"] }
 chrono = "0.4"
 log = "0.4"
 regex = "1.10"

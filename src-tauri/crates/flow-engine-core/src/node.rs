@@ -53,7 +53,7 @@ pub enum ExecutionErrorStrategy {
 }
 
 /// 节点数据结构
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize)]
 pub struct Node {
     /// 节点唯一标识符（前端生成UUID，用于连接关联）
     pub uuid: String,
@@ -69,11 +69,52 @@ pub struct Node {
     /// 端口数组（可选）
     pub ports: Option<Vec<Port>>,
     /// 是否设置断点（可选，默认 false）
-    #[serde(default, alias = "hasBreakpoint")]
+    #[serde(rename = "hasBreakpoint", default, skip_serializing_if = "Option::is_none")]
     pub has_breakpoint: Option<bool>,
     /// 执行Error策略（可选，默认 `RouteToFalse`）
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub on_error: Option<ExecutionErrorStrategy>,
+}
+
+impl<'de> serde::Deserialize<'de> for Node {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        #[derive(serde::Deserialize)]
+        #[allow(non_snake_case)]
+        struct NodeHelper {
+            pub uuid: String,
+            #[serde(rename = "type")]
+            pub node_type: String,
+            pub name: String,
+            #[serde(default)]
+            pub position: NodePosition,
+            pub data: NodeData,
+            #[serde(default)]
+            pub ports: Option<Vec<Port>>,
+            #[serde(default)]
+            pub has_breakpoint: Option<bool>,
+            #[serde(default)]
+            pub hasBreakpoint: Option<bool>,
+            #[serde(default)]
+            pub on_error: Option<ExecutionErrorStrategy>,
+        }
+
+        let helper = NodeHelper::deserialize(deserializer)?;
+        let has_breakpoint = helper.hasBreakpoint.or(helper.has_breakpoint);
+
+        Ok(Node {
+            uuid: helper.uuid,
+            node_type: helper.node_type,
+            name: helper.name,
+            position: helper.position,
+            data: helper.data,
+            ports: helper.ports,
+            has_breakpoint,
+            on_error: helper.on_error,
+        })
+    }
 }
 
 impl Default for Node {
@@ -133,7 +174,7 @@ mod tests {
         let json = serde_json::to_string(&node).unwrap_or_else(|e| panic!("{e}"));
         assert!(json.contains("node-uuid-456"));
         assert!(json.contains("https://api.example.com"));
-        assert!(json.contains("has_breakpoint"));
+        assert!(json.contains("hasBreakpoint"));
 
         // 反序列化测试
         let deserialized: Node = serde_json::from_str(&json).unwrap_or_else(|e| panic!("{e}"));
@@ -234,5 +275,37 @@ mod tests {
         }"#;
         let node: Node = serde_json::from_str(json_str).expect("deserialize node with hasBreakpoint");
         assert_eq!(node.has_breakpoint, Some(true));
+    }
+
+    #[test]
+    fn test_node_duplicate_breakpoint_keys_no_conflict() {
+        let json_str = r#"{
+            "uuid": "node-duplicate",
+            "type": "entry",
+            "name": "Entry",
+            "position": {"x": 0.0, "y": 0.0},
+            "data": {},
+            "has_breakpoint": null,
+            "hasBreakpoint": true
+        }"#;
+        let node: Node = serde_json::from_str(json_str).expect("deserialize node with both keys");
+        assert_eq!(node.has_breakpoint, Some(true));
+    }
+
+    #[test]
+    fn test_node_serialize_has_breakpoint() {
+        let node = Node {
+            uuid: "node-1".to_string(),
+            node_type: "entry".to_string(),
+            name: "Entry".to_string(),
+            position: NodePosition { x: 0.0, y: 0.0 },
+            data: NodeData::entry(),
+            ports: None,
+            has_breakpoint: Some(true),
+            on_error: None,
+        };
+        let serialized = serde_json::to_string(&node).expect("serialize node");
+        assert!(serialized.contains(r#""hasBreakpoint":true"#));
+        assert!(!serialized.contains("has_breakpoint"));
     }
 }

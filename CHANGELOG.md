@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Declarative Flow YAML DSL & Bi-directional Lossless Conversion**: Introduced `DeclarativeFlow` and `DeclarativeNode` models in `flow-engine-core`, stripping UI coordinates, connection UUIDs, and internal port IDs into clean, human-readable semantic YAML workflows with Sugiyama topological auto-layout and deterministic UUIDv5 generation.
+- **CLI Flow Conversion & Format Detection**: Added `mpe flow convert <in.mpf> <out.yaml>` and transparent declarative DSL detection in `deserialize_flow_file` across all loaders and CLI runners.
+- **Standardized CI Exit Codes & 3-Stage Aligned JUnit XML**: Standardized exit codes in `mpe-cli` (`0` success, `1` logic failure, `2` invalid arguments / missing files, `3` infrastructure timeout / unreachable). Upgraded JUnit XML generation to produce aligned `<testsuite>` entries (`{flow} :: Setup`, `{flow} :: Main`, `{flow} :: Teardown`) with skipped stage propagation and output snapshots on failure.
+- **GitHub Actions Step Summary Native Support**: Added automatic `$GITHUB_STEP_SUMMARY` detection and `--summary <path>` Markdown summary generator with execution status badges, lifecycle stage breakdown table, and collapsible failure details.
+- **Ingress Shared Gateway & Multi-Flow Path-Isolated Routing**: Introduced `IngressRouter` in `flow-engine-executor` supporting shared multi-flow listening on port 9527 with slugified path-prefix isolation, custom port overrides, and relative path forwarding.
+- **`mpe serve` Long-Running Ingress Runtime**: Added `mpe serve` command for running daemonized ingress mock services, executing single Setup on startup, handling concurrent Tokio HTTP dispatch, and executing Teardown during graceful shutdown (SIGINT / Ctrl+C).
 - **HTTP Ingress Webhook Mock Template**: Added a built-in flow template (`http_ingress_webhook_mock`) demonstrating webhook ingestion via `http:ingress` coupled with `http:respond` for mock HTTP responses.
 - **Interactive AI Tool (`ask_user`)**: Added the `ask_user` tool and interactive input cards within the AI Copilot stream, allowing the model to request user input (text, choices, confirmations) and suspending tool loop execution until user submission.
 - **Thinking Token Count & Physics Droplet Animation**: Added localized thinking character and word count metrics (`ThinkingSpinner`) and upgraded the thinking step loading indicator to an animated dot stacking and falling effect.
@@ -15,7 +21,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Plugin Dynamic Node Discovery**: Added `getRegisteredNodes` to the `PLUGIN_REQUEST_ACTIONS` whitelist, allowing sandboxed iframe plugins to discover host-registered node types via `get_registered_node_types`.
 - **Canvas Tab Bar File Path Copy**: Added "Copy Flow File Absolute Path" to the canvas flow tab bar context menu.
 - **Entry Node in Palette**: Added the Entry node option into `NodePalette` with uniqueness constraints (disabled if an entry node already exists on the canvas).
-
 ### Changed
 - **Node Context Menu Duplication**: Renamed the canvas node context menu item from "Copy" to "Create Duplicate" (`clone_node`) to accurately describe its canvas-cloning behavior.
 - **Terminal Stdio Isolation**: Switched subprocess execution in Tauri terminal commands to default to `Stdio::null` to prevent background process hangs, with stdin piping support for interactive commands.
