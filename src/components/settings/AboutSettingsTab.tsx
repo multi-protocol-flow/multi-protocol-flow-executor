@@ -22,9 +22,11 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Progress } from '@/components/ui/progress';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { useUpdateStore } from '@/stores/update';
 import { useSettingsStore } from '@/stores/settings';
 import { getLL } from '@/i18n/i18n-lazy';
+import { cn } from '@/lib/utils';
 async function openExternalUrl(url: string) {
   try {
     const { openUrl } = await import('@tauri-apps/plugin-opener');
@@ -86,7 +88,7 @@ export function AboutSettingsTab() {
   const hasNotes = hasMeaningfulNotes(updateInfo?.releaseNotes);
 
   return (
-    <div className="space-y-5 sm:space-y-6 select-none">
+    <div className="space-y-4 sm:space-y-5 select-none">
       {/* 软件标识与版本头图卡片 */}
       <div className="rounded-xl border border-border/70 bg-muted/20 p-4 sm:p-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
@@ -107,7 +109,7 @@ export function AboutSettingsTab() {
             </div>
           </div>
 
-          <div className="shrink-0 flex items-center gap-2">
+          <div className="shrink-0 flex items-center gap-2 self-start sm:self-center">
             <Button
               variant="outline"
               size="sm"
@@ -123,9 +125,9 @@ export function AboutSettingsTab() {
 
         {/* 状态指示条（非更新可用状态时显示） */}
         {!hasUpdate && (
-          <div className="mt-4 pt-3.5 border-t border-border/50 flex items-center justify-between text-xs">
+          <div className="mt-3.5 pt-3 border-t border-border/50 flex items-center justify-between text-xs">
             {status === 'up-to-date' ? (
-              <div className="flex items-center gap-1.5 text-green-600 dark:text-green-400">
+              <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
                 <CheckCircle2 className="h-4 w-4" />
                 <span>{ll.settings.update_already_latest()}</span>
               </div>
@@ -147,40 +149,42 @@ export function AboutSettingsTab() {
       {hasUpdate && updateInfo && (
         <div className="rounded-xl border border-amber-500/30 bg-gradient-to-b from-amber-500/[0.08] to-amber-500/[0.03] dark:from-amber-500/[0.12] dark:to-amber-500/[0.04] p-4 sm:p-5 shadow-xs space-y-3.5">
           {/* 头部：新版本标识与元信息 */}
-          <div className="flex flex-wrap items-center justify-between gap-2.5">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="h-8 w-8 rounded-lg bg-amber-500/15 border border-amber-500/25 flex items-center justify-center shrink-0 text-amber-600 dark:text-amber-400">
-                <Sparkles className="h-4 w-4" />
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="h-8 w-8 rounded-lg bg-amber-500/15 border border-amber-500/25 flex items-center justify-center shrink-0 text-amber-600 dark:text-amber-400">
+                  <Sparkles className="h-4 w-4" />
+                </div>
+                <div className="flex items-center gap-2 flex-wrap text-xs">
+                  <span className="font-semibold text-foreground">
+                    {ll.settings.update_available()}:
+                  </span>
+                  <span className="font-mono font-bold text-amber-600 dark:text-amber-400 text-xs sm:text-sm">
+                    v{updateInfo.latestVersion}
+                  </span>
+                  {updateInfo.isPrerelease && (
+                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0 text-amber-600 bg-amber-500/10 border-amber-500/20">
+                      Pre-release
+                     </Badge>
+                  )}
+                </div>
               </div>
-              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
-                <span className="font-semibold text-foreground">
-                  {ll.settings.update_available()}:
-                </span>
-                <span className="font-mono font-bold text-amber-600 dark:text-amber-400 text-xs sm:text-sm">
-                  v{updateInfo.latestVersion}
-                </span>
-                {updateInfo.isPrerelease && (
-                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 text-amber-600 bg-amber-500/10 border-amber-500/20">
-                    Pre-release
-                  </Badge>
-                )}
-              </div>
-            </div>
 
-            {/* 版本对比与发布日期 */}
-            <div className="flex items-center gap-2 text-[11px] text-muted-foreground font-normal shrink-0">
-              {currentVersion && (
-                <span className="font-mono bg-background/50 border border-border/40 px-1.5 py-0.5 rounded">
-                  v{currentVersion} → v{updateInfo.latestVersion}
-                </span>
-              )}
               {updateInfo.releaseDate && (
-                <span className="flex items-center gap-1">
+                <span className="flex items-center gap-1 text-[11px] text-muted-foreground font-normal shrink-0">
                   <Calendar className="h-3 w-3" />
                   {new Date(updateInfo.releaseDate).toLocaleDateString()}
                 </span>
               )}
             </div>
+
+            {currentVersion && (
+              <div className="text-[11px] text-muted-foreground font-normal pl-10.5">
+                <span className="font-mono bg-background/60 border border-border/50 px-1.5 py-0.5 rounded">
+                  v{currentVersion} → v{updateInfo.latestVersion}
+                </span>
+              </div>
+            )}
           </div>
 
           {/* 下载进度条 */}
@@ -207,8 +211,8 @@ export function AboutSettingsTab() {
 
           {/* 下载完成提示 */}
           {isDownloaded && (
-            <div className="flex items-center gap-2 rounded-lg border border-green-500/25 bg-green-500/10 p-3 text-xs text-green-700 dark:text-green-300">
-              <CheckCircle2 className="h-4 w-4 shrink-0 text-green-600" />
+            <div className="flex items-center gap-2 rounded-lg border border-emerald-500/25 bg-emerald-500/10 p-3 text-xs text-emerald-700 dark:text-emerald-300">
+              <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
               <span className="font-medium">{ll.settings.download_completed()}</span>
             </div>
           )}
@@ -232,10 +236,10 @@ export function AboutSettingsTab() {
             </div>
           )}
 
-          {/* 操作控制栏（防溢出、自适应分栏、符合人体工学） */}
-          <div className="flex flex-wrap items-center justify-between gap-2.5 pt-1 border-t border-amber-500/20">
+          {/* 操作控制栏 */}
+          <div className="flex flex-wrap items-center justify-between gap-2.5 pt-2 border-t border-amber-500/20">
             {/* 次要操作按钮组 */}
-            <div className="flex flex-wrap items-center gap-1.5 min-w-0">
+            <div className="flex items-center gap-1.5 flex-wrap">
               {hasNotes && (
                 <Button
                   variant="outline"
@@ -283,12 +287,12 @@ export function AboutSettingsTab() {
             </div>
 
             {/* 主要操作按钮 */}
-            <div className="shrink-0 flex items-center">
+            <div className="shrink-0 flex items-center ml-auto">
               {isDownloaded ? (
                 <Button
                   variant="default"
                   size="sm"
-                  className="h-8 text-xs px-4 bg-green-600 hover:bg-green-700 text-white gap-1.5 cursor-pointer shadow-xs font-medium shrink-0"
+                  className="h-8 text-xs px-4 bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5 cursor-pointer shadow-xs font-medium shrink-0"
                   onClick={installAndRestart}
                 >
                   <CheckCircle2 className="h-3.5 w-3.5" />
@@ -313,7 +317,7 @@ export function AboutSettingsTab() {
             </div>
           </div>
 
-          {/* 更新日志展开区域（独立流畅滚动，防止嵌套冲突，超小窗口自动限高） */}
+          {/* 更新日志展开区域（使用 Radix ScrollArea 原生支持触控板与滚轮流畅滚动） */}
           {showChangelog && hasNotes && updateInfo.releaseNotes && (
             <div className="rounded-lg border border-border/80 bg-background/95 dark:bg-background/80 overflow-hidden shadow-xs">
               <div className="px-3.5 py-2 border-b border-border/50 bg-muted/30 flex items-center justify-between text-xs">
@@ -323,30 +327,28 @@ export function AboutSettingsTab() {
                 </span>
                 <span className="font-mono text-[11px] text-muted-foreground">v{updateInfo.latestVersion}</span>
               </div>
-              <div
-                className="max-h-60 sm:max-h-72 overflow-y-auto overflow-x-hidden p-3.5 sm:p-4 text-xs leading-relaxed select-text scrollbar-thin space-y-2"
-                style={{ overscrollBehavior: 'contain' }}
-                onWheel={(e) => e.stopPropagation()}
-              >
-                <div className="prose prose-sm dark:prose-invert max-w-none text-xs leading-relaxed select-text break-words">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                    {updateInfo.releaseNotes}
-                  </ReactMarkdown>
+              <ScrollArea className="max-h-64 sm:max-h-80 w-full">
+                <div className="p-3.5 sm:p-4 text-xs leading-relaxed select-text space-y-2">
+                  <div className="prose prose-sm dark:prose-invert max-w-none text-xs leading-relaxed select-text break-words">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      {updateInfo.releaseNotes}
+                    </ReactMarkdown>
+                  </div>
                 </div>
-              </div>
+              </ScrollArea>
             </div>
           )}
         </div>
       )}
 
       {/* 更新策略偏好卡片 */}
-      <div className="space-y-4">
+      <div className="space-y-3">
         <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           {ll.settings.appearance()}
         </h4>
 
         <div className="rounded-xl border border-border/70 divide-y divide-border/50 bg-muted/10">
-          <div className="p-4 flex items-center justify-between gap-4">
+          <div className="p-3.5 sm:p-4 flex items-center justify-between gap-3 flex-wrap sm:flex-nowrap">
             <div className="space-y-0.5 min-w-0 flex-1 pr-2">
               <div className="text-xs font-medium text-foreground">
                 {ll.settings.auto_check_updates()}
@@ -355,14 +357,47 @@ export function AboutSettingsTab() {
                 {ll.settings.auto_check_updates_desc()}
               </div>
             </div>
-            <Switch
-              checked={autoCheckUpdate}
-              onCheckedChange={(checked) => void setAutoCheckUpdate?.(checked)}
-              className="shrink-0"
-            />
+            <div
+              role="switch"
+              aria-checked={autoCheckUpdate}
+              aria-label={ll.settings.auto_check_updates()}
+              tabIndex={0}
+              onClick={() => void setAutoCheckUpdate?.(!autoCheckUpdate)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  void setAutoCheckUpdate?.(!autoCheckUpdate);
+                }
+              }}
+              className={cn(
+                'flex items-center gap-1.5 h-7 px-2 rounded-md border transition-colors cursor-pointer select-none shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
+                autoCheckUpdate
+                  ? 'bg-emerald-500/10 border-emerald-500/35 text-emerald-600 dark:bg-emerald-950/40 dark:border-emerald-600/40 dark:text-emerald-300'
+                  : 'bg-muted/40 border-border/80 text-muted-foreground hover:bg-muted/60 dark:bg-zinc-900/60 dark:border-zinc-800 hover:text-foreground'
+              )}
+              title={autoCheckUpdate ? ll.settings.switch_enabled() : ll.settings.switch_disabled()}
+            >
+              <RefreshCw
+                className={cn(
+                  'h-3.5 w-3.5 shrink-0 transition-transform',
+                  autoCheckUpdate
+                    ? 'text-emerald-600 dark:text-emerald-400 scale-105'
+                    : 'text-muted-foreground/70'
+                )}
+              />
+              <span tabIndex={-1} aria-hidden="true" className="pointer-events-none inline-flex">
+                <Switch
+                  checked={autoCheckUpdate}
+                  onCheckedChange={(checked) => void setAutoCheckUpdate?.(checked)}
+                  variant="emerald"
+                  className="scale-75 origin-center"
+                  tabIndex={-1}
+                />
+              </span>
+            </div>
           </div>
 
-          <div className="p-4 flex items-center justify-between gap-4">
+          <div className="p-3.5 sm:p-4 flex items-center justify-between gap-3 flex-wrap sm:flex-nowrap">
             <div className="space-y-0.5 min-w-0 flex-1 pr-2">
               <div className="text-xs font-medium text-foreground">
                 {ll.settings.include_prerelease()}
@@ -371,23 +406,56 @@ export function AboutSettingsTab() {
                 {ll.settings.include_prerelease_desc()}
               </div>
             </div>
-            <Switch
-              checked={includePrerelease}
-              onCheckedChange={(checked) => void setIncludePrerelease?.(checked)}
-              className="shrink-0"
-            />
+            <div
+              role="switch"
+              aria-checked={includePrerelease}
+              aria-label={ll.settings.include_prerelease()}
+              tabIndex={0}
+              onClick={() => void setIncludePrerelease?.(!includePrerelease)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  void setIncludePrerelease?.(!includePrerelease);
+                }
+              }}
+              className={cn(
+                'flex items-center gap-1.5 h-7 px-2 rounded-md border transition-colors cursor-pointer select-none shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
+                includePrerelease
+                  ? 'bg-emerald-500/10 border-emerald-500/35 text-emerald-600 dark:bg-emerald-950/40 dark:border-emerald-600/40 dark:text-emerald-300'
+                  : 'bg-muted/40 border-border/80 text-muted-foreground hover:bg-muted/60 dark:bg-zinc-900/60 dark:border-zinc-800 hover:text-foreground'
+              )}
+              title={includePrerelease ? ll.settings.switch_enabled() : ll.settings.switch_disabled()}
+            >
+              <Sparkles
+                className={cn(
+                  'h-3.5 w-3.5 shrink-0 transition-transform',
+                  includePrerelease
+                    ? 'fill-emerald-500 text-emerald-500 dark:fill-emerald-400 dark:text-emerald-400 scale-105'
+                    : 'text-muted-foreground/70'
+                )}
+              />
+              <span tabIndex={-1} aria-hidden="true" className="pointer-events-none inline-flex">
+                <Switch
+                  checked={includePrerelease}
+                  onCheckedChange={(checked) => void setIncludePrerelease?.(checked)}
+                  variant="emerald"
+                  className="scale-75 origin-center"
+                  tabIndex={-1}
+                />
+              </span>
+            </div>
           </div>
         </div>
       </div>
 
       {/* 运行时环境信息 */}
-      <div className="space-y-3">
+      <div className="space-y-2.5">
         <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
           <Cpu className="h-3.5 w-3.5" />
           <span>{ll.settings.system_platform()}</span>
         </h4>
 
-        <div className="rounded-xl border border-border/70 p-4 bg-muted/10 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 text-xs">
+        <div className="rounded-xl border border-border/70 p-3.5 sm:p-4 bg-muted/10 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 text-xs">
           <div className="min-w-0">
             <div className="text-[11px] text-muted-foreground">Architecture</div>
             <div className="font-medium font-mono text-foreground mt-0.5 truncate">Tauri 2.x + Rust</div>
@@ -404,12 +472,12 @@ export function AboutSettingsTab() {
       </div>
 
       {/* 社区与官方资源卡片 */}
-      <div className="space-y-3">
+      <div className="space-y-2.5">
         <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           {ll.settings.official_website()}
         </h4>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
           <button
             type="button"
             onClick={() => openExternalUrl('https://mpe.run')}
