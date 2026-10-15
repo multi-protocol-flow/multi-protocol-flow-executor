@@ -66,7 +66,7 @@ pub async fn execute_subgraph(
         last_node_output: None,
         debug_event_sender: executor.debug_event_sender().cloned(),
         execution_event_sender: executor.execution_event_sender().cloned(),
-        cancel_receiver: cancel_rx.or_else(|| executor.cancel_receiver().cloned()),
+        cancel_receiver: cancel_rx,
         providers: HashMap::new(),
         current_node_plugin_data: None,
         call_stack: executor.call_stack().clone(),

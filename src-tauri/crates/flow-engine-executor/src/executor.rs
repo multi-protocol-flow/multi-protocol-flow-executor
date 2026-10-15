@@ -156,8 +156,6 @@ impl Drop for ToolBridgeCleanupGuard {
                 owned.shutdown().await;
             });
         }
-        std::env::remove_var("MPE_TOOL_BRIDGE_URL");
-        std::env::remove_var("MPE_TOOL_BRIDGE_TOKEN");
     }
 }
 
@@ -447,8 +445,6 @@ impl FlowExecutor {
             bridge
                 .register_context(context.execution_id.clone(), context.clone())
                 .await;
-            std::env::set_var("MPE_TOOL_BRIDGE_URL", &bridge.url);
-            std::env::set_var("MPE_TOOL_BRIDGE_TOKEN", &bridge.token);
         }
 
         let _bridge_guard = ToolBridgeCleanupGuard {
@@ -560,7 +556,7 @@ impl FlowExecutor {
                         teardown_subgraph,
                         current_vars_map.clone(),
                         self,
-                        self.cancel_receiver.clone(),
+                        self.cancel_receiver.clone().filter(|rx| !*rx.borrow()),
                     )
                     .await
                     {
@@ -1438,7 +1434,7 @@ impl FlowExecutor {
                     teardown_subgraph,
                     current_vars_map.clone(),
                     self,
-                    self.cancel_receiver.clone(),
+                    self.cancel_receiver.clone().filter(|rx| !*rx.borrow()),
                 )
                 .await
                 {

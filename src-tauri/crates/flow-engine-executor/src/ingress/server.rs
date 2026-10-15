@@ -223,9 +223,23 @@ pub async fn start_ingress_server(
                     match accept_res {
                         Ok((stream, client_addr)) => {
                             let ctx_clone = ctx.clone();
+                            let conn_timeout = ctx_clone
+                                .request_timeout
+                                .saturating_add(Duration::from_secs(15));
                             tokio::spawn(async move {
-                                if let Err(e) = handle_http_connection(stream, ctx_clone).await {
-                                    log::warn!("[Ingress {}] Error handling connection: {}", client_addr, e);
+                                match tokio::time::timeout(
+                                    conn_timeout,
+                                    handle_http_connection(stream, ctx_clone),
+                                )
+                                .await
+                                {
+                                    Ok(Err(e)) => {
+                                        log::warn!("[Ingress {}] Error handling connection: {}", client_addr, e);
+                                    }
+                                    Err(_) => {
+                                        log::warn!("[Ingress {}] Connection timed out after {}s", client_addr, conn_timeout.as_secs());
+                                    }
+                                    Ok(Ok(())) => {}
                                 }
                             });
                         }

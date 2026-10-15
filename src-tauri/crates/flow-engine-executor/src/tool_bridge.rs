@@ -10,6 +10,7 @@ use flow_engine_core::node::{Node, NodePosition};
 use flow_engine_core::node_config::NodeData;
 use std::collections::HashMap;
 use std::sync::Arc;
+use std::time::Duration;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::{oneshot, Mutex, RwLock};
@@ -140,8 +141,19 @@ impl ToolBridgeServer {
                                 let ctxs = server_contexts.clone();
                                 let tok = server_token.clone();
                                 tokio::spawn(async move {
-                                    if let Err(e) = handle_connection(stream, exec, ctxs, tok).await {
-                                        log::debug!("[ToolBridge] Connection error: {}", e);
+                                    match tokio::time::timeout(
+                                        Duration::from_secs(30),
+                                        handle_connection(stream, exec, ctxs, tok),
+                                    )
+                                    .await
+                                    {
+                                        Ok(Err(e)) => {
+                                            log::debug!("[ToolBridge] Connection error: {}", e);
+                                        }
+                                        Err(_) => {
+                                            log::debug!("[ToolBridge] Connection timed out after 30s");
+                                        }
+                                        Ok(Ok(())) => {}
                                     }
                                 });
                             }

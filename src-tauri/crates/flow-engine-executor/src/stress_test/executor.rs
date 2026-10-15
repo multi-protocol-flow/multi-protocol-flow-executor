@@ -190,6 +190,9 @@ impl StressTestExecutor {
             // 重置状态
             state.metrics = Arc::new(MetricsCollector::new());
             state.stop_flag = Arc::new(AtomicBool::new(false));
+            for handle in &state.active_tasks {
+                handle.abort();
+            }
             state.active_tasks.clear();
             state.start_time = Some(Instant::now());
             state.status = if self.config.ramp_up_seconds > 0 {
@@ -537,9 +540,11 @@ impl StressTestExecutor {
                         }
                     }
                 }
+                for handle in &state_guard.active_tasks {
+                    handle.abort();
+                }
                 state_guard.active_tasks.clear();
             }
-
             // 捕获任务结束时的最终进度快照
             {
                 let state_guard = state.read().await;
