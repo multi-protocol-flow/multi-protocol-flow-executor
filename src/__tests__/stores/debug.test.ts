@@ -2,6 +2,7 @@
  * Debug Store 单元测试
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { endDebug } from '@/services/tauri';
 import { useDebugStore, selectDebugStatus, selectCurrentNodeUuid, selectIsDebugging, selectIsPaused, selectVariableDiff, computeVariableDiff, EMPTY_VARIABLE_DIFF } from '@/stores/debug';
 import { useExecutionStore } from '@/stores/execution';
 import { useFlowStore } from '@/stores/flow';
@@ -878,6 +879,17 @@ describe('DebugStore', () => {
       expect(state.status).toBe('ended');
       expect(state.isDebugDataReadOnly).toBe(false); // 不再设置只读标记，执行数据保留在 executionStore
     });
+    it('endDebugSession 在后端抛出 No running debug session 时仍能强制重置状态为 ended，避免死锁', async () => {
+      vi.mocked(endDebug).mockRejectedValue(new Error('No running debug session'));
+      useDebugStore.setState({ status: 'running', isCommandPending: true });
+      await useDebugStore.getState().endDebugSession();
+
+      const state = useDebugStore.getState();
+      expect(state.status).toBe('ended');
+      expect(state.isCommandPending).toBe(false);
+      expect(useExecutionStore.getState().isExecuting).toBe(false);
+    });
+
 
     it('continueExecution 处理错误', async () => {
       const { sendDebugCommand } = await import('@/services/tauri');

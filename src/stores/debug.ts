@@ -76,6 +76,11 @@ interface DebugState {
   grpcStreamMessages: Record<string, GrpcRealtimeStreamMessage[]>;
   /** gRPC 实时流式错误 (call_id → 错误) */
   grpcStreamErrors: Record<string, GrpcRealtimeStreamError>;
+  // ===== Ingress 调试监听状态 =====
+  /** Ingress 调试监听端口（若当前正以 Debug 模式监听外部端口则为端口号，否则为 null） */
+  ingressListeningPort: number | null;
+  /** 设置 Ingress 调试监听端口 */
+  setIngressListeningPort: (port: number | null) => void;
 
   // ===== Actions =====
   /** 启动调试会话 */
@@ -191,6 +196,7 @@ const initialState = {
   grpcStreamErrors: {},
   callFrames: [] as DebugCallFrame[],
   activeFrameIndex: 0,
+  ingressListeningPort: null,
 };
 
 // ============================================================================
@@ -600,14 +606,20 @@ export const useDebugStore = create<DebugState>((set, get) => ({
     try {
       clearAllTimers();
       await endDebugService();
-      // 调试结束，保留执行数据用于查看（与普通执行模式一致）
+    } catch (error) {
+      console.warn('[Debug] endDebugService warning/error:', error);
+    } finally {
+      // 无论后端命令是否成功（如后端会话已提前结束），前端必须强制退出调试状态，解除全局锁死
+      clearAllTimers();
       set({ 
         status: 'ended',
         isCommandPending: false,
         previousStatus: null,
+        healthStatus: 'healthy',
+        callFrames: [],
+        activeFrameIndex: 0,
       });
-    } catch (error) {
-      set({ error: (error as Error).message });
+      useExecutionStore.setState({ isExecuting: false });
     }
   },
 
@@ -807,7 +819,7 @@ export const useDebugStore = create<DebugState>((set, get) => ({
 
         // 3. 显示 toast 通知
         toast.success(ll.execution.toast.debug_completed(), {
-          description: `${ll.execution.toast.duration_label()} ${report.duration_ms}ms · ${report.statistics.success_count} ${ll.execution.status.success()} · ${report.statistics.failed_count} ${ll.execution.status.failed()}`,
+          description: `${ll.execution.toast.duration_label()} ${report.duration_ms}ms · ${report.statistics?.success_count ?? 0} ${ll.execution.status.success()} · ${report.statistics?.failed_count ?? 0} ${ll.execution.status.failed()}`,
           action: { label: ll.execution.toast.view_report(), onClick: () => useExecutionStore.getState().openReportDialog() },
           duration: 10000,
         });
@@ -1027,6 +1039,10 @@ export const useDebugStore = create<DebugState>((set, get) => ({
     clearAllTimers();
     set(initialState);
   },
+
+  setIngressListeningPort: (port: number | null) => {
+    set({ ingressListeningPort: port });
+  },
 }));
 
 // ===== Selectors =====
@@ -1060,3 +1076,10 @@ export const selectActiveCallFrame = (state: DebugState) =>
 
 /** 选择当前单步变量与上一暂停状态的 Diff（直接取 store 中已求值的稳定字段） */
 export const selectVariableDiff = (state: DebugState): VariableDiff => state.variableDiff;
+
+/** 选择 Ingress 调试监听端口 */
+export const selectIngressListeningPort = (state: DebugState) => state.ingressListeningPort;
+
+/** 选择 Ingress 调试是否处于就绪等待外部请求状态（端口在监听中，且尚未进入单步运行或断点暂停态） */
+export const selectIsIngressDebugWaiting = (state: DebugState) =>
+  state.ingressListeningPort !== null && (state.status === 'idle' || state.status === 'ended');

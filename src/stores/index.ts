@@ -105,6 +105,8 @@ export {
   selectCallFrames,
   selectActiveFrameIndex,
   selectActiveCallFrame,
+  selectIngressListeningPort,
+  selectIsIngressDebugWaiting,
 } from './debug';
 
 // StressTest store selectors

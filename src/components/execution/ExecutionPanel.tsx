@@ -202,7 +202,14 @@ const ExecutionProgressBar = memo(function ExecutionProgressBar({
       {isExecuting && (
         <button
           type="button"
-          onClick={() => useExecutionStore.getState().cancelExecution()}
+          onClick={() => {
+            const isDebugging = useDebugStore.getState().status !== 'idle' && useDebugStore.getState().status !== 'ended';
+            if (isDebugging) {
+              useDebugStore.getState().endDebugSession();
+            } else {
+              useExecutionStore.getState().cancelExecution();
+            }
+          }}
           className="flex items-center gap-1 px-2 py-0.5 text-xs text-red-600 dark:text-red-400 hover:bg-red-500/10 border border-red-500/30 rounded font-medium cursor-pointer transition-colors shrink-0"
           title={ll.flow.stop_execution()}
         >
