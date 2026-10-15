@@ -69,7 +69,7 @@ pub struct Node {
     /// 端口数组（可选）
     pub ports: Option<Vec<Port>>,
     /// 是否设置断点（可选，默认 false）
-    #[serde(default)]
+    #[serde(default, alias = "hasBreakpoint")]
     pub has_breakpoint: Option<bool>,
     /// 执行Error策略（可选，默认 `RouteToFalse`）
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -220,5 +220,19 @@ mod tests {
         assert_eq!(ports_ref.len(), 2);
         assert_eq!(ports_ref[0].id, "port-1");
         assert_eq!(ports_ref[1].id, "port-2");
+    }
+
+    #[test]
+    fn test_node_has_breakpoint_camel_case_alias() {
+        let json_str = r#"{
+            "uuid": "node-bp",
+            "type": "entry",
+            "name": "Entry",
+            "position": {"x": 0.0, "y": 0.0},
+            "data": {},
+            "hasBreakpoint": true
+        }"#;
+        let node: Node = serde_json::from_str(json_str).expect("deserialize node with hasBreakpoint");
+        assert_eq!(node.has_breakpoint, Some(true));
     }
 }
