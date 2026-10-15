@@ -42,6 +42,7 @@ export async function loadSettings(): Promise<Settings> {
     const defaultExecutionTimeoutMs = await store.get<number>('defaultExecutionTimeoutMs');
     const pluginMaxConcurrency = await store.get<number>('pluginMaxConcurrency');
     const pluginQueueCapacity = await store.get<number>('pluginQueueCapacity');
+    const defaultIngressPort = await store.get<number>('defaultIngressPort');
     const theme = await store.get<string>('theme');
     const locale = await store.get<string>('locale');
     const aiProviders = await store.get<AIProviderConfig[]>('aiProviders');
@@ -62,6 +63,7 @@ export async function loadSettings(): Promise<Settings> {
       defaultExecutionTimeoutMs,
       pluginMaxConcurrency,
       pluginQueueCapacity,
+      defaultIngressPort: defaultIngressPort ?? 9527,
       theme: (theme as ThemeMode) ?? 'system',
       locale: (locale as Locale) ?? 'en-US',
       aiProviders: aiProviders ?? [],
@@ -114,6 +116,9 @@ export async function saveSettings(settings: Partial<Settings>): Promise<void> {
     }
     if (settings.pluginQueueCapacity !== undefined) {
       await store.set('pluginQueueCapacity', settings.pluginQueueCapacity);
+    }
+    if (settings.defaultIngressPort !== undefined) {
+      await store.set('defaultIngressPort', settings.defaultIngressPort);
     }
     if (settings.theme !== undefined) {
       await store.set('theme', settings.theme);

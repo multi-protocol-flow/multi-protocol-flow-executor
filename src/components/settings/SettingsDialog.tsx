@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Palette, HardDrive, Sparkles, Cpu, CheckCircle2, Info, X, Keyboard } from 'lucide-react';
+import { Palette, HardDrive, Sparkles, Cpu, CheckCircle2, Info, X, Keyboard, Network } from 'lucide-react';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
@@ -13,11 +13,12 @@ import { GeneralSettingsTab } from './GeneralSettingsTab';
 import { StorageSettingsTab } from './StorageSettingsTab';
 import { EngineSettingsTab } from './EngineSettingsTab';
 import { AboutSettingsTab } from './AboutSettingsTab';
+import { NetworkSettingsTab } from './NetworkSettingsTab';
 import { AIProviderSettingsCard } from '@/components/ai/AIProviderSettingsCard';
 import { ShortcutsSettingsTab } from './ShortcutsSettingsTab';
 import { useUpdateStore } from '@/stores/update';
 
-export type SettingsTabId = 'general' | 'storage' | 'ai' | 'engine' | 'about' | 'shortcuts';
+export type SettingsTabId = 'general' | 'storage' | 'ai' | 'engine' | 'network' | 'shortcuts' | 'about';
 
 export function SettingsDialog() {
   useCurrentLocale();
@@ -87,6 +88,13 @@ export function SettingsDialog() {
       icon: Cpu,
       title: ll.settings.tab_engine(),
       description: ll.settings.engine_desc(),
+    },
+    {
+      id: 'network',
+      label: ll.settings.tab_network(),
+      icon: Network,
+      title: ll.settings.tab_network(),
+      description: ll.settings.network_desc(),
     },
     {
       id: 'shortcuts',
@@ -197,6 +205,7 @@ export function SettingsDialog() {
                 {activeTab === 'ai' && <AIProviderSettingsCard className="border-t-0 pt-0" />}
                 {activeTab === 'engine' && <EngineSettingsTab />}
                 {activeTab === 'shortcuts' && <ShortcutsSettingsTab />}
+                {activeTab === 'network' && <NetworkSettingsTab />}
                 {activeTab === 'about' && <AboutSettingsTab />}
               </div>
             </ScrollArea>

@@ -1366,6 +1366,26 @@ type RootTranslation = {
 			 */
 			portHintAfter: string
 			/**
+			 * 全​局​默​认​网​关​ ​(​共​享​)
+			 */
+			sharedGatewayBadge: string
+			/**
+			 * 专​属​独​立​端​口
+			 */
+			customPortBadge: string
+			/**
+			 * 当​前​端​口​等​于​全​局​网​关​端​口​，​支​持​多​流​程​共​享​并​在​前​缀​附​带​ ​/​:​s​l​u​g​ ​进​行​路​径​隔​离
+			 */
+			sharedGatewayHint: string
+			/**
+			 * 独​立​端​口​独​占​监​听​，​直​接​以​根​路​径​访​问​，​无​需​ ​/​:​s​l​u​g​ ​前​缀
+			 */
+			customPortHint: string
+			/**
+			 * 对​外​生​效​访​问​地​址
+			 */
+			urlPreviewLabel: string
+			/**
 			 * 路​由​路​径​模​式​ ​(​P​a​t​h​ ​P​a​t​t​e​r​n​)
 			 */
 			pathLabel: string
@@ -7693,6 +7713,58 @@ type RootTranslation = {
 		 */
 		tab_engine: string
 		/**
+		 * 网​络​与​网​关
+		 */
+		tab_network: string
+		/**
+		 * 管​理​ ​H​T​T​P​ ​I​n​g​r​e​s​s​ ​本​地​ ​M​o​c​k​ ​服​务​全​局​网​关​端​口​、​路​径​隔​离​与​网​络​路​由​策​略
+		 */
+		network_desc: string
+		/**
+		 * 全​局​ ​I​n​g​r​e​s​s​ ​默​认​网​关​端​口
+		 */
+		ingress_gateway_port: string
+		/**
+		 * 本​地​ ​I​n​g​r​e​s​s​ ​M​o​c​k​ ​服​务​共​享​网​关​默​认​端​口​。​多​个​流​程​使​用​该​端​口​时​将​共​用​同​一​套​接​字​，​并​通​过​流​程​ ​S​l​u​g​ ​路​径​隔​离​自​动​路​由​。
+		 */
+		ingress_gateway_port_desc: string
+		/**
+		 * 常​用​端​口​预​设
+		 */
+		ingress_port_presets: string
+		/**
+		 * 网​关​访​问​路​由​地​址​预​览
+		 */
+		ingress_url_preview: string
+		/**
+		 * 路​由​路​径​规​范
+		 */
+		ingress_route_format_label: string
+		/**
+		 * 共​享​网​关​模​式
+		 */
+		ingress_shared_mode_title: string
+		/**
+		 * 当​节​点​端​口​等​于​全​局​网​关​端​口​时​，​外​部​请​求​按​流​程​ ​S​l​u​g​ ​路​径​隔​离​分​发​，​共​用​同​一​套​接​字​。
+		 */
+		ingress_shared_mode_desc: string
+		/**
+		 * 专​属​独​立​端​口​模​式
+		 */
+		ingress_custom_mode_title: string
+		/**
+		 * 当​节​点​显​式​配​置​其​他​非​默​认​端​口​时​，​单​独​启​动​专​属​ ​T​C​P​ ​监​听​器​，​直​接​以​根​路​径​直​连​访​问​。
+		 */
+		ingress_custom_mode_desc: string
+		/**
+		 * 端​口​必​须​为​ ​1​0​2​4​ ​到​ ​6​5​5​3​5​ ​之​间​的​有​效​整​数
+		 */
+		ingress_port_invalid: string
+		/**
+		 * 恢​复​默​认​ ​(​9​5​2​7​)
+		 */
+		ingress_reset_default: string
+		/**
 		 * 快​捷​键​与​手​册
 		 */
 		tab_shortcuts: string
@@ -9274,6 +9346,12 @@ type RootTranslation = {
 		 * @param {number} port
 		 */
 		ingress_listener_stopped: RequiredParams<'port'>
+		/**
+		 * 已​从​流​程​「​{​o​l​d​F​l​o​w​}​」​平​滑​切​换​监​听​至​当​前​流​程​ ​(​端​口​ ​{​p​o​r​t​}​)
+		 * @param {string} oldFlow
+		 * @param {number} port
+		 */
+		ingress_listener_switched: RequiredParams<'oldFlow' | 'port'>
 		/**
 		 * 启​动​ ​I​n​g​r​e​s​s​ ​M​o​c​k​ ​监​听
 		 */
@@ -16369,6 +16447,26 @@ export type TranslationFunctions = {
 			 */
 			portHintAfter: () => LocalizedString
 			/**
+			 * 全局默认网关 (共享)
+			 */
+			sharedGatewayBadge: () => LocalizedString
+			/**
+			 * 专属独立端口
+			 */
+			customPortBadge: () => LocalizedString
+			/**
+			 * 当前端口等于全局网关端口，支持多流程共享并在前缀附带 /:slug 进行路径隔离
+			 */
+			sharedGatewayHint: () => LocalizedString
+			/**
+			 * 独立端口独占监听，直接以根路径访问，无需 /:slug 前缀
+			 */
+			customPortHint: () => LocalizedString
+			/**
+			 * 对外生效访问地址
+			 */
+			urlPreviewLabel: () => LocalizedString
+			/**
 			 * 路由路径模式 (Path Pattern)
 			 */
 			pathLabel: () => LocalizedString
@@ -22622,6 +22720,58 @@ export type TranslationFunctions = {
 		 */
 		tab_engine: () => LocalizedString
 		/**
+		 * 网络与网关
+		 */
+		tab_network: () => LocalizedString
+		/**
+		 * 管理 HTTP Ingress 本地 Mock 服务全局网关端口、路径隔离与网络路由策略
+		 */
+		network_desc: () => LocalizedString
+		/**
+		 * 全局 Ingress 默认网关端口
+		 */
+		ingress_gateway_port: () => LocalizedString
+		/**
+		 * 本地 Ingress Mock 服务共享网关默认端口。多个流程使用该端口时将共用同一套接字，并通过流程 Slug 路径隔离自动路由。
+		 */
+		ingress_gateway_port_desc: () => LocalizedString
+		/**
+		 * 常用端口预设
+		 */
+		ingress_port_presets: () => LocalizedString
+		/**
+		 * 网关访问路由地址预览
+		 */
+		ingress_url_preview: () => LocalizedString
+		/**
+		 * 路由路径规范
+		 */
+		ingress_route_format_label: () => LocalizedString
+		/**
+		 * 共享网关模式
+		 */
+		ingress_shared_mode_title: () => LocalizedString
+		/**
+		 * 当节点端口等于全局网关端口时，外部请求按流程 Slug 路径隔离分发，共用同一套接字。
+		 */
+		ingress_shared_mode_desc: () => LocalizedString
+		/**
+		 * 专属独立端口模式
+		 */
+		ingress_custom_mode_title: () => LocalizedString
+		/**
+		 * 当节点显式配置其他非默认端口时，单独启动专属 TCP 监听器，直接以根路径直连访问。
+		 */
+		ingress_custom_mode_desc: () => LocalizedString
+		/**
+		 * 端口必须为 1024 到 65535 之间的有效整数
+		 */
+		ingress_port_invalid: () => LocalizedString
+		/**
+		 * 恢复默认 (9527)
+		 */
+		ingress_reset_default: () => LocalizedString
+		/**
 		 * 快捷键与手册
 		 */
 		tab_shortcuts: () => LocalizedString
@@ -24176,6 +24326,10 @@ export type TranslationFunctions = {
 		 * Mock 服务已停止: 端口 {port}
 		 */
 		ingress_listener_stopped: (arg: { port: number }) => LocalizedString
+		/**
+		 * 已从流程「{oldFlow}」平滑切换监听至当前流程 (端口 {port})
+		 */
+		ingress_listener_switched: (arg: { oldFlow: string, port: number }) => LocalizedString
 		/**
 		 * 启动 Ingress Mock 监听
 		 */

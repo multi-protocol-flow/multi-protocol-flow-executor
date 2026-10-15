@@ -351,7 +351,7 @@ export async function startIngressListener(
   debug: boolean,
   onEvent: (event: DebugEvent) => void,
   onLog: (event: LogEvent) => void
-): Promise<void> {
+): Promise<string | null> {
   try {
     const eventChannel = new Channel<DebugEvent>();
     eventChannel.onmessage = (event) => {
@@ -363,13 +363,14 @@ export async function startIngressListener(
       onLog(event);
     };
 
-    await invoke('start_ingress_listener', {
+    const replaced = await invoke<string | null>('start_ingress_listener', {
       port,
       flow,
       debug,
       onEvent: eventChannel,
       onLog: logChannel,
     });
+    return replaced ?? null;
   } catch (error) {
     throw formatError(error, 'start_ingress_listener');
   }

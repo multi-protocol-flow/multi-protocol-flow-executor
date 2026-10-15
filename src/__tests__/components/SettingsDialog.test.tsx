@@ -17,6 +17,19 @@ vi.mock('@/i18n/i18n-lazy', () => ({
       tab_storage: () => '存储与路径',
       tab_ai: () => 'AI 助手模型',
       tab_engine: () => '引擎与性能',
+      tab_network: () => '网络与网关',
+      network_desc: () => '管理网络与 Ingress 网关端口',
+      ingress_gateway_port: () => '全局 Ingress 默认网关端口',
+      ingress_gateway_port_desc: () => '共享网关默认端口',
+      ingress_port_presets: () => '常用端口预设',
+      ingress_route_format_label: () => '路由路径规范',
+      ingress_url_preview: () => '网关访问路由地址预览',
+      ingress_shared_mode_title: () => '共享网关模式',
+      ingress_shared_mode_desc: () => '共享网关说明',
+      ingress_custom_mode_title: () => '专属独立端口模式',
+      ingress_custom_mode_desc: () => '独立端口说明',
+      ingress_port_invalid: () => '端口无效',
+      ingress_reset_default: () => '恢复默认 (9527)',
       tab_shortcuts: () => '快捷键与手册',
       shortcuts_desc: () => '查看系统快捷键列表',
       tab_about: () => '关于与更新',
@@ -260,6 +273,18 @@ describe('SettingsDialog', () => {
     expect(screen.getByText('10s')).toBeInTheDocument();
     expect(screen.getByText('256 (推荐)')).toBeInTheDocument();
     expect(screen.getByText('2048 (推荐)')).toBeInTheDocument();
+  });
+
+  it('切换到网络 Tab 时展示 Ingress 网关端口配置与预览', () => {
+    render(<SettingsDialog />);
+
+    const networkTabBtn = screen.getByText('网络与网关');
+    fireEvent.click(networkTabBtn);
+
+    expect(screen.getByText('全局 Ingress 默认网关端口')).toBeInTheDocument();
+    expect(screen.getByText('网关访问路由地址预览')).toBeInTheDocument();
+    expect(screen.getByText('共享网关模式')).toBeInTheDocument();
+    expect(screen.getByText('专属独立端口模式')).toBeInTheDocument();
   });
 
   it('切换到 AI Tab 时展示 AI Provider 配置，点击添加 Provider 后展示快速填充预设与正确样式的保存按钮', () => {

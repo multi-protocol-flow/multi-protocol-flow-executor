@@ -42,6 +42,8 @@ export interface Settings {
   pluginMaxConcurrency?: number;
   /** 插件通信队列深度（未设置时兜底 2048） */
   pluginQueueCapacity?: number;
+  /** 全局 Ingress 默认网关端口（未设置时兜底 9527） */
+  defaultIngressPort?: number;
   /** 主题模式 */
   theme: ThemeMode;
   /** 语言区域 */
@@ -90,6 +92,8 @@ export interface SettingsState {
   pluginMaxConcurrency?: number;
   /** 插件通信队列深度 */
   pluginQueueCapacity?: number;
+  /** 全局 Ingress 默认网关端口 */
+  defaultIngressPort: number;
   /** 主题模式 */
   theme: ThemeMode;
   /** 语言区域 */
@@ -148,6 +152,8 @@ export interface SettingsActions {
   setPluginMaxConcurrency: (concurrency: number) => Promise<void>;
   /** 设置插件通信队列深度 */
   setPluginQueueCapacity: (capacity: number) => Promise<void>;
+  /** 设置全局 Ingress 默认网关端口 */
+  setDefaultIngressPort: (port: number) => Promise<void>;
   /** 打开报告目录 */
   openReportDir: () => Promise<void>;
   /** 打开日志目录 */

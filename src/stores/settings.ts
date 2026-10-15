@@ -37,6 +37,7 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
   defaultExecutionTimeoutMs: undefined,
   pluginMaxConcurrency: undefined,
   pluginQueueCapacity: undefined,
+  defaultIngressPort: 9527,
   theme: 'system' as ThemeMode,
   locale: 'en-US' as Locale,
   aiProviders: [],
@@ -64,6 +65,7 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
         defaultExecutionTimeoutMs: settings.defaultExecutionTimeoutMs,
         pluginMaxConcurrency: settings.pluginMaxConcurrency,
         pluginQueueCapacity: settings.pluginQueueCapacity,
+        defaultIngressPort: settings.defaultIngressPort ?? 9527,
         theme: settings.theme,
         locale: settings.locale,
         aiProviders: settings.aiProviders ?? [],
@@ -189,6 +191,15 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
       const service = await getSettingsService();
       await service.saveSettings({ pluginQueueCapacity: capacity });
       set({ pluginQueueCapacity: capacity });
+    } catch (e) {
+      set({ error: formatErrorMessage(e) });
+    }
+  },
+  setDefaultIngressPort: async (port: number) => {
+    try {
+      const service = await getSettingsService();
+      await service.saveSettings({ defaultIngressPort: port });
+      set({ defaultIngressPort: port });
     } catch (e) {
       set({ error: formatErrorMessage(e) });
     }

@@ -7,6 +7,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { getAppDataDir } from '@/services/tauri/settings';
 import { useSettingsStore } from '@/stores/settings';
 import type { Flow } from '@/types/flow';
+import type { Node as FlowNode } from '@/types/node';
 import { isTauriEnv } from '@/lib/platform';
 import { notifyError } from '@/lib/notify';
 import { getLL } from '@/i18n/i18n-lazy';
@@ -32,6 +33,23 @@ export interface FolderInfo {
   name: string;
   /** 文件夹相对路径 */
   path: string;
+}
+
+function cleanNode(node: FlowNode): FlowNode {
+  const n = { ...node } as Record<string, unknown>;
+  if ('has_breakpoint' in n && 'hasBreakpoint' in n) {
+    delete n.has_breakpoint;
+  }
+  return n as unknown as FlowNode;
+}
+
+function cleanFlowNodes(flow: Flow): Flow {
+  return {
+    ...flow,
+    nodes: flow.nodes.map(cleanNode),
+    setup: flow.setup ? { ...flow.setup, nodes: flow.setup.nodes.map(cleanNode) } : flow.setup,
+    teardown: flow.teardown ? { ...flow.teardown, nodes: flow.teardown.nodes.map(cleanNode) } : flow.teardown,
+  };
 }
 
 /** 后端 FlowFile 结构（包含 _version, flow, _meta） */
@@ -91,7 +109,7 @@ export const flowStorage = {
         // 提取 _meta，其余作为 flow 发送
         const { _meta, ...flowData } = flow as Flow & { _meta?: FlowMeta };
         await invoke<void>('save_flow_file', {
-          flow: flowData,
+          flow: cleanFlowNodes(flowData),
           flowsDir,
           meta: _meta ?? null,
           targetPath: targetPath ?? null,

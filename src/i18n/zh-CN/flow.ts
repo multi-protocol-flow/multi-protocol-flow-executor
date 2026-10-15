@@ -225,6 +225,7 @@ const zh_CN_flow: BaseTranslation = {
   stream_probe_binary_bytes: '[二进制 {count:number} 字节]',
   ingress_listener_started: 'Mock 服务已启动: http://127.0.0.1:{port:number}',
   ingress_listener_stopped: 'Mock 服务已停止: 端口 {port:number}',
+  ingress_listener_switched: '已从流程「{oldFlow:string}」平滑切换监听至当前流程 (端口 {port:number})',
   ingress_listener_start_hint: '启动 Ingress Mock 监听',
   ingress_listener_stop_hint: '停止 Ingress Mock 监听 (端口 {port:number})',
   debug_step_into_available: '步入子流程 (F11)',

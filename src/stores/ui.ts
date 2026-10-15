@@ -102,7 +102,7 @@ interface UIState {
   /** 是否显示设置对话框 */
   showSettingsDialog: boolean;
   /** 设置对话框激活选项卡 */
-  settingsDialogTab?: 'general' | 'storage' | 'ai' | 'engine' | 'about' | 'shortcuts';
+  settingsDialogTab?: 'general' | 'storage' | 'ai' | 'engine' | 'network' | 'about' | 'shortcuts';
   /** 是否显示插件设置对话框 */
   showPluginSettingsDialog: boolean;
   /** 右侧配置面板模式（节点配置/全局设置） */
@@ -193,11 +193,11 @@ interface UIState {
   /** 关闭删除确认对话框 */
   closeDeleteConfirmDialog: () => void;
   /** 显示设置对话框 */
-  openSettingsDialog: (tab?: 'general' | 'storage' | 'ai' | 'engine' | 'about' | 'shortcuts') => void;
+  openSettingsDialog: (tab?: 'general' | 'storage' | 'ai' | 'engine' | 'network' | 'about' | 'shortcuts') => void;
   /** 关闭设置对话框 */
   closeSettingsDialog: () => void;
   /** 设置设置对话框激活选项卡 */
-  setSettingsDialogTab: (tab: 'general' | 'storage' | 'ai' | 'engine' | 'about' | 'shortcuts') => void;
+  setSettingsDialogTab: (tab: 'general' | 'storage' | 'ai' | 'engine' | 'network' | 'about' | 'shortcuts') => void;
   /** 显示插件设置对话框 */
   openPluginSettingsDialog: () => void;
   /** 关闭插件设置对话框 */
@@ -351,7 +351,7 @@ const initialState = {
   showDeleteConfirmDialog: false,
   pendingDeleteFlowUuid: null,
   showSettingsDialog: false,
-  settingsDialogTab: 'general' as 'general' | 'storage' | 'ai' | 'engine' | 'about' | 'shortcuts',
+  settingsDialogTab: 'general' as 'general' | 'storage' | 'ai' | 'engine' | 'network' | 'about' | 'shortcuts',
   showPluginSettingsDialog: false,
   configPanelMode: 'node' as ConfigPanelMode,
   showStressTestConfigDialog: false,
@@ -465,10 +465,10 @@ export const useUIStore = create<UIState>((set, get) => ({
       pendingDeleteFlowUuid: null,
     }),
 
-  openSettingsDialog: (tab?: 'general' | 'storage' | 'ai' | 'engine' | 'about' | 'shortcuts') =>
+  openSettingsDialog: (tab?: 'general' | 'storage' | 'ai' | 'engine' | 'network' | 'about' | 'shortcuts') =>
     set({
       showSettingsDialog: true,
-      settingsDialogTab: (typeof tab === 'string' && ['general', 'storage', 'ai', 'engine', 'about', 'shortcuts'].includes(tab)) ? tab : 'general',
+      settingsDialogTab: (typeof tab === 'string' && ['general', 'storage', 'ai', 'engine', 'network', 'about', 'shortcuts'].includes(tab)) ? tab : 'general',
     }),
 
   closeSettingsDialog: () => set({ showSettingsDialog: false }),

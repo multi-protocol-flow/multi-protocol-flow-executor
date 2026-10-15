@@ -224,6 +224,7 @@ const en_US_flow = {
   stream_probe_binary_bytes: '[Binary {count:number} bytes]',
   ingress_listener_started: 'Mock server listening at http://127.0.0.1:{port:number}',
   ingress_listener_stopped: 'Mock server stopped on port {port:number}',
+  ingress_listener_switched: 'Switched Ingress listener from "{oldFlow:string}" to current flow (port {port:number})',
   ingress_listener_start_hint: 'Start Ingress mock listener',
   ingress_listener_stop_hint: 'Stop Ingress mock listener (port {port:number})',
   debug_step_into_available: 'Step into subflow (F11)',

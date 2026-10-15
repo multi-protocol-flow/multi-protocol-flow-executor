@@ -123,7 +123,7 @@ export function CanvasToolbar() {
         const port = configuredIngressPort;
         // 流程含断点时以调试模式启动：外部请求挂起等待人工单步，直到 http:respond 执行
         const useDebug = flow.nodes.some((n) => n.hasBreakpoint === true);
-        await startIngressListener(
+        const replacedFlowName = await startIngressListener(
           port,
           flow,
           useDebug,
@@ -131,7 +131,16 @@ export function CanvasToolbar() {
           (logEvent) => useConsoleStore.getState().addLog(logEvent)
         );
         setListeningPort(port);
-        toast.success(ll.flow.ingress_listener_started({ port }));
+        if (replacedFlowName && replacedFlowName !== flow.name) {
+          toast.success(
+            ll.flow.ingress_listener_switched({
+              oldFlow: replacedFlowName,
+              port,
+            })
+          );
+        } else {
+          toast.success(ll.flow.ingress_listener_started({ port }));
+        }
       }
     } catch (err) {
       toast.error(String(err));
