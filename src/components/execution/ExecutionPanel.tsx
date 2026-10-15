@@ -341,7 +341,7 @@ const NodeOutputPane = memo(function NodeOutputPane({
     // 只有在流程停止执行，或用户主动手动点击了某个具体节点时，才按需拉取冷通道详情
     if (!isExecuting || !autoTrackingRef.current) {
       if (nodeUuid && report?.is_detail_stripped) {
-        const flowUuid = useFlowStore.getState().flow?.uuid;
+        const flowUuid = useExecutionStore.getState().activeFlowUuid || useFlowStore.getState().flow?.uuid;
         if (flowUuid) {
           void useExecutionStore.getState().fetchNodeDetail(flowUuid, nodeUuid);
         }

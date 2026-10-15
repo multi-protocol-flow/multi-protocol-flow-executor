@@ -929,29 +929,35 @@ export const useDebugStore = create<DebugState>((set, get) => ({
       }));
     } else if ('GrpcMethodCalled' in event) {
       const { connection_id, node_uuid, service, method, pattern, duration_ms } = event.GrpcMethodCalled;
-      set((state) => ({
-        grpcMethodCalls: {
-          ...state.grpcMethodCalls,
-          [connection_id]: [
-            ...(state.grpcMethodCalls[connection_id] || []),
-            { node_uuid, service, method, pattern, duration_ms },
-          ],
-        },
-      }));
+      set((state) => {
+        const prev = state.grpcMethodCalls[connection_id] || [];
+        const next = prev.length >= 1000
+          ? [...prev.slice(prev.length - 999), { node_uuid, service, method, pattern, duration_ms }]
+          : [...prev, { node_uuid, service, method, pattern, duration_ms }];
+        return {
+          grpcMethodCalls: {
+            ...state.grpcMethodCalls,
+            [connection_id]: next,
+          },
+        };
+      });
     } else if ('GrpcChannelClosed' in event) {
       // gRPC 通道关闭 — 保留连接信息用于查看，不删除
     } else if ('GrpcStreamMessage' in event) {
-      // gRPC 实时流式消息
+      // gRPC 实时流式消息（最多保留 1000 条，防止无界占用内存）
       const msg = event.GrpcStreamMessage;
-      set((state) => ({
-        grpcStreamMessages: {
-          ...state.grpcStreamMessages,
-          [msg.call_id]: [
-            ...(state.grpcStreamMessages[msg.call_id] || []),
-            msg,
-          ],
-        },
-      }));
+      set((state) => {
+        const prev = state.grpcStreamMessages[msg.call_id] || [];
+        const next = prev.length >= 1000
+          ? [...prev.slice(prev.length - 999), msg]
+          : [...prev, msg];
+        return {
+          grpcStreamMessages: {
+            ...state.grpcStreamMessages,
+            [msg.call_id]: next,
+          },
+        };
+      });
     } else if ('GrpcStreamError' in event) {
       // gRPC 实时流式错误
       const err = event.GrpcStreamError;

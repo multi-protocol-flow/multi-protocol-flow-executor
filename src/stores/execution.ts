@@ -312,8 +312,10 @@ export const useExecutionStore = create<ExecutionState>((set, get) => {
         }
         queueEventUpdate({ currentNodeUuid: nodeUuid });
         // 自动跟随节点切换画布阶段（Setup / Main / Teardown）
+        // 仅当当前画布展示的流程与执行中的流程一致时才自动切换阶段，避免后台流程篡改前台新流程的画布
         const flowState = useFlowStore.getState();
-        if (flowState.flow) {
+        const activeFlowUuid = get().activeFlowUuid;
+        if (flowState.flow && (!activeFlowUuid || activeFlowUuid === flowState.flow.uuid || activeFlowUuid.startsWith('slice-'))) {
           const stage = getNodeStage(flowState.flow, nodeUuid);
           if (stage && stage !== flowState.activeStage) {
             flowState.setActiveStage(stage);
