@@ -15,6 +15,8 @@ pub const EXIT_SUCCESS: i32 = 0;
 pub const EXIT_FAILURE: i32 = 1;
 /// CLI exit code: invalid arguments
 pub const EXIT_INVALID_ARGS: i32 = 2;
+/// CLI exit code: infrastructure timeout / unreachable (retryable)
+pub const EXIT_INFRA_TIMEOUT: i32 = 3;
 
 // ── Unified output struct ───────────────────────────────────────────
 

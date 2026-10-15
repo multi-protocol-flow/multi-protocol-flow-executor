@@ -41,6 +41,7 @@ pub async fn execute(
     no_report: bool,
     report_format: &str,
     report_file: Option<&std::path::Path>,
+    summary_file: Option<&std::path::Path>,
     registry: Arc<flow_engine::registry::NodeRegistry>,
     plugin_manager: super::PluginManagerHandle,
     cancel_rx: tokio::sync::watch::Receiver<bool>,
@@ -166,6 +167,17 @@ pub async fn execute(
                 e
             ))
         })?;
+    }
+
+    // Export GitHub Actions Step Summary (--summary / GITHUB_STEP_SUMMARY)
+    if let Some(ref flow_report) = result.flow_report {
+        if let Err(e) = super::summary::write_step_summary_if_requested(
+            flow_report,
+            env,
+            summary_file,
+        ) {
+            eprintln!("Failed to write step summary: {}", e);
+        }
     }
 
     // Save report

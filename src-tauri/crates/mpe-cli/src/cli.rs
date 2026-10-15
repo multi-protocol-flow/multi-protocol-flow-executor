@@ -18,6 +18,8 @@ pub mod run_node;
 pub mod stress;
 pub mod validate;
 pub mod variables;
+pub mod summary;
+pub mod serve;
 
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -48,6 +50,8 @@ pub enum CliError {
     InvalidArgs(String),
     /// I/O error
     Io(String),
+    /// Infrastructure timeout / unreachable error (retryable)
+    InfraTimeout(String),
 }
 
 impl CliError {
@@ -75,6 +79,7 @@ impl std::fmt::Display for CliError {
             CliError::Execution { message, .. } => write!(f, "Execution error: {}", message),
             CliError::InvalidArgs(msg) => write!(f, "Invalid arguments: {}", msg),
             CliError::Io(msg) => write!(f, "I/O error: {}", msg),
+            CliError::InfraTimeout(msg) => write!(f, "Infrastructure timeout / unreachable: {}", msg),
         }
     }
 }
@@ -82,6 +87,22 @@ impl From<std::io::Error> for CliError {
     fn from(e: std::io::Error) -> Self {
         CliError::Io(e.to_string())
     }
+}
+
+/// Detect if error message corresponds to an infrastructure timeout / unreachable error (retryable)
+pub(crate) fn is_infra_error(msg: &str) -> bool {
+    let lower = msg.to_lowercase();
+    lower.contains("econnrefused")
+        || lower.contains("connection refused")
+        || lower.contains("dns error")
+        || lower.contains("dns resolution failed")
+        || lower.contains("broker unreachable")
+        || lower.contains("timed out")
+        || lower.contains("connection timed out")
+        || lower.contains("connect timeout")
+        || lower.contains("timeout expired")
+        || lower.contains("network unreachable")
+        || lower.contains("host unreachable")
 }
 
 /// Parse --var key=value pair into (String, String) tuple
@@ -137,6 +158,27 @@ pub enum Commands {
         /// Export execution report to this file path
         #[arg(long)]
         report_file: Option<std::path::PathBuf>,
+        /// Export GitHub Actions Step Summary markdown to this file path
+        #[arg(long)]
+        summary: Option<std::path::PathBuf>,
+    },
+    /// Start long-running HTTP Ingress mock server
+    Serve {
+        /// Flow file path (.mpf or .yaml) or directory containing flows
+        #[arg(short, long)]
+        flow: String,
+        /// Override listening port
+        #[arg(short, long)]
+        port: Option<u16>,
+        /// Environment name
+        #[arg(short = 'e', long = "env")]
+        env: Option<String>,
+        /// Variable overrides (KEY=VALUE)
+        #[arg(long, value_name = "KEY=VALUE")]
+        var: Vec<String>,
+        /// Graceful shutdown timeout in seconds
+        #[arg(long, default_value = "15")]
+        graceful_timeout: u64,
     },
     /// Validate a flow
     Validate {
@@ -358,6 +400,13 @@ pub enum FlowCommands {
         #[arg(long)]
         all: bool,
     },
+    /// Convert between standard Flow (.mpf) and declarative YAML DSL
+    Convert {
+        /// Input file path (.mpf or .yaml)
+        input: String,
+        /// Output file path (.yaml or .mpf)
+        output: String,
+    },
 }
 
 /// Flow editing subcommand enumeration
@@ -578,6 +627,7 @@ async fn async_main() -> Result<(), CliError> {
             no_report,
             report_format,
             report_file,
+            summary,
         } => {
             let (registry, plugin_manager) = build_shared_registry().await;
             run::execute(
@@ -589,8 +639,29 @@ async fn async_main() -> Result<(), CliError> {
                 no_report,
                 &report_format,
                 report_file.as_deref(),
+                summary.as_deref(),
                 registry,
                 plugin_manager,
+                cancel_rx,
+            )
+            .await
+        }
+        Commands::Serve {
+            flow,
+            port,
+            env,
+            var,
+            graceful_timeout,
+        } => {
+            let (registry, _plugin_manager) = build_shared_registry().await;
+            serve::execute(
+                &cli.format,
+                &flow,
+                port,
+                env,
+                &var,
+                graceful_timeout,
+                registry,
                 cancel_rx,
             )
             .await
@@ -793,13 +864,32 @@ pub fn run_cli() -> i32 {
             output::output_error(msg);
             output::EXIT_INVALID_ARGS
         }
-        Err(CliError::Execution { message, data }) => {
-            output::output_error_with_data(message, data);
-            output::EXIT_FAILURE
+        Err(CliError::InfraTimeout(msg)) => {
+            output::output_error(msg);
+            output::EXIT_INFRA_TIMEOUT
         }
-        Err(e) => {
-            output::output_error(e.to_string());
-            output::EXIT_FAILURE
+        Err(CliError::Config(msg)) => {
+            output::output_error(format!("Configuration error: {}", msg));
+            output::EXIT_INVALID_ARGS
+        }
+        Err(CliError::Io(msg)) => {
+            output::output_error(format!("I/O error: {}", msg));
+            output::EXIT_INVALID_ARGS
+        }
+        Err(CliError::Execution { message, data }) => {
+            if message.contains("Failed to load environment")
+                || message.contains("Failed to load flow")
+                || message.contains("Environment file not found")
+            {
+                output::output_error_with_data(message, data);
+                output::EXIT_INVALID_ARGS
+            } else if is_infra_error(&message) {
+                output::output_error_with_data(message, data);
+                output::EXIT_INFRA_TIMEOUT
+            } else {
+                output::output_error_with_data(message, data);
+                output::EXIT_FAILURE
+            }
         }
     }
 }

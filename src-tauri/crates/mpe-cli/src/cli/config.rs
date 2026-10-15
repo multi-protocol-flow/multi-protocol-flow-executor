@@ -32,6 +32,9 @@ struct ConfigFile {
     /// Plugin-related configuration
     #[serde(default)]
     plugins: PluginConfig,
+    /// Server-related configuration
+    #[serde(default)]
+    server: ServerConfig,
 }
 
 /// Plugin configuration from config file
@@ -43,6 +46,14 @@ struct PluginConfig {
     /// Queue capacity
     #[serde(default)]
     queue_capacity: Option<usize>,
+}
+
+/// Server configuration from config file
+#[derive(Debug, Default, Deserialize)]
+struct ServerConfig {
+    /// Default Ingress gateway port
+    #[serde(default)]
+    port: Option<u16>,
 }
 
 /// Storage configuration from config file
@@ -79,6 +90,8 @@ pub struct AppConfig {
     pub environments_dir: PathBuf,
     /// Plugin connection configuration
     pub plugin_connection_config: flow_engine::ConnectionConfig,
+    /// Default Ingress gateway port
+    pub ingress_port: u16,
 }
 
 impl AppConfig {
@@ -159,12 +172,25 @@ impl AppConfig {
             plugin_connection_config.queue_capacity = queue_cap;
         }
 
+        let ingress_port = std::env::var("MPE_INGRESS_PORT")
+            .ok()
+            .and_then(|v| v.parse::<u16>().ok())
+            .filter(|&p| p > 0)
+            .or_else(|| {
+                config_file
+                    .as_ref()
+                    .and_then(|c| c.server.port)
+                    .filter(|&p| p > 0)
+            })
+            .unwrap_or(flow_engine::ingress::DEFAULT_GATEWAY_PORT);
+
         Ok(AppConfig {
             flows_dir,
             reports_dir,
             plugins_dir,
             environments_dir,
             plugin_connection_config,
+            ingress_port,
         })
     }
 

@@ -25,6 +25,9 @@ pub async fn execute(_format: &str, command: FlowCommands) -> Result<(), CliErro
             to,
             all,
         } => execute_fmt(path_or_uuid.as_deref(), &to, all, _format).await,
+        FlowCommands::Convert { input, output } => {
+            execute_convert(&input, &output, _format).await
+        }
     }
 }
 
@@ -137,6 +140,75 @@ async fn execute_fmt(
         let output = CliOutput::success(result);
         super::output::output_json(&output);
     }
+    Ok(())
+}
+
+/// Convert between standard Flow (.mpf) and declarative YAML DSL
+async fn execute_convert(
+    input: &str,
+    output: &str,
+    format_output: &str,
+) -> Result<(), CliError> {
+    let in_path = Path::new(input);
+    if !in_path.is_file() {
+        return Err(CliError::InvalidArgs(format!(
+            "Input file '{}' does not exist",
+            input
+        )));
+    }
+
+    let content = std::fs::read_to_string(in_path)
+        .map_err(|e| CliError::Io(format!("Failed to read '{}': {}", input, e)))?;
+
+    let out_lower = output.to_lowercase();
+    let is_output_yaml = out_lower.ends_with(".yaml") || out_lower.ends_with(".yml");
+
+    let output_content = if is_output_yaml {
+        let flow_file = flow_engine::storage::deserialize_flow_file(&content)
+            .map_err(CliError::InvalidArgs)?;
+        let decl = flow_file.flow.to_declarative();
+        decl.to_yaml().map_err(CliError::InvalidArgs)?
+    } else {
+        let flow_file = flow_engine::storage::deserialize_flow_file(&content)
+            .map_err(CliError::InvalidArgs)?;
+        flow_engine::storage::serialize_flow_file(
+            &flow_file,
+            flow_engine::storage::FlowFormat::Json,
+        )
+        .map_err(CliError::InvalidArgs)?
+    };
+
+    if let Some(parent) = Path::new(output).parent() {
+        if !parent.as_os_str().is_empty() && !parent.exists() {
+            std::fs::create_dir_all(parent).map_err(|e| {
+                CliError::Io(format!("Failed to create directory for '{}': {}", output, e))
+            })?;
+        }
+    }
+
+    std::fs::write(output, output_content)
+        .map_err(|e| CliError::Io(format!("Failed to write '{}': {}", output, e)))?;
+
+    #[derive(serde::Serialize)]
+    struct ConvertResult {
+        input: String,
+        output: String,
+        status: String,
+    }
+
+    let result = ConvertResult {
+        input: input.to_string(),
+        output: output.to_string(),
+        status: "converted".to_string(),
+    };
+
+    if format_output == "table" {
+        println!("Successfully converted '{}' -> '{}'", input, output);
+    } else {
+        let output_json = CliOutput::success(result);
+        super::output::output_json(&output_json);
+    }
+
     Ok(())
 }
 
