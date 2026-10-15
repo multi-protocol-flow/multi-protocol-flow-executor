@@ -7,7 +7,8 @@ pub mod server;
 pub use plugin_ingress::HttpIngressPlugin;
 pub use plugin_respond::HttpRespondPlugin;
 pub use server::{
-    start_ingress_server, IngressDebugLauncher, IngressListenerConfig, IngressManager,
-    IngressRequest, IngressResponseChannel, IngressResponsePayload, IngressServerHandle,
-    INGRESS_RESPONSE_PROVIDER,
+    extract_flow_slug, start_ingress_server, IngressDebugLauncher, IngressListenerConfig,
+    IngressManager, IngressMountPlan, IngressRequest, IngressResponseChannel,
+    IngressResponsePayload, IngressRoute, IngressRouter, IngressServerHandle, RouteMatchResult,
+    DEFAULT_GATEWAY_PORT, INGRESS_RESPONSE_PROVIDER,
 };

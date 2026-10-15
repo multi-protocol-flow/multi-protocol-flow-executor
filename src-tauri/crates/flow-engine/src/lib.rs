@@ -124,6 +124,7 @@ pub use flow_engine_executor::dataset_executor;
 
 // Ingress 流程级 Mock 服务模块
 pub use flow_engine_executor::ingress;
+pub use flow_engine_executor::subgraph_runner;
 
 // Re-exports
 pub use traits::{

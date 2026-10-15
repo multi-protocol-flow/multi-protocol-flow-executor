@@ -2527,7 +2527,7 @@ pub async fn start_ingress_listener(
     ingress_manager: State<'_, Arc<flow_engine::ingress::IngressManager>>,
     debug_state: State<'_, Arc<tokio::sync::Mutex<DebugSessionManager>>>,
     node_registry: State<'_, NodeRegistryState>,
-) -> Result<(), String> {
+) -> Result<Option<String>, String> {
     let registry = node_registry.snapshot().registry.clone();
 
     let (debug_launcher, request_timeout) = if debug {
@@ -2546,11 +2546,18 @@ pub async fn start_ingress_listener(
         (None, Duration::from_secs(60))
     };
 
+    let plan = flow_engine::ingress::IngressRouter::plan_from_flows(
+        &[flow.clone()],
+        Some(port),
+    )?;
+    let router = plan.port_routers.get(&port).cloned();
+
     ingress_manager
         .start_listener(
             port,
             flow_engine::ingress::IngressListenerConfig {
                 flow,
+                router,
                 registry,
                 debug_launcher,
                 request_timeout,

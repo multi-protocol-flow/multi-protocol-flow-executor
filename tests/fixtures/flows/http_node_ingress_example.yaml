@@ -1,0 +1,29 @@
+version: 1
+name: http-node-example
+slug: http-node-example
+setup:
+  - id: setup-init
+    type: script
+    name: Setup Init
+    script: "fn.variables.set('init_var', 'ready'); fn.console.log('Ingress Setup Finished');"
+main:
+  - id: ingress-node
+    type: http:ingress
+    name: Webhook Ingress
+    port: 9527
+    path_pattern: "/webhook"
+    methods:
+      - POST
+    next: respond-node
+  - id: respond-node
+    type: http:respond
+    name: Webhook Respond
+    status_code: 200
+    headers:
+      Content-Type: application/json
+    body: '{"status":"ok"}'
+teardown:
+  - id: teardown-cleanup
+    type: script
+    name: Teardown Cleanup
+    script: "fn.console.log('Ingress Teardown Finished');"

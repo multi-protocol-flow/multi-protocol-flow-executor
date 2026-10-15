@@ -62,24 +62,361 @@ pub trait IngressDebugLauncher: Send + Sync {
     async fn launch(&self, request: IngressRequest) -> Result<(), String>;
 }
 
+/// 全局默认共享网关端口
+pub const DEFAULT_GATEWAY_PORT: u16 = 9527;
+
+/// 流程 Ingress 单条路由定义
+#[derive(Debug, Clone)]
+pub struct IngressRoute {
+    /// 目标流程完整定义
+    pub flow: Flow,
+    /// 共享网关前缀（如 Some("stripe-pay")），专属独立端口为 None
+    pub route_prefix: Option<String>,
+    /// 备用前缀（如同时支持流程名 Slug 与 UUID Slug）
+    pub alt_prefix: Option<String>,
+    /// 匹配路径模式（如 /*, /webhook 等）
+    pub path_pattern: String,
+    /// 允许的 HTTP 方法列表（空表示全部允许）
+    pub methods: Vec<String>,
+}
+
+/// 路由匹配结果
+#[derive(Debug)]
+pub enum RouteMatchResult<'a> {
+    /// 匹配成功，返回目标 Flow 引用及剥离网关前缀后的相对路径
+    Found(&'a Flow, String),
+    /// 路径匹配但 HTTP 方法不被允许
+    MethodNotAllowed,
+    /// 未找到匹配的路由
+    NotFound,
+}
+
+/// Ingress 路由表，支持多 Flow 挂载与路径隔离
+#[derive(Debug, Clone, Default)]
+pub struct IngressRouter {
+    /// 路由列表
+    pub routes: Vec<IngressRoute>,
+}
+
+impl IngressRouter {
+    /// 创建空路由表
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// 添加一条路由
+    pub fn add_route(&mut self, route: IngressRoute) {
+        self.routes.push(route);
+    }
+
+    /// 匹配外部请求（支持共享网关前缀剥离与独立端口直连）
+    pub fn match_request<'a>(&'a self, path: &str, method: &str) -> RouteMatchResult<'a> {
+        let mut path_matched_but_method_failed = false;
+
+        // 1. 前缀路由匹配（如 /demo-http-testing/a 或 /http-node-example-flow/a）
+        for route in &self.routes {
+            if let Some(prefix) = &route.route_prefix {
+                let clean_prefix = prefix.trim_matches('/');
+                let segments: Vec<&str> = path.split('/').filter(|s| !s.is_empty()).collect();
+                if let Some(first) = segments.first() {
+                    let matches_prefix = *first == clean_prefix
+                        || route
+                            .alt_prefix
+                            .as_deref()
+                            .map(|alt| *first == alt.trim_matches('/'))
+                            .unwrap_or(false);
+
+                    if matches_prefix {
+                        let remaining = if segments.len() > 1 {
+                            format!("/{}", segments[1..].join("/"))
+                        } else {
+                            "/".to_string()
+                        };
+
+                        if matches_path(&route.path_pattern, &remaining) {
+                            if route.methods.is_empty()
+                                || route.methods.iter().any(|m| m.eq_ignore_ascii_case(method))
+                            {
+                                return RouteMatchResult::Found(&route.flow, remaining);
+                            } else {
+                                path_matched_but_method_failed = true;
+                            }
+                        }
+                    }
+                }
+            } else {
+                // 专属独立端口：无前缀，直接以根路径匹配
+                if matches_path(&route.path_pattern, path) {
+                    if route.methods.is_empty()
+                        || route.methods.iter().any(|m| m.eq_ignore_ascii_case(method))
+                    {
+                        return RouteMatchResult::Found(&route.flow, path.to_string());
+                    } else {
+                        path_matched_but_method_failed = true;
+                    }
+                }
+            }
+        }
+
+        // 2. 根路径直连兜底匹配（若客户端未加前缀直接请求具体路径，如直接访问 /a）
+        let allow_wildcard_fallback = self.routes.len() == 1
+            || {
+                let first_uuid = self.routes.first().map(|r| &r.flow.uuid);
+                self.routes.iter().all(|r| Some(&r.flow.uuid) == first_uuid)
+            };
+
+        for route in &self.routes {
+            let is_wildcard = route.path_pattern == "/*" || route.path_pattern == "*";
+            if (!is_wildcard || allow_wildcard_fallback) && matches_path(&route.path_pattern, path) {
+                if route.methods.is_empty()
+                    || route.methods.iter().any(|m| m.eq_ignore_ascii_case(method))
+                {
+                    return RouteMatchResult::Found(&route.flow, path.to_string());
+                } else {
+                    path_matched_but_method_failed = true;
+                }
+            }
+        }
+        if path_matched_but_method_failed {
+            RouteMatchResult::MethodNotAllowed
+        } else {
+            RouteMatchResult::NotFound
+        }
+    }
+
+    /// 批量分析流程中的 `http:ingress` 节点，按共享网关与专属端口规划路由表
+    pub fn plan_from_flows(
+        flows: &[Flow],
+        default_port_override: Option<u16>,
+    ) -> Result<IngressMountPlan, String> {
+        let default_port = default_port_override.unwrap_or(DEFAULT_GATEWAY_PORT);
+        let mut port_routers: HashMap<u16, IngressRouter> = HashMap::new();
+        let mut mounted_routes = Vec::new();
+        let mut seen_slugs: HashMap<u16, std::collections::HashSet<String>> = HashMap::new();
+        let mut custom_port_flows: HashMap<u16, (String, String)> = HashMap::new();
+
+        for flow in flows {
+            let ingress_nodes: Vec<_> = flow
+                .nodes
+                .iter()
+                .filter(|n| {
+                    n.node_type == "http:ingress"
+                        || n.node_type == flow_engine_core::node_types::HTTP_INGRESS
+                })
+                .collect();
+
+            if ingress_nodes.is_empty() {
+                continue;
+            }
+
+            let mut flow_port_slug: HashMap<u16, (String, Option<String>)> = HashMap::new();
+
+            for node in ingress_nodes {
+                let (cfg_port, path_pattern, methods) = match &node.data {
+                    NodeData::HttpIngress(cfg) => (
+                        cfg.port,
+                        if cfg.path_pattern.is_empty() {
+                            "/*".to_string()
+                        } else {
+                            cfg.path_pattern.clone()
+                        },
+                        cfg.methods.clone(),
+                    ),
+                    _ => (0, "/*".to_string(), vec![]),
+                };
+
+                let effective_port = if cfg_port == 0 || cfg_port == DEFAULT_GATEWAY_PORT || cfg_port == default_port {
+                    default_port
+                } else {
+                    cfg_port
+                };
+                let is_shared_gateway = effective_port == default_port;
+
+                let (base_slug, alt_slug) = extract_flow_slug(flow);
+                let (route_prefix, alt_prefix) = if is_shared_gateway {
+                    let (slug, alt) = if let Some(assigned) = flow_port_slug.get(&effective_port) {
+                        assigned.clone()
+                    } else {
+                        let port_slugs = seen_slugs.entry(effective_port).or_default();
+                        let short_uuid = if flow.uuid.len() >= 6 {
+                            flow_engine_core::dsl::slugify(&flow.uuid[..6])
+                        } else {
+                            flow_engine_core::dsl::slugify(&flow.uuid)
+                        };
+
+                        // 循环探测确保前缀绝对全局唯一，杜绝哈希或同名碰撞
+                        let mut resolved_slug = base_slug.clone();
+                        let mut counter = 2;
+                        while port_slugs.contains(&resolved_slug) {
+                            let candidate = if !short_uuid.is_empty() {
+                                format!("{}-{}", base_slug, short_uuid)
+                            } else {
+                                format!("{}-{}", base_slug, counter)
+                            };
+                            if !port_slugs.contains(&candidate) {
+                                resolved_slug = candidate;
+                                break;
+                            }
+                            resolved_slug = format!("{}-{}-{}", base_slug, short_uuid, counter);
+                            counter += 1;
+                        }
+
+                        port_slugs.insert(resolved_slug.clone());
+
+                        // 仅当 alt_slug 未被其他流程的主路由占用时才作为别名挂载，防止路由覆盖
+                        let safe_alt_slug = alt_slug.filter(|alt| !port_slugs.contains(alt));
+                        if let Some(ref a) = safe_alt_slug {
+                            port_slugs.insert(a.clone());
+                        }
+
+                        let pair = (resolved_slug.clone(), safe_alt_slug);
+                        flow_port_slug.insert(effective_port, pair.clone());
+                        pair
+                    };
+                    (Some(slug), alt)
+                } else {
+                    if let Some((existing_uuid, existing_name)) = custom_port_flows.get(&effective_port) {
+                        if existing_uuid != &flow.uuid {
+                            return Err(format!(
+                                "Custom port {} conflict: used by flow '{}' ({}) and flow '{}' ({})",
+                                effective_port, existing_name, existing_uuid, flow.name, flow.uuid
+                            ));
+                        }
+                    } else {
+                        custom_port_flows.insert(effective_port, (flow.uuid.clone(), flow.name.clone()));
+                    }
+                    (None, None)
+                };
+
+                let route = IngressRoute {
+                    flow: flow.clone(),
+                    route_prefix: route_prefix.clone(),
+                    alt_prefix,
+                    path_pattern,
+                    methods,
+                };
+
+                mounted_routes.push((flow.name.clone(), effective_port, route_prefix));
+                port_routers
+                    .entry(effective_port)
+                    .or_default()
+                    .routes
+                    .push(route);
+            }
+        }
+
+        Ok(IngressMountPlan {
+            port_routers,
+            mounted_routes,
+        })
+    }
+}
+
+/// 路由挂载规划结果
+#[derive(Debug)]
+pub struct IngressMountPlan {
+    /// 各端口对应的 `IngressRouter`
+    pub port_routers: HashMap<u16, IngressRouter>,
+    /// 成功挂载的流程及路由前缀信息：(`flow_name`, `port`, `route_prefix`)
+    pub mounted_routes: Vec<(String, u16, Option<String>)>,
+}
+
+/// 提取流程的路由 Slug 标识
+pub fn extract_flow_slug(flow: &Flow) -> (String, Option<String>) {
+    let name_slug = flow_engine_core::dsl::slugify(&flow.name);
+    let uuid_clean = if !flow.uuid.is_empty()
+        && !flow.uuid.contains(' ')
+        && flow.uuid.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+        && flow.uuid.len() <= 36
+    {
+        Some(flow.uuid.to_lowercase())
+    } else if flow.uuid.len() >= 8 {
+        Some(flow_engine_core::dsl::slugify(&flow.uuid[..8]))
+    } else {
+        None
+    };
+
+    if !name_slug.is_empty() {
+        if let Some(ref u) = uuid_clean {
+            if u != &name_slug {
+                return (name_slug, Some(u.clone()));
+            }
+        }
+        (name_slug, None)
+    } else if let Some(u) = uuid_clean {
+        (u, None)
+    } else {
+        ("flow".to_string(), None)
+    }
+}
+
 /// Ingress 监听器配置
 pub struct IngressListenerConfig {
-    /// 被监听的流程
+    /// 被监听的流程（单流程监听模式）
     pub flow: Flow,
+    /// 路由表（多 Flow 挂载共享网关时优先使用）
+    pub router: Option<IngressRouter>,
     /// 节点注册表
     pub registry: Arc<NodeRegistry>,
     /// 调试启动器；为 `None` 时该端口的请求走普通执行
     pub debug_launcher: Option<Arc<dyn IngressDebugLauncher>>,
     /// 客户端等待响应的上限
-    ///
-    /// 普通执行按 60s 兜底；调试模式需放宽（等待人工单步），由调用方给定。
     pub request_timeout: Duration,
+}
+
+impl IngressListenerConfig {
+    /// 创建单流程监听配置
+    pub fn new(
+        flow: Flow,
+        registry: Arc<NodeRegistry>,
+        debug_launcher: Option<Arc<dyn IngressDebugLauncher>>,
+        request_timeout: Duration,
+    ) -> Self {
+        Self {
+            flow,
+            router: None,
+            registry,
+            debug_launcher,
+            request_timeout,
+        }
+    }
+
+    /// 对外部请求进行路由决议
+    pub fn match_route<'a>(&'a self, path: &str, method: &str) -> RouteMatchResult<'a> {
+        if let Some(router) = &self.router {
+            return router.match_request(path, method);
+        }
+
+        let ingress_node = self.flow.nodes.iter().find(|n| {
+            n.node_type == "http:ingress"
+                || n.node_type == flow_engine_core::node_types::HTTP_INGRESS
+        });
+
+        if let Some(node) = ingress_node {
+            if let NodeData::HttpIngress(cfg) = &node.data {
+                if !matches_path(&cfg.path_pattern, path) {
+                    return RouteMatchResult::NotFound;
+                }
+                if !cfg.methods.is_empty()
+                    && !cfg.methods.iter().any(|m| m.eq_ignore_ascii_case(method))
+                {
+                    return RouteMatchResult::MethodNotAllowed;
+                }
+            }
+        }
+
+        RouteMatchResult::Found(&self.flow, path.to_string())
+    }
 }
 
 /// Ingress 监听服务句柄
 pub struct IngressServerHandle {
     /// 监听端口
     pub port: u16,
+    /// 监听流程 UUID
+    pub flow_uuid: String,
+    /// 监听流程名称
+    pub flow_name: String,
     /// 停止信号发送端
     shutdown_tx: Option<oneshot::Sender<()>>,
     /// accept 循环任务句柄（用于停止时等待端口真正释放）
@@ -127,36 +464,83 @@ const INGRESS_SHUTDOWN_TIMEOUT: Duration = Duration::from_secs(2);
 #[derive(Default)]
 pub struct IngressManager {
     servers: Mutex<HashMap<u16, IngressServerHandle>>,
+    op_lock: Mutex<()>,
 }
-
 impl IngressManager {
     /// 创建新的 Ingress 管理器
     pub fn new() -> Self {
         Self {
             servers: Mutex::new(HashMap::new()),
+            op_lock: Mutex::new(()),
         }
     }
 
-    /// 启动指定端口的 Ingress 监听服务
+    /// 启动指定端口的 Ingress 监听服务。
+    /// 若该端口已有其它流程在监听，自动平滑停止旧流程并接管端口（返回 Some(old_flow_name)），
+    /// 杜绝端口互踩报错，实现焦点自动接管。
     pub async fn start_listener(
         &self,
         port: u16,
         config: IngressListenerConfig,
-    ) -> Result<(), String> {
-        let mut servers = self.servers.lock().await;
-        if servers.contains_key(&port) {
-            return Err(format!("Port {port} is already listening"));
+    ) -> Result<Option<String>, String> {
+        let _guard = self.op_lock.lock().await;
+        let (replaced_flow_name, old_handle) = {
+            let mut servers = self.servers.lock().await;
+            if let Some(existing) = servers.remove(&port) {
+                (Some(existing.flow_name.clone()), Some(existing))
+            } else {
+                (None, None)
+            }
+        };
+
+        if let Some(handle) = old_handle {
+            log::info!(
+                "[Ingress] Port {} was listening for flow '{:?}'. Shutting down old listener to take over...",
+                port, replaced_flow_name
+            );
+            handle.shutdown().await;
         }
 
         let debug_enabled = config.debug_launcher.is_some();
+        let flow_name = config.flow.name.clone();
+
         let handle = start_ingress_server(port, config).await?;
-        servers.insert(port, handle);
+        {
+            let mut servers = self.servers.lock().await;
+            servers.insert(port, handle);
+        }
+
         log::info!(
-            "[Ingress] Started HTTP mock server on port {} (debug={})",
+            "[Ingress] Started HTTP mock server on port {} for flow '{}' (debug={})",
             port,
+            flow_name,
             debug_enabled
         );
-        Ok(())
+        Ok(replaced_flow_name)
+    }
+
+    /// 启动指定端口的 Ingress 路由表监听服务（支持多 Flow 挂载）
+    pub async fn start_router_listener(
+        &self,
+        port: u16,
+        router: IngressRouter,
+        registry: Arc<NodeRegistry>,
+        debug_launcher: Option<Arc<dyn IngressDebugLauncher>>,
+        request_timeout: Duration,
+    ) -> Result<(), String> {
+        let dummy_flow = router
+            .routes
+            .first()
+            .map(|r| r.flow.clone())
+            .unwrap_or_default();
+        let config = IngressListenerConfig {
+            flow: dummy_flow,
+            router: Some(router),
+            registry,
+            debug_launcher,
+            request_timeout,
+        };
+        self.start_listener(port, config).await.map(|_| ())
     }
 
     /// 停止指定端口的 Ingress 监听服务（等待监听套接字真正释放）
@@ -190,11 +574,14 @@ impl IngressManager {
         ports
     }
 
-    /// 停止所有监听服务
+    /// 停止所有监听服务并释放套接字
     pub async fn stop_all(&self) {
-        let mut servers = self.servers.lock().await;
-        for (_, mut handle) in servers.drain() {
-            handle.stop();
+        let handles: Vec<IngressServerHandle> = {
+            let mut servers = self.servers.lock().await;
+            servers.drain().map(|(_, h)| h).collect()
+        };
+        for handle in handles {
+            handle.shutdown().await;
         }
     }
 }
@@ -210,8 +597,9 @@ pub async fn start_ingress_server(
         .map_err(|e| format!("Port {} is already in use: {}", port, e))?;
 
     let (shutdown_tx, mut shutdown_rx) = oneshot::channel::<()>();
+    let flow_uuid = config.flow.uuid.clone();
+    let flow_name = config.flow.name.clone();
     let ctx = Arc::new(config);
-
     let task = tokio::spawn(async move {
         loop {
             tokio::select! {
@@ -251,9 +639,10 @@ pub async fn start_ingress_server(
             }
         }
     });
-
     Ok(IngressServerHandle {
         port,
+        flow_uuid,
+        flow_name,
         shutdown_tx: Some(shutdown_tx),
         task: Some(task),
     })
@@ -264,7 +653,6 @@ async fn handle_http_connection(
     mut stream: TcpStream,
     ctx: Arc<IngressListenerConfig>,
 ) -> Result<(), String> {
-    let flow = ctx.flow.clone();
     let mut buffer = Vec::with_capacity(4096);
     let mut temp_buf = [0u8; 2048];
 
@@ -383,39 +771,30 @@ async fn handle_http_connection(
     } else {
         serde_json::Value::String(String::from_utf8_lossy(&body_bytes).to_string())
     };
-
-    // 5. 校验 Ingress 路由配置 (path_pattern, methods)
-    let ingress_node = flow.nodes.iter().find(|n| {
-        n.node_type == "http:ingress" || n.node_type == flow_engine_core::node_types::HTTP_INGRESS
-    });
-
-    if let Some(node) = ingress_node {
-        if let NodeData::HttpIngress(cfg) = &node.data {
-            if !matches_path(&cfg.path_pattern, &path) {
-                write_http_response(
-                    &mut stream,
-                    404,
-                    &[("Content-Type", "text/plain; charset=utf-8")],
-                    b"Not Found",
-                )
-                .await;
-                return Ok(());
-            }
-
-            if !cfg.methods.is_empty()
-                && !cfg.methods.iter().any(|m| m.eq_ignore_ascii_case(&method))
-            {
-                write_http_response(
-                    &mut stream,
-                    405,
-                    &[("Content-Type", "text/plain; charset=utf-8")],
-                    b"Method Not Allowed",
-                )
-                .await;
-                return Ok(());
-            }
+    // 5. 校验 Ingress 路由配置 (path_pattern, methods, route_prefix)
+    let (flow, relative_path) = match ctx.match_route(&path, &method) {
+        RouteMatchResult::Found(f, rel_path) => (f.clone(), rel_path),
+        RouteMatchResult::MethodNotAllowed => {
+            write_http_response(
+                &mut stream,
+                405,
+                &[("Content-Type", "text/plain; charset=utf-8")],
+                b"Method Not Allowed",
+            )
+            .await;
+            return Ok(());
         }
-    }
+        RouteMatchResult::NotFound => {
+            write_http_response(
+                &mut stream,
+                404,
+                &[("Content-Type", "text/plain; charset=utf-8")],
+                b"Not Found",
+            )
+            .await;
+            return Ok(());
+        }
+    };
 
     // 6. 构造 ExecutionContext 并注入 request 变量与 response channel
     let (respond_tx, respond_rx) = oneshot::channel::<IngressResponsePayload>();
@@ -427,18 +806,18 @@ async fn handle_http_connection(
     let request_vars = serde_json::json!({
         "request": {
             "method": method,
-            "path": path,
+            "path": relative_path,
             "query": query_map,
             "headers": headers_map,
             "body": body_json.clone(),
         },
         "request.method": method,
-        "request.path": path,
+        "request.path": relative_path,
         "request.query": query_map,
         "request.headers": headers_map,
         "request.body": body_json.clone(),
         "method": method,
-        "path": path,
+        "path": relative_path,
         "body": body_json,
     });
     // 流程自身的初始变量/环境变量必须保留，request.* 覆盖同名键
@@ -782,6 +1161,7 @@ mod tests {
                 port,
                 IngressListenerConfig {
                     flow,
+                    router: None,
                     registry,
                     debug_launcher: None,
                     request_timeout: Duration::from_secs(60),
@@ -909,6 +1289,7 @@ mod tests {
                 port,
                 IngressListenerConfig {
                     flow,
+                    router: None,
                     registry,
                     debug_launcher: None,
                     request_timeout: Duration::from_secs(60),
@@ -1037,6 +1418,7 @@ mod tests {
                 port,
                 IngressListenerConfig {
                     flow,
+                    router: None,
                     registry,
                     debug_launcher: None,
                     request_timeout: Duration::from_secs(60),
@@ -1178,9 +1560,9 @@ mod tests {
                 port,
                 IngressListenerConfig {
                     flow,
+                    router: None,
                     registry,
                     debug_launcher: Some(launcher),
-                    // 调试模式放宽等待上限，模拟人工单步
                     request_timeout: Duration::from_secs(20),
                 },
             )
@@ -1326,6 +1708,7 @@ mod tests {
                 port,
                 IngressListenerConfig {
                     flow: failing_assertion_flow(port),
+                    router: None,
                     registry,
                     debug_launcher: None,
                     request_timeout: Duration::from_secs(30),
@@ -1364,6 +1747,7 @@ mod tests {
                 port,
                 IngressListenerConfig {
                     flow: failing_assertion_flow(port),
+                    router: None,
                     registry,
                     debug_launcher: None,
                     request_timeout: Duration::from_secs(30),
@@ -1414,6 +1798,7 @@ mod tests {
                     port,
                     IngressListenerConfig {
                         flow: failing_assertion_flow(port),
+                        router: None,
                         registry: registry.clone(),
                         debug_launcher: None,
                         request_timeout: Duration::from_secs(10),
@@ -1423,5 +1808,373 @@ mod tests {
                 .expect("start_listener should not hit EADDRINUSE after stop");
             assert!(manager.stop_listener(port).await.is_ok());
         }
+    }
+
+    #[test]
+    fn test_ingress_router_shared_gateway_matching() {
+        let flow_a = Flow {
+            uuid: "flow-a-uuid".to_string(),
+            name: "Flow A".to_string(),
+            ..Default::default()
+        };
+        let flow_b = Flow {
+            uuid: "flow-b-uuid".to_string(),
+            name: "Flow B".to_string(),
+            ..Default::default()
+        };
+
+        let mut router = IngressRouter::new();
+        router.add_route(IngressRoute {
+            flow: flow_a,
+            route_prefix: Some("flow-a".to_string()),
+            alt_prefix: None,
+            path_pattern: "/*".to_string(),
+            methods: vec!["POST".to_string()],
+        });
+        router.add_route(IngressRoute {
+            flow: flow_b,
+            route_prefix: Some("flow-b".to_string()),
+            alt_prefix: None,
+            path_pattern: "/pay/*".to_string(),
+            methods: vec!["GET".to_string(), "POST".to_string()],
+        });
+
+        // 1. 匹配 Flow A 前缀与相对路径
+        match router.match_request("/flow-a/webhook", "POST") {
+            RouteMatchResult::Found(f, rel) => {
+                assert_eq!(f.name, "Flow A");
+                assert_eq!(rel, "/webhook");
+            }
+            other => panic!("expected Found, got {:?}", other),
+        }
+
+        // 2. 匹配 Flow A 但方法不匹配
+        match router.match_request("/flow-a/webhook", "GET") {
+            RouteMatchResult::MethodNotAllowed => {}
+            other => panic!("expected MethodNotAllowed, got {:?}", other),
+        }
+
+        // 3. 匹配 Flow B 前缀与子路径
+        match router.match_request("/flow-b/pay/order-1", "GET") {
+            RouteMatchResult::Found(f, rel) => {
+                assert_eq!(f.name, "Flow B");
+                assert_eq!(rel, "/pay/order-1");
+            }
+            other => panic!("expected Found, got {:?}", other),
+        }
+
+        // 4. 未注册路径返回 NotFound
+        match router.match_request("/unknown/path", "GET") {
+            RouteMatchResult::NotFound => {}
+            other => panic!("expected NotFound, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn test_ingress_router_plan_from_flows() {
+        fn make_flow(name: &str, uuid: &str, port: u16, path: &str) -> Flow {
+            let node = flow_engine_core::node::Node {
+                uuid: format!("{}-node", uuid),
+                node_type: "http:ingress".to_string(),
+                name: "Ingress".to_string(),
+                position: Default::default(),
+                data: NodeData::HttpIngress(flow_engine_core::node_config::HttpIngressConfig {
+                    port,
+                    path_pattern: path.to_string(),
+                    methods: vec!["POST".to_string()],
+                }),
+                ports: None,
+                has_breakpoint: None,
+                on_error: None,
+            };
+            Flow {
+                uuid: uuid.to_string(),
+                name: name.to_string(),
+                nodes: vec![node],
+                ..Default::default()
+            }
+        }
+
+        let f1 = make_flow("Order Pay", "uuid-111111", 9527, "/*");
+        let f2 = make_flow("Order Pay", "uuid-222222", 9527, "/callback"); // slug 冲突
+        let f3 = make_flow("Custom Flow", "uuid-333333", 8080, "/notify"); // 独立端口
+
+        let plan = IngressRouter::plan_from_flows(&[f1, f2, f3], None).expect("plan routes");
+
+        // 端口 9527 为共享网关，应包含两条路由，且 slug 被唯一隔离
+        let gateway_router = plan.port_routers.get(&9527).expect("gateway router");
+        assert_eq!(gateway_router.routes.len(), 2);
+        let r1 = &gateway_router.routes[0];
+        let r2 = &gateway_router.routes[1];
+        assert_eq!(r1.route_prefix, Some("order-pay".to_string()));
+        assert_eq!(r2.route_prefix, Some("order-pay-uuid-2".to_string()));
+
+        // 端口 8080 为独立专属端口，无前缀
+        let custom_router = plan.port_routers.get(&8080).expect("custom router");
+        assert_eq!(custom_router.routes.len(), 1);
+        assert_eq!(custom_router.routes[0].route_prefix, None);
+    }
+
+    #[test]
+    fn test_ingress_router_custom_port_conflict() {
+        fn make_flow(name: &str, uuid: &str, port: u16) -> Flow {
+            let node = flow_engine_core::node::Node {
+                uuid: format!("{}-node", uuid),
+                node_type: "http:ingress".to_string(),
+                name: "Ingress".to_string(),
+                position: Default::default(),
+                data: NodeData::HttpIngress(flow_engine_core::node_config::HttpIngressConfig {
+                    port,
+                    path_pattern: "/*".to_string(),
+                    methods: vec![],
+                }),
+                ports: None,
+                has_breakpoint: None,
+                on_error: None,
+            };
+            Flow {
+                uuid: uuid.to_string(),
+                name: name.to_string(),
+                nodes: vec![node],
+                ..Default::default()
+            }
+        }
+
+        let f1 = make_flow("Flow 1", "u1", 8080);
+        let f2 = make_flow("Flow 2", "u2", 8080);
+        let res = IngressRouter::plan_from_flows(&[f1, f2], None);
+        assert!(res.is_err());
+        assert!(res.unwrap_err().contains("Custom port 8080 conflict"));
+    }
+
+    #[test]
+    fn test_ingress_user_scenario() {
+        let node = flow_engine_core::node::Node {
+            uuid: "771429e3-8323-46ce-be6e-fbd40bda0e28".to_string(),
+            node_type: "http:ingress".to_string(),
+            name: "HTTP Ingress 3".to_string(),
+            position: Default::default(),
+            data: NodeData::HttpIngress(flow_engine_core::node_config::HttpIngressConfig {
+                port: 9527,
+                path_pattern: "/a".to_string(),
+                methods: vec!["GET".to_string(), "POST".to_string()],
+            }),
+            ports: None,
+            has_breakpoint: None,
+            on_error: None,
+        };
+        let flow = Flow {
+            uuid: "demo-http-testing".to_string(),
+            name: "HTTP Node Example Flow".to_string(),
+            nodes: vec![node],
+            ..Default::default()
+        };
+
+        let plan = IngressRouter::plan_from_flows(&[flow], Some(9527)).expect("plan ingress");
+        let router = plan.port_routers.get(&9527).expect("router for 9527");
+
+        // 1. UUID Slug 访问（http://127.0.0.1:9527/demo-http-testing/a）
+        match router.match_request("/demo-http-testing/a", "GET") {
+            RouteMatchResult::Found(f, rel) => {
+                assert_eq!(f.uuid, "demo-http-testing");
+                assert_eq!(rel, "/a");
+            }
+            other => panic!("expected Found for uuid slug, got {:?}", other),
+        }
+
+        // 2. Name Slug 访问（http://127.0.0.1:9527/http-node-example-flow/a）
+        match router.match_request("/http-node-example-flow/a", "GET") {
+            RouteMatchResult::Found(f, rel) => {
+                assert_eq!(f.uuid, "demo-http-testing");
+                assert_eq!(rel, "/a");
+            }
+            other => panic!("expected Found for name slug, got {:?}", other),
+        }
+
+        // 3. 直连根路径访问（http://127.0.0.1:9527/a）
+        match router.match_request("/a", "GET") {
+            RouteMatchResult::Found(f, rel) => {
+                assert_eq!(f.uuid, "demo-http-testing");
+                assert_eq!(rel, "/a");
+            }
+            other => panic!("expected Found for direct path, got {:?}", other),
+        }
+
+        // 4. 不存在的路径（/unknown）
+        match router.match_request("/unknown", "GET") {
+            RouteMatchResult::NotFound => {}
+            other => panic!("expected NotFound, got {:?}", other),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_ingress_listener_auto_takeover_same_port() {
+        let port = 19534;
+        let registry = Arc::new(crate::default_registry::default_registry());
+        let manager = IngressManager::new();
+
+        let flow_a = Flow {
+            uuid: "flow-a-uuid".to_string(),
+            name: "Flow A".to_string(),
+            nodes: vec![],
+            ..Default::default()
+        };
+        let flow_b = Flow {
+            uuid: "flow-b-uuid".to_string(),
+            name: "Flow B".to_string(),
+            nodes: vec![],
+            ..Default::default()
+        };
+
+        // 1. 启动 Flow A，先前无监听，返回 None
+        let res1 = manager
+            .start_listener(
+                port,
+                IngressListenerConfig {
+                    flow: flow_a,
+                    router: None,
+                    registry: registry.clone(),
+                    debug_launcher: None,
+                    request_timeout: Duration::from_secs(10),
+                },
+            )
+            .await
+            .expect("start Flow A");
+        assert_eq!(res1, None);
+
+        // 2. 启动 Flow B 占用相同端口，自动接管平滑停止 Flow A，返回 Some("Flow A")
+        let res2 = manager
+            .start_listener(
+                port,
+                IngressListenerConfig {
+                    flow: flow_b,
+                    router: None,
+                    registry: registry.clone(),
+                    debug_launcher: None,
+                    request_timeout: Duration::from_secs(10),
+                },
+            )
+            .await
+            .expect("start Flow B takeover");
+        assert_eq!(res2, Some("Flow A".to_string()));
+
+        // 验证端口仍在监听
+        assert!(manager.is_listening(port).await);
+        assert!(manager.stop_listener(port).await.is_ok());
+    }
+
+    #[test]
+    fn test_plan_from_flows_preserves_custom_port() {
+        let flow = Flow {
+            uuid: "flow-custom".to_string(),
+            name: "Custom Flow".to_string(),
+            nodes: vec![flow_engine_core::node::Node {
+                uuid: "node-1".to_string(),
+                node_type: "http:ingress".to_string(),
+                name: "Ingress".to_string(),
+                position: flow_engine_core::node::NodePosition { x: 0.0, y: 0.0 },
+                data: NodeData::HttpIngress(flow_engine_core::node_config::HttpIngressConfig {
+                    port: 8080,
+                    path_pattern: "/api/test".to_string(),
+                    methods: vec!["GET".to_string()],
+                }),
+                ports: None,
+                has_breakpoint: None,
+                on_error: None,
+            }],
+            ..Default::default()
+        };
+
+        let plan = IngressRouter::plan_from_flows(&[flow], Some(9527)).expect("plan router");
+        assert!(plan.port_routers.contains_key(&8080));
+        assert!(!plan.port_routers.contains_key(&9527));
+        let router = &plan.port_routers[&8080];
+        assert_eq!(router.routes[0].route_prefix, None);
+    }
+
+    #[test]
+    fn test_plan_from_flows_detects_collision_for_same_named_flows() {
+        let flow1 = Flow {
+            uuid: "uuid-1".to_string(),
+            name: "Duplicate Name".to_string(),
+            nodes: vec![flow_engine_core::node::Node {
+                uuid: "n1".to_string(),
+                node_type: "http:ingress".to_string(),
+                name: "Ingress".to_string(),
+                position: flow_engine_core::node::NodePosition { x: 0.0, y: 0.0 },
+                data: NodeData::HttpIngress(flow_engine_core::node_config::HttpIngressConfig {
+                    port: 8080,
+                    path_pattern: "/a".to_string(),
+                    methods: vec![],
+                }),
+                ports: None,
+                has_breakpoint: None,
+                on_error: None,
+            }],
+            ..Default::default()
+        };
+        let flow2 = Flow {
+            uuid: "uuid-2".to_string(),
+            name: "Duplicate Name".to_string(),
+            nodes: vec![flow_engine_core::node::Node {
+                uuid: "n2".to_string(),
+                node_type: "http:ingress".to_string(),
+                name: "Ingress".to_string(),
+                position: flow_engine_core::node::NodePosition { x: 0.0, y: 0.0 },
+                data: NodeData::HttpIngress(flow_engine_core::node_config::HttpIngressConfig {
+                    port: 8080,
+                    path_pattern: "/b".to_string(),
+                    methods: vec![],
+                }),
+                ports: None,
+                has_breakpoint: None,
+                on_error: None,
+            }],
+            ..Default::default()
+        };
+
+        let err = IngressRouter::plan_from_flows(&[flow1, flow2], None).unwrap_err();
+        assert!(err.contains("Custom port 8080 conflict"));
+    }
+
+    #[test]
+    fn test_extract_flow_slug_supports_36_char_uuid() {
+        let flow = Flow {
+            uuid: "12345678-1234-1234-1234-123456789abc".to_string(),
+            name: "".to_string(),
+            ..Default::default()
+        };
+        let (slug, alt) = extract_flow_slug(&flow);
+        assert_eq!(slug, "12345678-1234-1234-1234-123456789abc");
+        assert_eq!(alt, None);
+    }
+
+    #[test]
+    fn test_match_request_wildcard_single_flow_fallback() {
+        let flow = Flow {
+            uuid: "flow-1".to_string(),
+            name: "My Flow".to_string(),
+            ..Default::default()
+        };
+        let router = IngressRouter {
+            routes: vec![IngressRoute {
+                flow: flow.clone(),
+                route_prefix: Some("/my-flow".to_string()),
+                alt_prefix: None,
+                path_pattern: "/*".to_string(),
+                methods: vec!["GET".to_string()],
+            }],
+        };
+
+        // 1. 带前缀访问
+        assert!(matches!(
+            router.match_request("/my-flow/hello", "GET"),
+            RouteMatchResult::Found(_, _)
+        ));
+        // 2. 单流程无前缀直连访问 /* 兜底成功
+        assert!(matches!(
+            router.match_request("/hello", "GET"),
+            RouteMatchResult::Found(_, _)
+        ));
     }
 }
