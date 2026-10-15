@@ -47,8 +47,8 @@ pub(crate) async fn writer_task(
                 e
             );
             shared.mark_exit(ExitReason::Crashed(PluginError::Io(e.to_string())));
-            // Discard anything still queued — nobody can write it.
-            while rx.recv().await.is_some() {}
+            // Discard anything currently queued non-blockingly — nobody can write it.
+            while rx.try_recv().is_ok() {}
             break;
         }
     }
