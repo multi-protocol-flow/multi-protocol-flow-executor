@@ -11,7 +11,7 @@ import { ICON_MAP, getNodeDisplayName } from '@/lib/nodeMeta';
 import { resolveBackendIcon } from '@/lib/nodeIcons';
 import { getCachedNodeMeta } from '@/lib/NodeRegistry';
 import type { PortDef } from '@/types/nodeRegistry';
-import { useFlowStore, useDebugStore, useExecutionStore, selectIsNodeRunning, selectIsDebugging, selectIsNodeDebugPaused } from '@/stores';
+import { useFlowStore, useDebugStore, useExecutionStore, selectIsNodeRunning, selectIsDebugging, selectIsNodeDebugPaused, selectIsIngressDebugWaiting } from '@/stores';
 import { BreakpointMarker } from '../BreakpointMarker';
 
 /** 动态节点数据类型 */
@@ -144,6 +144,8 @@ function DynamicPluginNode({ id, type, data, selected }: NodeProps) {
   const isRunning = useExecutionStore(selectIsNodeRunning(id));
   const isDebugging = useDebugStore(selectIsDebugging);
   const isDebugPaused = useDebugStore(selectIsNodeDebugPaused(id));
+  const isIngressDebugWaiting = useDebugStore(selectIsIngressDebugWaiting);
+  const isIngressWaitingNode = isIngressDebugWaiting && nodeType === 'http:ingress';
   const isDebugPausedAtThisNode = isRunning || isDebugPaused;
 
   const renderDynamicHandle = (port: PortDef, index: number, count: number, side: 'left' | 'right') => {
@@ -180,6 +182,7 @@ function DynamicPluginNode({ id, type, data, selected }: NodeProps) {
         'w-fit min-w-[180px] max-w-[400px]',
         'flex items-center',
         selected && 'border-[3px] border-slate-500',
+        isIngressWaitingNode && 'border-indigo-500/80 shadow-[0_0_15px_rgba(99,102,241,0.3)]',
         isDebugPausedAtThisNode && 'debug-breathing-sky'
       )}
     >

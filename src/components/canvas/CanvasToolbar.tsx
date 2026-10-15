@@ -12,6 +12,8 @@ import {
   useExecutionStore,
   useDebugStore,
   selectIsDebugging,
+  selectIngressListeningPort,
+  selectIsIngressDebugWaiting,
   selectCanUndo,
   selectCanRedo,
   selectFlow,
@@ -32,6 +34,7 @@ import type { LogEvent } from '@/types/events';
 import type { ExecutionEvent } from '@/types/execution_event';
 import { ValidationErrorDialog } from '@/components/dialogs/ValidationErrorDialog';
 import { DebugToolbar } from './DebugToolbar';
+import { IngressDebugWaitingToolbar } from './IngressDebugWaitingToolbar';
 import { useDatasetExecutionStore } from '@/stores/datasetExecution';
 
 import { EnvironmentSelector } from '@/components/panels/EnvironmentManager';
@@ -71,6 +74,9 @@ export function CanvasToolbar() {
   const setConfigPanelOpen = useUIStore((state) => state.setConfigPanelOpen);
   const reportDir = useSettingsStore((state) => state.reportDir);
   const isDebugging = useDebugStore(selectIsDebugging);
+  const ingressListeningPort = useDebugStore(selectIngressListeningPort);
+  const isIngressDebugWaiting = useDebugStore(selectIsIngressDebugWaiting);
+  const setIngressListeningPort = useDebugStore((state) => state.setIngressListeningPort);
   const startDebugSession = useDebugStore((state) => state.startDebugSession);
   
   // 压力测试状态
@@ -119,6 +125,7 @@ export function CanvasToolbar() {
         await stopIngressListener(listeningPort);
         toast.success(ll.flow.ingress_listener_stopped({ port: listeningPort }));
         setListeningPort(null);
+        setIngressListeningPort(null);
       } else {
         const port = configuredIngressPort;
         // 流程含断点时以调试模式启动：外部请求挂起等待人工单步，直到 http:respond 执行
@@ -131,6 +138,9 @@ export function CanvasToolbar() {
           (logEvent) => useConsoleStore.getState().addLog(logEvent)
         );
         setListeningPort(port);
+        if (useDebug) {
+          setIngressListeningPort(port);
+        }
         if (replacedFlowName && replacedFlowName !== flow.name) {
           toast.success(
             ll.flow.ingress_listener_switched({
@@ -255,6 +265,38 @@ export function CanvasToolbar() {
     const entryNode = flow.nodes.find((n) => isEntryNodeType(n.type));
     if (!entryNode) return;
 
+    // 若流程以 http:ingress 为入口且无标准 entry 节点，以 Ingress Debug 模式启动监听，等待外部请求触发断点调试
+    if (entryNode.type === 'http:ingress' && !flow.nodes.some((n) => n.type === 'entry')) {
+      const port = configuredIngressPort;
+      try {
+        const replacedFlowName = await startIngressListener(
+          port,
+          flow,
+          true,
+          (event) => useDebugStore.getState().handleDebugEvent(event),
+          (logEvent) => useConsoleStore.getState().addLog(logEvent)
+        );
+        setListeningPort(port);
+        setIngressListeningPort(port);
+        useUIStore.setState({ isBottomPanelExpanded: true, bottomPanelTab: 'running' });
+        if (replacedFlowName && replacedFlowName !== flow.name) {
+          toast.success(
+            ll.flow.ingress_listener_switched({
+              oldFlow: replacedFlowName,
+              port,
+            }),
+            { description: `http://127.0.0.1:${port}` }
+          );
+        } else {
+          toast.success(ll.flow.ingress_listener_started({ port }), {
+            description: `http://127.0.0.1:${port}`,
+          });
+        }
+      } catch (err) {
+        toast.error(String(err));
+      }
+      return;
+    }
     // 收集所有三阶段中有断点的节点
     const allNodes = getAllNodes(flow);
     const breakpointUuids = allNodes
@@ -316,6 +358,23 @@ export function CanvasToolbar() {
   // 调试模式下显示 DebugToolbar
   if (isDebugging) {
     return <DebugToolbar />;
+  }
+
+  // Ingress 调试等待外部请求时显示 IngressDebugWaitingToolbar
+  if (isIngressDebugWaiting && ingressListeningPort !== null) {
+    return (
+      <IngressDebugWaitingToolbar
+        port={ingressListeningPort}
+        flow={flow}
+        onStop={async () => {
+          await stopIngressListener(ingressListeningPort);
+          setListeningPort(null);
+          setIngressListeningPort(null);
+          useDebugStore.getState().endDebugSession();
+          toast.success(ll.flow.ingress_listener_stopped({ port: ingressListeningPort }));
+        }}
+      />
+    );
   }
 
   // 工具栏内容

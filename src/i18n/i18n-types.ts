@@ -9374,6 +9374,31 @@ type RootTranslation = {
 		 */
 		ingress_listener_stop_hint: RequiredParams<'port'>
 		/**
+		 * Ingress 调试监听中
+		 */
+		ingress_debug_listening_title: string
+		/**
+		 * 等待外部请求进入以触发断点调试...
+		 */
+		ingress_debug_waiting_hint: string
+		/**
+		 * 复制请求地址
+		 */
+		ingress_debug_copy_url: string
+		/**
+		 * 复制 cURL 测试命令
+		 */
+		ingress_debug_copy_curl: string
+		/**
+		 * 停止调试监听
+		 */
+		ingress_debug_stop: string
+		/**
+		 * 当前为 Ingress 调试监听模式 (端口 {port}) · 点击停止
+		 * @param {number} port
+		 */
+		ingress_debug_listener_hint: RequiredParams<'port'>
+		/**
 		 * 步​入​子​流​程​ ​(​F​1​1​)
 		 */
 		debug_step_into_available: string
@@ -24362,6 +24387,30 @@ export type TranslationFunctions = {
 		 * 停止 Ingress Mock 监听 (端口 {port})
 		 */
 		ingress_listener_stop_hint: (arg: { port: number }) => LocalizedString
+		/**
+		 * Ingress 调试监听中
+		 */
+		ingress_debug_listening_title: () => LocalizedString
+		/**
+		 * 等待外部请求进入以触发断点调试...
+		 */
+		ingress_debug_waiting_hint: () => LocalizedString
+		/**
+		 * 复制请求地址
+		 */
+		ingress_debug_copy_url: () => LocalizedString
+		/**
+		 * 复制 cURL 测试命令
+		 */
+		ingress_debug_copy_curl: () => LocalizedString
+		/**
+		 * 停止调试监听
+		 */
+		ingress_debug_stop: () => LocalizedString
+		/**
+		 * 当前为 Ingress 调试监听模式 (端口 {port}) · 点击停止
+		 */
+		ingress_debug_listener_hint: (arg: { port: number }) => LocalizedString
 		/**
 		 * 步入子流程 (F11)
 		 */

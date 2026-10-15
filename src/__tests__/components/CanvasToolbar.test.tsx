@@ -20,6 +20,8 @@ vi.mock('@/stores', () => ({
   selectFlow: vi.fn((state) => state.flow),
   selectNodes: vi.fn((state) => state.nodes ?? []),
   selectIsDebugging: vi.fn((state) => state.status !== 'idle' && state.status !== 'ended'),
+  selectIngressListeningPort: vi.fn((state) => state?.ingressListeningPort ?? null),
+  selectIsIngressDebugWaiting: vi.fn((state) => Boolean(state?.ingressListeningPort && (state?.status === 'idle' || state?.status === 'ended'))),
   selectCanUndo: vi.fn((state) => state.past?.length > 0),
   selectCanRedo: vi.fn((state) => state.future?.length > 0),
   selectIsExecuting: vi.fn((state) => state.isExecuting ?? false),
