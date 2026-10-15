@@ -164,6 +164,7 @@ export const useUpdateStore = create<UpdateStore>((set, get) => ({
 
     try {
       await installUpdatePackage(downloadedFilePath);
+      toast.success(ll.settings.installer_launched());
     } catch (e) {
       const msg = formatErrorMessage(e);
       set({ error: msg });

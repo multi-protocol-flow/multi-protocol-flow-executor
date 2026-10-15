@@ -7970,6 +7970,14 @@ type RootTranslation = {
 		 */
 		include_prerelease_desc: string
 		/**
+		 * 已​开​启
+		 */
+		switch_enabled: string
+		/**
+		 * 已​关​闭
+		 */
+		switch_disabled: string
+		/**
 		 * 立​即​下​载​更​新
 		 */
 		download_update: string
@@ -7989,6 +7997,10 @@ type RootTranslation = {
 		 * 正​在​启​动​安​装​程​序​.​.​.
 		 */
 		installing_update: string
+		/**
+		 * 安​装​程​序​已​启​动​，​请​按​提​示​完​成​安​装​并​重​启​应​用
+		 */
+		installer_launched: string
 		/**
 		 * 跳​过​此​版​本
 		 */
@@ -22976,6 +22988,14 @@ export type TranslationFunctions = {
 		 */
 		include_prerelease_desc: () => LocalizedString
 		/**
+		 * 已开启
+		 */
+		switch_enabled: () => LocalizedString
+		/**
+		 * 已关闭
+		 */
+		switch_disabled: () => LocalizedString
+		/**
 		 * 立即下载更新
 		 */
 		download_update: () => LocalizedString
@@ -22995,6 +23015,10 @@ export type TranslationFunctions = {
 		 * 正在启动安装程序...
 		 */
 		installing_update: () => LocalizedString
+		/**
+		 * 安装程序已启动，请按提示完成安装并重启应用
+		 */
+		installer_launched: () => LocalizedString
 		/**
 		 * 跳过此版本
 		 */
