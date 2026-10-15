@@ -400,6 +400,7 @@ where
 ///
 /// 任一版本号无法解析时返回 `true`（不拦截），避免因解析差异阻断正常更新。
 #[cfg(target_os = "linux")]
+#[allow(dead_code)]
 fn is_package_newer(package_version: &str, current_version: &str) -> bool {
     match (
         flow_engine::semver::parse(package_version),
@@ -408,6 +409,34 @@ fn is_package_newer(package_version: &str, current_version: &str) -> bool {
         (Ok(pkg), Ok(cur)) => pkg > cur,
         _ => true,
     }
+}
+
+/// 判断待安装包版本是否严格低于当前版本
+#[cfg(target_os = "linux")]
+fn is_package_older(package_version: &str, current_version: &str) -> bool {
+    match (
+        flow_engine::semver::parse(package_version),
+        flow_engine::semver::parse(current_version),
+    ) {
+        (Ok(pkg), Ok(cur)) => pkg < cur,
+        _ => false,
+    }
+}
+
+/// 从执行路径中提取 macOS 的 `.app` 应用程序包路径
+pub fn find_app_bundle_in_path(path: &Path) -> Option<PathBuf> {
+    for ancestor in path.ancestors() {
+        if ancestor.extension().and_then(|s| s.to_str()) == Some("app") {
+            return Some(ancestor.to_path_buf());
+        }
+    }
+    None
+}
+
+/// 安全转义 POSIX Shell 单引号字符串，杜绝任何参数扩展、命令替换或反引号注入
+#[inline]
+pub fn shell_quote(s: &str) -> String {
+    format!("'{}'", s.replace('\'', r#"'\''"#))
 }
 
 /// 读取 `.deb` 包 control 中的 Version 字段（`dpkg-deb` 不可用时返回 `None`）
@@ -440,6 +469,7 @@ fn read_deb_version(file_path: &Path) -> Option<String> {
 ///
 /// 暂存副本不主动删除：`apt` 可能在本进程退出后继续读取，`/var/tmp` 由系统定期清理。
 #[cfg(target_os = "linux")]
+#[allow(dead_code)]
 fn stage_package_for_root(file_path: &Path) -> std::io::Result<PathBuf> {
     use std::os::unix::fs::PermissionsExt;
 
@@ -530,12 +560,79 @@ pub fn launch_installer(file_path: &Path, app: &tauri::AppHandle) -> Result<(), 
 
     #[cfg(target_os = "macos")]
     {
-        let _ = app;
-        // macOS 上使用 open 命令挂载 DMG 镜像
-        std::process::Command::new("open")
-            .arg(file_path)
+        let app_bundle = std::env::current_exe().ok().and_then(|p| find_app_bundle_in_path(&p));
+        let pid = std::process::id();
+        let dmg_quoted = shell_quote(&file_path.to_string_lossy());
+        let target_quoted = shell_quote(
+            &app_bundle
+                .as_ref()
+                .map(|p| p.to_string_lossy().into_owned())
+                .unwrap_or_default(),
+        );
+
+        // 构造后台自动化升级与替换脚本
+        // 脚本执行流程：
+        //   1. 等待当前应用 PID 退出（避免二进制文件占用与写保护）
+        //   2. 使用 trap 在脚本退出时彻底清理临时挂载点与脚本自身
+        //   3. 使用 hdiutil 静默挂载 DMG 到临时目录
+        //   4. 在挂载卷中寻找新版 .app 目录
+        //   5. 备份原版本后使用 ditto 覆盖替换，失败时安全回滚原应用，避免文件丢失
+        //   6. 若自动替换成功，移除隔离属性并重新拉起新版；若失败则 fallback 激活 Finder 打开 DMG
+        let script = format!(
+            r#"#!/bin/sh
+PID="{pid}"
+DMG={dmg_quoted}
+TARGET={target_quoted}
+
+MOUNT_DIR=$(mktemp -d /tmp/mpe_dmg_XXXXXX)
+trap 'hdiutil detach "$MOUNT_DIR" -quiet 2>/dev/null; rm -rf "$MOUNT_DIR" "$0" 2>/dev/null' EXIT INT TERM
+
+# 等待主应用完全退出
+while kill -0 "$PID" 2>/dev/null; do
+    sleep 0.2
+done
+
+if hdiutil attach "$DMG" -mountpoint "$MOUNT_DIR" -nobrowse -quiet; then
+    SRC_APP=$(find "$MOUNT_DIR" -maxdepth 1 -name "*.app" | head -n 1)
+    if [ -n "$SRC_APP" ] && [ -n "$TARGET" ] && [ -d "$TARGET" ]; then
+        BACKUP="${{TARGET}}.old.$$"
+        mv "$TARGET" "$BACKUP" 2>/dev/null
+        if ditto "$SRC_APP" "$TARGET" 2>/dev/null; then
+            rm -rf "$BACKUP" 2>/dev/null
+            xattr -rd com.apple.quarantine "$TARGET" 2>/dev/null
+            open "$TARGET"
+            exit 0
+        else
+            # 覆盖失败安全回滚
+            mv "$BACKUP" "$TARGET" 2>/dev/null
+        fi
+    fi
+fi
+
+# Fallback：若无法自动覆盖或非应用包运行，通过 Finder 打开 DMG 并置顶激活
+open "$DMG"
+osascript -e 'tell application "Finder" to activate' 2>/dev/null || true
+"#
+        );
+
+        let script_path = std::env::temp_dir().join(format!("mpe_update_{pid}.sh"));
+        std::fs::write(&script_path, &script)
+            .map_err(|e| format!("Failed to write macOS updater script: {e}"))?;
+
+        use std::os::unix::fs::PermissionsExt;
+        let _ = std::fs::set_permissions(&script_path, std::fs::Permissions::from_mode(0o755));
+
+        // 脱离当前进程独立执行脚本
+        std::process::Command::new("/bin/sh")
+            .arg(&script_path)
+            .stdin(std::process::Stdio::null())
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
             .spawn()
-            .map_err(|e| format!("Failed to open DMG file: {e}"))?;
+            .map_err(|e| format!("Failed to spawn macOS updater script: {e}"))?;
+
+        // 退出当前应用以释放资源并让升级脚本顺利执行
+        app.exit(0);
         Ok(())
     }
 
@@ -553,68 +650,75 @@ pub fn launch_installer(file_path: &Path, app: &tauri::AppHandle) -> Result<(), 
                 file_path.display()
             );
 
-            // 拒绝安装不高于当前版本的安装包：发布清单出错时（例如新版本条目的下载链接仍指向旧包）
-            // 安装会静默退化为“重装旧版本”，导致更新提示反复出现。此处直接报错暴露问题。
+            // 拒绝安装严格低于当前版本的安装包（允许相等版本用于测试与重装）
             if let Some(package_version) = read_deb_version(file_path) {
                 let current_version = env!("CARGO_PKG_VERSION");
-                if !is_package_newer(&package_version, current_version) {
+                if is_package_older(&package_version, current_version) {
                     return Err(format!(
-                        "Downloaded package version {package_version} is not newer than the current version {current_version}; the release manifest may point to a stale artifact"
+                        "Downloaded package version {package_version} is older than the current version {current_version}; the release manifest may point to a stale artifact"
                     ));
                 }
             }
 
-            // 1. 优先尝试轻量级专用 GUI 安装器 gdebi-gtk（启动极快且专为单个 deb 设计）
-            let gdebi_launched = std::process::Command::new("gdebi-gtk")
+            // 1. 优先尝试轻量级专用 GUI 安装器 gdebi-gtk（专为单个 deb 设计）
+            if std::process::Command::new("gdebi-gtk")
                 .arg(file_path)
                 .spawn()
-                .is_ok();
-
-            if gdebi_launched {
+                .is_ok()
+            {
+                log::info!("[Updater] Launched gdebi-gtk successfully");
                 return Ok(());
             }
 
-            // 2. 尝试使用 pkexec 弹出系统原生 Polkit 提权安装弹窗
-            // 在桌面会话中，pkexec 会调用系统认证代理（如 polkit-gnome / polkit-kde）弹出标准密码输入框，
-            // 响应极快且完全避开 Snap 软件中心（如 snap-store）的启动延迟与沙箱兼容性问题。
-            let is_gui_session = std::env::var_os("DISPLAY").is_some()
-                || std::env::var_os("WAYLAND_DISPLAY").is_some();
-            if is_gui_session {
-                let install_target = match stage_package_for_root(file_path) {
-                    Ok(staged) => {
-                        log::info!("[Updater] Staged installer for apt: {}", staged.display());
-                        staged
-                    }
-                    Err(e) => {
-                        log::warn!(
-                            "[Updater] Failed to stage installer at /var/tmp ({e}); installing from {}",
-                            file_path.display()
-                        );
-                        file_path.to_path_buf()
-                    }
-                };
+            // 2. 尝试使用 gnome-software 打开 deb
+            if std::process::Command::new("gnome-software")
+                .arg("--local-filename")
+                .arg(file_path)
+                .spawn()
+                .is_ok()
+            {
+                log::info!("[Updater] Launched gnome-software successfully");
+                return Ok(());
+            }
 
-                let pkexec_spawned = std::process::Command::new("pkexec")
-                    .args(["apt-get", "install", "-y"])
-                    .arg(&install_target)
-                    .spawn();
+            // 3. 尝试使用系统默认 mime 处理程序 (xdg-open) 唤起系统应用中心
+            if std::process::Command::new("xdg-open")
+                .arg(file_path)
+                .spawn()
+                .is_ok()
+            {
+                log::info!("[Updater] Launched xdg-open successfully");
+                return Ok(());
+            }
 
-                if pkexec_spawned.is_ok() {
+            // 4. 若上述 GUI 安装器均未启动，尝试在常见终端模拟器中弹出提权安装命令
+            // 通过位置参数 $1 传入文件路径，杜绝 shell 注入风险
+            let bash_inline_script = "sudo apt install -y \"$1\"; echo; read -r -p 'Press Enter to exit...' _";
+            let terminals: [(&str, Vec<&str>); 5] = [
+                ("gnome-terminal", vec!["--", "bash", "-c", bash_inline_script, "_"]),
+                ("x-terminal-emulator", vec!["-e", "bash", "-c", bash_inline_script, "_"]),
+                ("konsole", vec!["-e", "bash", "-c", bash_inline_script, "_"]),
+                ("xfce4-terminal", vec!["-x", "bash", "-c", bash_inline_script, "_"]),
+                ("xterm", vec!["-e", "bash", "-c", bash_inline_script, "_"]),
+            ];
+
+            let file_os = file_path.as_os_str();
+            for (term, args) in terminals {
+                let mut cmd = std::process::Command::new(term);
+                for arg in args {
+                    cmd.arg(arg);
+                }
+                cmd.arg(file_os);
+                if cmd.spawn().is_ok() {
+                    log::info!("[Updater] Launched terminal installer via {term}");
                     return Ok(());
                 }
             }
 
-            // 3. 回退：通过 xdg-open 打开 .deb，唤起系统默认软件中心（如 Ubuntu App Center / GNOME Software / Discover）
-            // 下载文件保存在 XDG 下载目录 / ~/Downloads 等主目录下的非隐藏路径，沙箱化的 Snap 软件中心才能读取。
-            let xdg_result = std::process::Command::new("xdg-open")
-                .arg(file_path)
-                .spawn();
-
-            if let Err(e) = xdg_result {
-                return Err(format!("Failed to launch .deb installer (xdg-open: {e})"));
-            }
-
-            Ok(())
+            Err(format!(
+                "Failed to launch .deb installer: no supported package manager (gdebi, gnome-software, xdg-open, terminal) could be started for {}",
+                file_path.display()
+            ))
         } else if file_name.ends_with(".appimage") {
             log::info!(
                 "[Updater] Setting up .AppImage execution for {}",
@@ -798,6 +902,34 @@ mod tests {
         assert!(!is_package_newer("0.1.0", "0.2.0-beta.1"));
         // 无法解析的版本号不拦截
         assert!(is_package_newer("not-a-version", "0.2.0"));
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn test_is_package_older() {
+        assert!(is_package_older("0.1.0", "0.2.0-beta.1"));
+        assert!(is_package_older("0.2.0-beta.1", "0.2.0-beta.2"));
+        assert!(!is_package_older("0.2.0-beta.1", "0.2.0-beta.1"));
+        assert!(!is_package_older("0.2.0-beta.2", "0.2.0-beta.1"));
+    }
+
+    #[test]
+    fn test_find_app_bundle_in_path() {
+        let p1 = Path::new("/Applications/MPE.app/Contents/MacOS/mpe");
+        assert_eq!(find_app_bundle_in_path(p1), Some(PathBuf::from("/Applications/MPE.app")));
+
+        let p2 = Path::new("/Users/dev/Downloads/MPE.app");
+        assert_eq!(find_app_bundle_in_path(p2), Some(PathBuf::from("/Users/dev/Downloads/MPE.app")));
+
+        let p3 = Path::new("/usr/local/bin/mpe");
+        assert_eq!(find_app_bundle_in_path(p3), None);
+    }
+
+    #[test]
+    fn test_shell_quote() {
+        assert_eq!(shell_quote("/simple/path"), "'/simple/path'");
+        assert_eq!(shell_quote("path with spaces"), "'path with spaces'");
+        assert_eq!(shell_quote("evil'path\"with$var`cmd`"), "'evil'\\''path\"with$var`cmd`'");
     }
 
     #[cfg(target_os = "linux")]
