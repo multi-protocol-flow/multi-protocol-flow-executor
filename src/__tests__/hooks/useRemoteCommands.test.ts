@@ -19,7 +19,9 @@ vi.mock('@tauri-apps/api/event', () => ({
   listen: vi.fn((event: string, handler: EventHandler) => {
     registeredHandlers.set(event, handler);
     return Promise.resolve(() => {
-      registeredHandlers.delete(event);
+      if (registeredHandlers.get(event) === handler) {
+        registeredHandlers.delete(event);
+      }
     });
   }),
 }));
