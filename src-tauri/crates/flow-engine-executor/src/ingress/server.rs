@@ -843,12 +843,22 @@ async fn handle_http_connection(
         .cloned();
 
     if let Some(launcher) = debug_launcher {
-        let breakpoints: Vec<String> = flow
+        let mut breakpoints: Vec<String> = flow
             .nodes
             .iter()
             .filter(|n| n.has_breakpoint == Some(true))
             .map(|n| n.uuid.clone())
             .collect();
+
+        // 若用户未显式设置任何断点，默认在 Ingress 入口节点处暂停，确保外部请求进入后可交互单步调试
+        if breakpoints.is_empty() {
+            if let Some(ingress_node) = flow.nodes.iter().find(|n| {
+                n.node_type == "http:ingress"
+                    || n.node_type == flow_engine_core::node_types::HTTP_INGRESS
+            }) {
+                breakpoints.push(ingress_node.uuid.clone());
+            }
+        }
         let request = IngressRequest {
             flow: flow.clone(),
             variables: initial_vars,
@@ -1619,6 +1629,130 @@ mod tests {
 
         assert!(manager.stop_listener(port).await.is_ok());
     }
+    #[tokio::test]
+    async fn test_ingress_debug_without_explicit_breakpoints_pauses_at_ingress_node() {
+        let registry = Arc::new(crate::default_registry::default_registry());
+        let port = 19539;
+
+        let ingress_node = flow_engine_core::node::Node {
+            uuid: "dbg-in-auto".to_string(),
+            node_type: "http:ingress".to_string(),
+            name: "Ingress".to_string(),
+            position: Default::default(),
+            data: flow_engine_core::node_config::NodeData::HttpIngress(
+                flow_engine_core::node_config::HttpIngressConfig {
+                    port,
+                    path_pattern: "/dbg/auto".to_string(),
+                    methods: vec!["POST".to_string()],
+                },
+            ),
+            ports: None,
+            has_breakpoint: None,
+            on_error: None,
+        };
+
+        let respond_node = flow_engine_core::node::Node {
+            uuid: "dbg-out-auto".to_string(),
+            node_type: "http:respond".to_string(),
+            name: "Respond".to_string(),
+            position: Default::default(),
+            data: flow_engine_core::node_config::NodeData::HttpRespond(
+                flow_engine_core::node_config::HttpRespondConfig {
+                    status_code: 200,
+                    headers: HashMap::new(),
+                    body_type: "json".to_string(),
+                    body: r#"{"auto_breakpoint": true}"#.to_string(),
+                },
+            ),
+            ports: None,
+            has_breakpoint: None,
+            on_error: None,
+        };
+
+        let conn = flow_engine_core::connection::Connection {
+            id: "c-auto".to_string(),
+            source_node_uuid: "dbg-in-auto".to_string(),
+            target_node_uuid: "dbg-out-auto".to_string(),
+            source_port_id: "out".to_string(),
+            target_port_id: "in".to_string(),
+        };
+
+        let flow = Flow {
+            uuid: "mock-flow-debug-auto".to_string(),
+            name: "Mock Flow Debug Auto".to_string(),
+            description: None,
+            nodes: vec![ingress_node, respond_node],
+            connections: vec![conn],
+            initial_variables: None,
+            setup: None,
+            teardown: None,
+        };
+
+        let (event_tx, mut event_rx) = mpsc::unbounded_channel::<DebugEvent>();
+        let (command_tx, command_rx) = mpsc::unbounded_channel::<DebugCommand>();
+        let launcher = Arc::new(TestDebugLauncher {
+            events: event_tx,
+            commands: Mutex::new(Some(command_rx)),
+            launched: std::sync::atomic::AtomicUsize::new(0),
+        });
+
+        let manager = IngressManager::new();
+        let start_res = manager
+            .start_listener(
+                port,
+                IngressListenerConfig {
+                    flow,
+                    router: None,
+                    registry,
+                    debug_launcher: Some(launcher.clone()),
+                    request_timeout: Duration::from_secs(60),
+                },
+            )
+            .await;
+        assert!(start_res.is_ok());
+
+        tokio::time::sleep(Duration::from_millis(50)).await;
+
+        let mut stream = tokio::net::TcpStream::connect(format!("127.0.0.1:{}", port))
+            .await
+            .expect("Failed to connect");
+
+        let req = b"POST /dbg/auto HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Type: application/json\r\nContent-Length: 2\r\n\r\n{}";
+        stream.write_all(req).await.expect("Write failed");
+        stream.flush().await.expect("Flush failed");
+
+        let mut paused_node: Option<String> = None;
+        let event_timeout = Duration::from_secs(3);
+        let start_wait = std::time::Instant::now();
+        while start_wait.elapsed() < event_timeout {
+            if let Ok(Some(event)) = tokio::time::timeout(Duration::from_millis(200), event_rx.recv()).await {
+                if let DebugEvent::PausedAtNode { node_uuid, .. } = event {
+                    paused_node = Some(node_uuid);
+                    break;
+                }
+            }
+        }
+
+        assert_eq!(
+            paused_node.as_deref(),
+            Some("dbg-in-auto"),
+            "在未显式设置断点时，以 Debug 模式启动的 Ingress 服务应默认暂停在 Ingress 入口节点"
+        );
+
+        let _ = command_tx.send(DebugCommand::Continue);
+
+        let mut resp_buf = vec![0u8; 1024];
+        let n = tokio::time::timeout(Duration::from_secs(3), stream.read(&mut resp_buf))
+            .await
+            .expect("Read timeout")
+            .expect("Read failed");
+
+        let resp_str = String::from_utf8_lossy(&resp_buf[..n]);
+        assert!(resp_str.starts_with("HTTP/1.1 200 OK"));
+
+        assert!(manager.stop_listener(port).await.is_ok());
+    }
+
 
     /// 构造 `http:ingress` -> `assertion`（必然失败）的流程，用于验证失败响应码
     fn failing_assertion_flow(port: u16) -> Flow {

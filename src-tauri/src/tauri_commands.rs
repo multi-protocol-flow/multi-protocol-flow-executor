@@ -724,10 +724,8 @@ pub async fn end_debug(state: State<'_, Arc<Mutex<DebugSessionManager>>>) -> Res
         // 发送结束调试命令
         let _ = sender.send(DebugCommand::EndDebug);
         manager.command_sender = None;
-        Ok(())
-    } else {
-        Err("No running debug session".to_string())
     }
+    Ok(())
 }
 
 /// 获取调试会话状态
