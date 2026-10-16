@@ -187,6 +187,23 @@ export async function openDirectory(path: string): Promise<void> {
 }
 
 /**
+ * 在系统文件管理器中显示并高亮定位文件或目录
+ */
+export async function revealItemInDir(path: string): Promise<void> {
+  if (isTauriEnv()) {
+    try {
+      const { revealItemInDir: reveal } = await import('@tauri-apps/plugin-opener');
+      await reveal(path);
+      return;
+    } catch {
+      const { invoke } = await import('@tauri-apps/api/core');
+      await invoke('reveal_in_file_manager', { path });
+      return;
+    }
+  }
+}
+
+/**
  * 获取配置文件路径
  */
 export async function getConfigPath(): Promise<string> {

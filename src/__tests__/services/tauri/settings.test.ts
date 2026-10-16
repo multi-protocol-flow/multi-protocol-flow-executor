@@ -9,6 +9,7 @@ import {
   openDirectory,
   saveCsvTemplate,
 } from '@/services/tauri/settings.mock';
+import { revealItemInDir } from '@/services/tauri/settings';
 
 // Mock localStorage
 const localStorageMock = (() => {
@@ -124,6 +125,12 @@ describe('Settings Mock Service', () => {
   describe('openDirectory', () => {
     it('不抛出错误', async () => {
       await expect(openDirectory('/some/path/')).resolves.not.toThrow();
+    });
+  });
+
+  describe('revealItemInDir', () => {
+    it('在非 Tauri 环境下安全完成无错误', async () => {
+      await expect(revealItemInDir('/some/path/flow.mpf')).resolves.not.toThrow();
     });
   });
 
