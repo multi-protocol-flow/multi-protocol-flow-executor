@@ -18,6 +18,7 @@ import {
   ChevronDown,
   LocateFixed,
   ClipboardCopy,
+  FolderOpen,
 } from 'lucide-react';
 import * as Popover from '@radix-ui/react-popover';
 import { toast } from 'sonner';
@@ -39,6 +40,7 @@ import { copyToClipboard } from '@/lib/clipboard';
 import { cn } from '@/lib/utils';
 import { getLL } from '@/i18n/i18n-lazy';
 import type { FlowTab } from '@/types';
+import { revealItemInDir } from '@/services/tauri/settings';
 import {
   Dialog,
   DialogContent,
@@ -432,6 +434,31 @@ export const FlowTabBar = memo(function FlowTabBar() {
     }
   }, []);
 
+  // 在系统文件管理器中显示流程文件
+  const handleRevealInFileManager = useCallback(async (tab: FlowTab) => {
+    try {
+      let targetPath =
+        tab.filePath ||
+        useFlowListStore.getState().flows.find((f) => f.uuid === tab.uuid)?.file_path;
+      if (!targetPath) {
+        const flowMetas = await flowStorage.listFlows();
+        const found = flowMetas.find((f) => f.uuid === tab.uuid);
+        if (found?.filePath) {
+          targetPath = found.filePath;
+          useFlowListStore.getState().updateFlow(tab.uuid, { file_path: found.filePath });
+        }
+      }
+      if (!targetPath) {
+        toast.error(getLL().flow.copy_file_path_not_found());
+        return;
+      }
+      await revealItemInDir(targetPath);
+    } catch (err) {
+      console.error('[FlowTabBar] 在文件管理器中显示失败:', err);
+      toast.error(getLL().flow.reveal_in_file_manager_failed());
+    }
+  }, []);
+
   // 滚轮横向滚动（仅单行滚动模式下生效）
   const handleWheel = (e: React.WheelEvent) => {
     if (flowTabDisplayMode === 'scroll' && e.deltaY !== 0 && tabsContainerRef.current) {
@@ -794,6 +821,20 @@ export const FlowTabBar = memo(function FlowTabBar() {
                   {LL.flow.copy_file_path()}
                 </button>
 
+
+                {/* 在系统文件管理器中显示 */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const tab = contextMenu.tab!;
+                    setContextMenu(null);
+                    handleRevealInFileManager(tab);
+                  }}
+                  className="flex items-center gap-2.5 w-full px-3 py-1.5 text-xs text-foreground hover:bg-accent transition-colors cursor-pointer outline-none"
+                >
+                  <FolderOpen className="w-3.5 h-3.5 text-muted-foreground" />
+                  {LL.flow.reveal_in_file_manager()}
+                </button>
                 {/* 流程属性 */}
                 <button
                   type="button"

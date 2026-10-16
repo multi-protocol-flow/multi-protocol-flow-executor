@@ -29,6 +29,11 @@ vi.mock('@/lib/clipboard', () => ({
   copyToClipboard: (...args: unknown[]) => mockCopyToClipboard(...args),
 }));
 
+const mockRevealItemInDir = vi.fn().mockResolvedValue(undefined);
+vi.mock('@/services/tauri/settings', () => ({
+  revealItemInDir: (...args: unknown[]) => mockRevealItemInDir(...args),
+}));
+
 // Mock flowStorage
 vi.mock('@/services/storage', () => ({
   flowStorage: {
@@ -301,5 +306,21 @@ describe('FlowTabBar', () => {
 
     expect(mockCopyToClipboard).toHaveBeenCalledWith('/path/to/my-flow.mpf');
     expect(toast.success).toHaveBeenCalledWith('已复制流程文件绝对路径');
+  });
+
+  it('标签右键菜单中包含在文件管理器中显示选项，并能成功唤起', async () => {
+    const user = userEvent.setup();
+    useFlowStore.getState().openTab(flow1, '/path/to/my-flow.mpf');
+
+    render(<FlowTabBar />);
+
+    const tab = screen.getByRole('tab');
+    fireEvent.contextMenu(tab);
+
+    const revealBtn = screen.getByText('在文件管理器中显示');
+    expect(revealBtn).toBeInTheDocument();
+    await user.click(revealBtn);
+
+    expect(mockRevealItemInDir).toHaveBeenCalledWith('/path/to/my-flow.mpf');
   });
 });

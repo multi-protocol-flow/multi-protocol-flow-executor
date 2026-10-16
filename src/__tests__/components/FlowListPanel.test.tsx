@@ -4,7 +4,7 @@
  * 使用真实 Zustand store 进行集成测试
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, act } from '@testing-library/react';
+import { render, screen, act, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { FlowListPanel } from '@/components/sidebar/FlowListPanel';
 import { useUIStore, useFlowStore, useFlowListStore } from '@/stores';
@@ -43,6 +43,11 @@ const mockCopyToClipboard = vi.hoisted(() => vi.fn().mockResolvedValue(true));
 
 vi.mock('@/lib/clipboard', () => ({
   copyToClipboard: mockCopyToClipboard,
+}));
+
+const mockRevealItemInDir = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
+vi.mock('@/services/tauri/settings', () => ({
+  revealItemInDir: mockRevealItemInDir,
 }));
 
 
@@ -458,6 +463,93 @@ describe('FlowListPanel', () => {
       expect(mockCopyToClipboard).toHaveBeenCalledWith('/fallback/path/to/flow-fallback.mpf');
       expect(mockToast.success).toHaveBeenCalledWith('已复制流程文件绝对路径');
       expect(useFlowListStore.getState().flows[0].file_path).toBe('/fallback/path/to/flow-fallback.mpf');
+    });
+  });
+
+  describe('在系统文件管理器中显示流程文件', () => {
+    it('操作菜单中应显示在文件管理器中显示选项，并能成功调用 revealItemInDir', async () => {
+      const user = userEvent.setup();
+      const flowMetas = [
+        {
+          uuid: 'flow-reveal-1',
+          name: '文件定位测试流程',
+          updatedAt: Date.now(),
+          filePath: '/path/to/flow-reveal-1.mpf',
+          folderPath: '',
+        },
+      ];
+      mockFlowStorage.listFlows.mockResolvedValue(flowMetas);
+      useFlowListStore.getState().setFlows(
+        flowMetas.map((m) => ({
+          uuid: m.uuid,
+          name: m.name,
+          updated_at: m.updatedAt,
+          folder_path: '',
+          file_path: m.filePath,
+        }))
+      );
+
+      await act(async () => {
+        render(<FlowListPanel />);
+      });
+
+      const flowItem = screen.getByText('文件定位测试流程');
+      await user.hover(flowItem);
+      const moreButton = screen.getByRole('button', { name: '更多操作' });
+      await act(async () => {
+        await user.click(moreButton);
+      });
+
+      const revealButton = screen.getByRole('button', { name: '在文件管理器中显示' });
+      expect(revealButton).toBeDefined();
+
+      await act(async () => {
+        await user.click(revealButton);
+      });
+
+      expect(mockRevealItemInDir).toHaveBeenCalledWith('/path/to/flow-reveal-1.mpf');
+    });
+
+    it('右键点击流程项应能弹出操作菜单并执行在文件管理器中显示', async () => {
+      const user = userEvent.setup();
+      const flowMetas = [
+        {
+          uuid: 'flow-context-1',
+          name: '右键定位测试流程',
+          updatedAt: Date.now(),
+          filePath: '/path/to/flow-context-1.mpf',
+          folderPath: '',
+        },
+      ];
+      mockFlowStorage.listFlows.mockResolvedValue(flowMetas);
+      useFlowListStore.getState().setFlows(
+        flowMetas.map((m) => ({
+          uuid: m.uuid,
+          name: m.name,
+          updated_at: m.updatedAt,
+          folder_path: '',
+          file_path: m.filePath,
+        }))
+      );
+
+      await act(async () => {
+        render(<FlowListPanel />);
+      });
+
+      const flowItem = screen.getByText('右键定位测试流程');
+      const flowContainer = flowItem.closest('[role="button"]')!;
+      await act(async () => {
+        fireEvent.contextMenu(flowContainer);
+      });
+
+      const revealButton = screen.getByRole('button', { name: '在文件管理器中显示' });
+      expect(revealButton).toBeDefined();
+
+      await act(async () => {
+        await user.click(revealButton);
+      });
+
+      expect(mockRevealItemInDir).toHaveBeenCalledWith('/path/to/flow-context-1.mpf');
     });
   });
   describe('流程定位与微发光高亮效果', () => {

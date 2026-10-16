@@ -32,6 +32,7 @@ import { getLL } from '@/i18n/i18n-lazy';
 import { useCurrentLocale } from '@/hooks/useLocale';
 import { validateFlow } from '@/services/tauri/flow';
 import { ValidationErrorDialog } from '@/components/dialogs/ValidationErrorDialog';
+import { revealItemInDir } from '@/services/tauri/settings';
 
 export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUuid, onCreateFolderTrigger }: { showHeader?: boolean; disabled?: boolean; debugFlowUuid?: string | null; onCreateFolderTrigger?: (fn: () => void) => void }) {
   const { setFlows, addFlow: addFlowToList, removeFlow: removeFlowFromList } = useFlowListStore();
@@ -638,6 +639,28 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
     }
   };
 
+  const handleRevealInFileManager = async (uuid: string) => {
+    try {
+      let targetPath = flows.find((f) => f.uuid === uuid)?.file_path;
+      if (!targetPath) {
+        const flowMetas = await flowStorage.listFlows();
+        const found = flowMetas.find((f) => f.uuid === uuid);
+        if (found?.filePath) {
+          targetPath = found.filePath;
+          useFlowListStore.getState().updateFlow(uuid, { file_path: found.filePath });
+        }
+      }
+      if (!targetPath) {
+        toast.error(getLL().flow.copy_file_path_not_found());
+        return;
+      }
+      await revealItemInDir(targetPath);
+    } catch (err) {
+      console.error('[FlowListPanel] 在文件管理器中显示失败:', err);
+      toast.error(getLL().flow.reveal_in_file_manager_failed());
+    }
+  };
+
   const handleNewFlow = () => {
     openNewFlowDialog();
   };
@@ -968,6 +991,14 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
           if (isDraggingFlowRef.current) return;
           handleSelectFlow(flowMeta);
         }}
+        onContextMenu={(e) => {
+          if (disabled) return;
+          e.preventDefault();
+          e.stopPropagation();
+          const rect = e.currentTarget.getBoundingClientRect();
+          setMenuPosition(computeMenuPosition(rect, 190, 210));
+          setOpenMenuUuid(flowMeta.uuid);
+        }}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
@@ -1087,6 +1118,18 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
               >
                 <ClipboardCopy className="w-3.5 h-3.5" />
                 {getLL().flow.copy_file_path()}
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setOpenMenuUuid(null);
+                  handleRevealInFileManager(flowMeta.uuid);
+                }}
+                className="flex w-full items-center gap-2 px-2.5 py-1.5 text-xs hover:bg-accent transition-colors"
+              >
+                <FolderOpen className="w-3.5 h-3.5" />
+                {getLL().flow.reveal_in_file_manager()}
               </button>
               <button
                 type="button"
