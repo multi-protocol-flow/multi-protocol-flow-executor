@@ -8685,6 +8685,14 @@ type RootTranslation = {
 		 */
 		copy_file_path_not_found: string
 		/**
+		 * 在​文​件​管​理​器​中​显​示
+		 */
+		reveal_in_file_manager: string
+		/**
+		 * 在​文​件​管​理​器​中​显​示​失​败
+		 */
+		reveal_in_file_manager_failed: string
+		/**
 		 * 流​程​中​已​存​在​入​口​节​点​，​仅​允​许​一​个​入​口​节​点
 		 */
 		entry_node_already_exists: string
@@ -9374,27 +9382,27 @@ type RootTranslation = {
 		 */
 		ingress_listener_stop_hint: RequiredParams<'port'>
 		/**
-		 * Ingress 调试监听中
+		 * I​n​g​r​e​s​s​ ​调​试​监​听​中
 		 */
 		ingress_debug_listening_title: string
 		/**
-		 * 等待外部请求进入以触发断点调试...
+		 * 等​待​外​部​请​求​进​入​以​触​发​断​点​调​试​.​.​.
 		 */
 		ingress_debug_waiting_hint: string
 		/**
-		 * 复制请求地址
+		 * 复​制​请​求​地​址
 		 */
 		ingress_debug_copy_url: string
 		/**
-		 * 复制 cURL 测试命令
+		 * 复​制​ ​c​U​R​L​ ​测​试​命​令
 		 */
 		ingress_debug_copy_curl: string
 		/**
-		 * 停止调试监听
+		 * 停​止​调​试​监​听
 		 */
 		ingress_debug_stop: string
 		/**
-		 * 当前为 Ingress 调试监听模式 (端口 {port}) · 点击停止
+		 * 当​前​为​ ​I​n​g​r​e​s​s​ ​调​试​监​听​模​式​ ​(​端​口​ ​{​p​o​r​t​}​)​ ​·​ ​点​击​停​止
 		 * @param {number} port
 		 */
 		ingress_debug_listener_hint: RequiredParams<'port'>
@@ -23722,6 +23730,14 @@ export type TranslationFunctions = {
 		 * 未找到流程文件路径
 		 */
 		copy_file_path_not_found: () => LocalizedString
+		/**
+		 * 在文件管理器中显示
+		 */
+		reveal_in_file_manager: () => LocalizedString
+		/**
+		 * 在文件管理器中显示失败
+		 */
+		reveal_in_file_manager_failed: () => LocalizedString
 		/**
 		 * 流程中已存在入口节点，仅允许一个入口节点
 		 */

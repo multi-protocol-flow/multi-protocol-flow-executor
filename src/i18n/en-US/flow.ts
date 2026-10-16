@@ -52,6 +52,8 @@ const en_US_flow = {
   copy_file_path_success: 'Flow absolute path copied to clipboard',
   copy_file_path_failed: 'Failed to copy file path',
   copy_file_path_not_found: 'Flow file path not found',
+  reveal_in_file_manager: 'Reveal in File Manager',
+  reveal_in_file_manager_failed: 'Failed to reveal in file manager',
   entry_node_already_exists: 'An entry node already exists in this flow',
   ingress_node_already_exists: 'An HTTP Ingress node already exists in this flow',
   entry_node_exists_badge: 'Already exists',
