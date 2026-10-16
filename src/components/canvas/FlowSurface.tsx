@@ -57,6 +57,7 @@ import {
 } from './nodes';
 import DynamicPluginNode from './nodes/DynamicPluginNode';
 import { CustomEdge } from './edges/CustomEdge';
+import { SelectionAlignmentBar } from './SelectionAlignmentBar';
 import {
   useFlowStore,
   useUIStore,
@@ -78,9 +79,13 @@ import {
   convertFlowToReactFlow,
   convertEdgeToConnection,
   isValidConnection,
+  getConnectionErrorReason,
+  findEdgeToInsert,
+  insertNodeIntoConnection,
   type FlowNodeData,
 } from './utils';
 import { getLL } from '@/i18n/i18n-lazy';
+import { toast } from 'sonner';
 import { FALLBACK_MINIMAP_COLORS } from './FlowCanvas';
 
 /** 节点类型映射 */
@@ -178,6 +183,8 @@ export const FlowSurface = memo(function FlowSurface({
   // 节点和边状态（下沉到 FlowSurface，拖拽帧仅触发 FlowSurface 重渲染）
   const [nodes, setNodes, onNodesChange] = useNodesState(initialData.nodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialData.edges);
+  const selectedNodes = useMemo(() => nodes.filter((n) => n.selected), [nodes]);
+
 
   // 动态节点元数据颜色 Map（O(1) 查找）
   const [nodeColorMap, setNodeColorMap] = useState<Map<string, string>>(() => {
@@ -262,12 +269,15 @@ export const FlowSurface = memo(function FlowSurface({
           const prevData = prevNode.data as FlowNodeData;
           const nextData = newNode.data as FlowNodeData;
           const dataUnchanged =
-            prevData.label === nextData.label && prevData.config === nextData.config;
+            prevData.label === nextData.label &&
+            prevData.config === nextData.config &&
+            prevData.disabled === nextData.disabled;
           const positionUnchanged =
             prevNode.position.x === newNode.position.x &&
             prevNode.position.y === newNode.position.y;
           const selected = prevNode.id === selectedNodeId;
-          if (dataUnchanged && positionUnchanged && prevNode.selected === selected) {
+          const classNameUnchanged = prevNode.className === newNode.className;
+          if (dataUnchanged && positionUnchanged && prevNode.selected === selected && classNameUnchanged) {
             return prevNode; // 保持对象身份 → adoptUserNodes 走 checkEquality 短路
           }
           changed = true;
@@ -275,6 +285,7 @@ export const FlowSurface = memo(function FlowSurface({
             ...prevNode,
             position: positionUnchanged ? prevNode.position : newNode.position,
             data: dataUnchanged ? prevNode.data : newNode.data,
+            className: newNode.className,
             selected,
           };
         });
@@ -418,15 +429,19 @@ export const FlowSurface = memo(function FlowSurface({
 
   const onConnect = useCallback(
     (connection: Connection) => {
-      if (
-        !isValidConnection(
-          connection.source || '',
-          connection.target || '',
-          connection.sourceHandle || 'out',
-          connection.targetHandle || 'in',
-          connectionsRef.current,
-        )
-      ) {
+      const reason = getConnectionErrorReason(
+        connection.source || '',
+        connection.target || '',
+        connection.sourceHandle || 'out',
+        connection.targetHandle || 'in',
+        connectionsRef.current,
+      );
+      if (reason) {
+        if (reason === 'port_used') {
+          toast.warning(getLL().flow.multi_branch_warning());
+        } else if (reason === 'cycle') {
+          toast.warning(getLL().flow.validation_cycle_detected());
+        }
         return;
       }
 
@@ -455,13 +470,48 @@ export const FlowSurface = memo(function FlowSurface({
     [setEdges, addConnection],
   );
 
+  const onSelectionDragStop = useCallback(
+    (_: unknown, draggedNodes: Node[]) => {
+      if (!draggedNodes || draggedNodes.length === 0) return;
+      const positions = new Map<string, { x: number; y: number }>();
+      for (const node of draggedNodes) {
+        positions.set(node.id, {
+          x: Math.round(node.position.x),
+          y: Math.round(node.position.y),
+        });
+      }
+      batchUpdateNodePositions(positions);
+    },
+    [batchUpdateNodePositions],
+  );
+
   const onNodeDragStop = useCallback(
     (_: unknown, node: Node) => {
-      updateNode(node.id, {
-        position: { x: Math.round(node.position.x), y: Math.round(node.position.y) },
-      });
+      const selectedNodes = getNodes().filter((n) => n.selected);
+      // 若当前有多个节点被选中且当前节点也在选区中，交由 onSelectionDragStop 统一批量处理，避免多次连续单个 updateNode 导致撤销历史雪崩
+      if (selectedNodes.length > 1 && selectedNodes.some((n) => n.id === node.id)) {
+        return;
+      }
+      const newPos = { x: Math.round(node.position.x), y: Math.round(node.position.y) };
+      updateNode(node.id, { position: newPos });
+
+      // 连线智能插入：若该节点尚无任何连线（孤立节点），且拖拽落点在某条连线上，则自动拆分插入
+      const currentFlow = useFlowStore.getState().flow;
+      if (currentFlow && node.type !== 'entry' && node.type !== 'end') {
+        const stageGraph = getStageGraph(currentFlow, activeStage);
+        const isIsolated = !stageGraph.connections.some(
+          (c) => c.source_node_uuid === node.id || c.target_node_uuid === node.id
+        );
+        if (isIsolated) {
+          const edgeToInsert = findEdgeToInsert(newPos, stageGraph.nodes, stageGraph.connections);
+          if (edgeToInsert) {
+            insertNodeIntoConnection(node.id, edgeToInsert, addConnection, removeConnection);
+            toast.success(getLL().flow.inserted_between_nodes());
+          }
+        }
+      }
     },
-    [updateNode],
+    [updateNode, getNodes, activeStage, addConnection, removeConnection],
   );
 
   const onNodeClick = useCallback(
@@ -667,6 +717,7 @@ export const FlowSurface = memo(function FlowSurface({
       onEdgesChange={handleEdgesChange}
       onConnect={onConnect}
       onNodeDragStop={onNodeDragStop}
+      onSelectionDragStop={onSelectionDragStop}
       onNodeClick={onNodeClick}
       onNodeContextMenu={onNodeContextMenu}
       onSelectionContextMenu={onSelectionContextMenu}
@@ -696,6 +747,7 @@ export const FlowSurface = memo(function FlowSurface({
       defaultEdgeOptions={DEFAULT_EDGE_OPTIONS}
     >
       {canvasChrome}
+      <SelectionAlignmentBar selectedNodes={selectedNodes} />
     </ReactFlow>
   );
 });

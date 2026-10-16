@@ -11,6 +11,7 @@ import { getStageGraph, type FlowStage } from '@/stores/flow';
 export type FlowNodeData = Record<string, unknown> & {
   label: string;
   config?: NodeData;
+  disabled?: boolean;
 };
 
 /**
@@ -24,19 +25,20 @@ export function convertFlowToReactFlow(flow: Flow, stage: FlowStage = 'main'): {
   edges: Edge[];
 } {
   const graph = getStageGraph(flow, stage);
-  const nodes: Node[] = graph.nodes.map((node) => ({
-    id: node.uuid,
-    type: node.type,
-    position: { x: node.position.x, y: node.position.y },
-    data: {
-      // 节点名以存储值为权威，原样透传。空名字由画布组件兜底显示
-      // getNodeDisplayName(type)（i18n 动态名）。不得用正则猜测"自动名"
-      // 并清空——自动名与用户手写名格式相同（如 "Mongo Update 4"），
-      // 清空会把用户命名从画布上抹掉。
-      label: node.name,
-      config: node.data,
-    } as FlowNodeData,
-  }));
+  const nodes: Node[] = graph.nodes.map((node) => {
+    const isBypassed = Boolean(node.disabled || node.on_error === 'bypass');
+    return {
+      id: node.uuid,
+      type: node.type,
+      position: { x: node.position.x, y: node.position.y },
+      className: isBypassed ? 'node-bypassed' : undefined,
+      data: {
+        label: node.name,
+        config: node.data,
+        disabled: isBypassed,
+      } as FlowNodeData,
+    };
+  });
 
   const edges: Edge[] = graph.connections.map((conn, index) => ({
     id: conn.id || `edge-${index}`,
@@ -106,38 +108,34 @@ export function createConnection(
  * @param connections - 当前流程所有连接（可选，传入后会执行完整校验）
  * @returns 连接是否有效
  */
-export function isValidConnection(
+/**
+ * 获取连线不合规的原因代码
+ */
+export function getConnectionErrorReason(
   sourceId: string,
   targetId: string,
   sourcePort: string,
   _targetPort: string,
   connections?: Connection[],
-): boolean {
-  // 规则 1: 不能连接到自己
-  if (sourceId === targetId) {
-    return false;
-  }
-
-  // 以下检查需要 connections 数据
-  if (!connections) {
-    return true;
-  }
-
-  // 规则 2: 每个输出端口只能有一条出边
+): 'self' | 'port_used' | 'cycle' | null {
+  if (sourceId === targetId) return 'self';
+  if (!connections) return null;
   const portAlreadyUsed = connections.some(
     (c) => c.source_node_uuid === sourceId && c.source_port_id === sourcePort
   );
-  if (portAlreadyUsed) {
-    return false;
-  }
+  if (portAlreadyUsed) return 'port_used';
+  if (hasPath(targetId, sourceId, connections)) return 'cycle';
+  return null;
+}
 
-  // 规则 3: 不能形成循环依赖
-  // 检查从 target 到 source 是否存在路径（如果添加了 source→target，会不会有循环）
-  if (hasPath(targetId, sourceId, connections)) {
-    return false;
-  }
-
-  return true;
+export function isValidConnection(
+  sourceId: string,
+  targetId: string,
+  sourcePort: string,
+  targetPort: string,
+  connections?: Connection[],
+): boolean {
+  return getConnectionErrorReason(sourceId, targetId, sourcePort, targetPort, connections) === null;
 }
 
 /**
@@ -276,4 +274,71 @@ export function getNodeTypeName(type: NodeType): string {
  */
 export function createDefaultNodeName(_type: NodeType, count: number): string {
   return `${getNodeTypeName(_type)} ${count}`;
+}
+
+/**
+ * 检测指定坐标是否落在某条连线段附近，返回可被拆分插入的连接
+ */
+export function findEdgeToInsert(
+  pos: { x: number; y: number },
+  nodes: Array<{ uuid: string; position: { x: number; y: number } }>,
+  connections: Connection[],
+  threshold = 45,
+): Connection | null {
+  if (!connections || connections.length === 0) return null;
+  const nodeMap = new Map(nodes.map((n) => [n.uuid, n]));
+
+  for (const conn of connections) {
+    const src = nodeMap.get(conn.source_node_uuid);
+    const tgt = nodeMap.get(conn.target_node_uuid);
+    if (!src || !tgt) continue;
+
+    const x1 = src.position.x + 180;
+    const y1 = src.position.y + 35;
+    const x2 = tgt.position.x;
+    const y2 = tgt.position.y + 35;
+
+    const minX = Math.min(x1, x2) - 30;
+    const maxX = Math.max(x1, x2) + 30;
+    const minY = Math.min(y1, y2) - 30;
+    const maxY = Math.max(y1, y2) + 30;
+    if (pos.x < minX || pos.x > maxX || pos.y < minY || pos.y > maxY) {
+      continue;
+    }
+
+    const l2 = (x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1);
+    if (l2 < 100) continue;
+    const t = Math.max(0, Math.min(1, ((pos.x - x1) * (x2 - x1) + (pos.y - y1) * (y2 - y1)) / l2));
+    if (t < 0.15 || t > 0.85) continue;
+
+    const projX = x1 + t * (x2 - x1);
+    const projY = y1 + t * (y2 - y1);
+    const dist = Math.hypot(pos.x - projX, pos.y - projY);
+
+    if (dist <= threshold) {
+      return conn;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * 将节点插入到既有连接线中间（打断原边并建立两条新边）
+ */
+export function insertNodeIntoConnection(
+  newNodeUuid: string,
+  edgeToSplit: Connection,
+  addConnection: (conn: Connection) => void,
+  removeConnection: (id: string) => void,
+) {
+  if (edgeToSplit.id) {
+    removeConnection(edgeToSplit.id);
+  }
+  addConnection(
+    createConnection(edgeToSplit.source_node_uuid, newNodeUuid, edgeToSplit.source_port_id, 'in')
+  );
+  addConnection(
+    createConnection(newNodeUuid, edgeToSplit.target_node_uuid, 'out', edgeToSplit.target_port_id)
+  );
 }

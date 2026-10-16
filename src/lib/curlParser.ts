@@ -162,3 +162,29 @@ export function parseCurlToFormData(curlString: string): HttpConfigFormData | nu
     return null;
   }
 }
+
+/**
+ * 将 cURL 命令直接解析为流程节点中存储的 HttpConfig 数据格式
+ */
+export function parseCurlToHttpNodeConfig(curlString: string): Record<string, unknown> | null {
+  const formData = parseCurlToFormData(curlString);
+  if (!formData) return null;
+  const headers = formData.headers?.reduce<Record<string, string>>((acc, { key, value }) => {
+    if (key.trim()) acc[key.trim()] = value;
+    return acc;
+  }, {});
+
+  const formFields = formData.form_fields?.filter((field) => field.key.trim());
+
+  return {
+    type: 'http:request',
+    url: formData.url,
+    method: formData.method,
+    headers: headers && Object.keys(headers).length > 0 ? headers : undefined,
+    body: formData.body && formData.body !== '' ? formData.body : undefined,
+    body_type: formData.body_type,
+    content_type: formData.content_type,
+    form_fields: formFields && formFields.length > 0 ? formFields : undefined,
+    timeout_ms: formData.timeout_ms ?? 30000,
+  };
+}

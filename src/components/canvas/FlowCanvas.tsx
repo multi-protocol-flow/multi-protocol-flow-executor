@@ -33,12 +33,15 @@ import { datasourceGetTemplates } from '@/services/tauri/datasource';
 import {
   createDefaultNodeData,
   createDefaultNodeName,
+  findEdgeToInsert,
+  insertNodeIntoConnection,
 } from './utils';
 import { cn } from '@/lib/utils';
 import { getLL } from '@/i18n/i18n-lazy';
 import { flowStorage } from '@/services/storage';
 import { inferDefaults } from '@/lib/nodeDefaults';
 import { toast } from 'sonner';
+import { parseCurlToHttpNodeConfig } from '@/lib/curlParser';
 /** 节点配置剪贴板 key */
 const NODE_CONFIG_CLIPBOARD_KEY = 'node-config-clipboard';
 
@@ -171,6 +174,16 @@ const CANVAS_STYLE_STRING = `
     width: auto !important;
     font-size: inherit !important;
     text-align: inherit !important;
+  }
+  /* 被旁路禁用的节点视觉指示（半透明、灰度、虚线边框感） */
+  .react-flow__node.node-bypassed {
+    opacity: 0.52 !important;
+    filter: grayscale(0.6);
+    transition: opacity 0.2s ease, filter 0.2s ease;
+  }
+  .react-flow__node.node-bypassed:hover {
+    opacity: 0.82 !important;
+    filter: grayscale(0.2);
   }
 `;
 
@@ -306,6 +319,8 @@ function FlowCanvasInner() {
 
   // 画布容器引用（用于计算视口中心及传递给 FlowSurface）
   const canvasRef = useRef<HTMLDivElement>(null);
+  const mousePosRef = useRef<{ x: number; y: number } | null>(null);
+
 
   // 跟踪已触发 fitView 的流程，避免重复触发
   const fittedFlowUuidRef = useRef<string | null>(null);
@@ -782,6 +797,15 @@ function FlowCanvasInner() {
       position,
       data,
     });
+    if (pendingAddNodeType !== 'entry' && pendingAddNodeType !== 'end') {
+      const { activeStage, addConnection, removeConnection } = useFlowStore.getState();
+      const stageGraph = getStageGraph(flow, activeStage);
+      const edgeToInsert = findEdgeToInsert(position, stageGraph.nodes, stageGraph.connections);
+      if (edgeToInsert) {
+        insertNodeIntoConnection(newNodeUuid, edgeToInsert, addConnection, removeConnection);
+        toast.success(getLL().flow.inserted_between_nodes());
+      }
+    }
 
     // 清除待添加节点状态，并关闭节点选择器
     clearPendingAddNodeType();
@@ -847,6 +871,139 @@ function FlowCanvasInner() {
       window.removeEventListener('focus', handleWindowFocus);
     };
   }, []);
+  // 监听全局 Ctrl+V 粘贴事件：
+  // 1. 若剪贴板内容为 cURL 命令，在鼠标位置或视口中心自动解析生成配置好的 HTTP 节点
+  // 2. 若剪贴板内容为已复制的节点配置且当前处于空白处，直接粘贴为新节点
+  useEffect(() => {
+    const handlePaste = (e: ClipboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      const isInputting =
+        target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.isContentEditable ||
+          Boolean(target.closest('input, textarea, [contenteditable="true"], .cm-editor, .monaco-editor')));
+      if (isInputting) return;
+
+      const text = e.clipboardData?.getData('text');
+      if (!text) return;
+      const trimmed = text.trim();
+
+      // 1. 尝试解析 cURL
+      if (/^curl\s/i.test(trimmed)) {
+        const httpConfig = parseCurlToHttpNodeConfig(trimmed);
+        if (httpConfig) {
+          e.preventDefault();
+          const { flow: currentFlow, addNode: addNewNode, selectNode: setSelectNode } = useFlowStore.getState();
+          if (!currentFlow) return;
+
+          let position: { x: number; y: number };
+          if (mousePosRef.current) {
+            position = screenToFlowPosition(mousePosRef.current);
+          } else if (canvasRef.current) {
+            const rect = canvasRef.current.getBoundingClientRect();
+            position = screenToFlowPosition({
+              x: rect.left + rect.width / 2,
+              y: rect.top + rect.height / 2,
+            });
+          } else {
+            position = { x: 100, y: 100 };
+          }
+
+          const newUuid = crypto.randomUUID();
+          const nodeCount = currentFlow.nodes.length + 1;
+          const defaultName = createDefaultNodeName('http:request', nodeCount);
+          const rawUrl = httpConfig.url ? String(httpConfig.url) : '';
+          let name = defaultName;
+          if (rawUrl) {
+            try {
+              const u = new URL(rawUrl);
+              const method = (httpConfig.method as string || 'GET').toUpperCase();
+              name = `${method} ${u.pathname === '/' ? u.hostname : u.pathname}`;
+            } catch {
+              name = defaultName;
+            }
+          }
+
+          addNewNode({
+            uuid: newUuid,
+            type: 'http:request',
+            name,
+            position,
+            data: httpConfig as unknown as NodeData,
+          });
+
+          setSelectNode(newUuid);
+          useUIStore.getState().setConfigPanelOpen(true);
+          useUIStore.getState().setConfigPanelMode('node');
+
+          toast.success(getLL().flow.curl_pasted_node_created(), {
+            description: rawUrl || name,
+          });
+          return;
+        }
+      }
+
+      // 2. 检查是否有复制的节点配置
+      try {
+        const clipRaw = localStorage.getItem(NODE_CONFIG_CLIPBOARD_KEY);
+        if (clipRaw) {
+          const clipData = JSON.parse(clipRaw) as NodeConfigClipboard;
+          if (clipData && clipData.nodeType && Date.now() - clipData.copiedAt < 86400000) {
+            const selectedNodeId = useFlowStore.getState().selectedNodeId;
+            if (!selectedNodeId) {
+              e.preventDefault();
+              const { flow: currentFlow, addNode: addNewNode, selectNode: setSelectNode } = useFlowStore.getState();
+              if (!currentFlow) return;
+
+              let position: { x: number; y: number };
+              if (mousePosRef.current) {
+                position = screenToFlowPosition(mousePosRef.current);
+              } else if (canvasRef.current) {
+                const rect = canvasRef.current.getBoundingClientRect();
+                position = screenToFlowPosition({
+                  x: rect.left + rect.width / 2,
+                  y: rect.top + rect.height / 2,
+                });
+              } else {
+                position = { x: 100, y: 100 };
+              }
+
+              const newUuid = crypto.randomUUID();
+              const name = `${clipData.sourceNodeName || clipData.nodeType} (${getLL().flow.duplicate_suffix()})`;
+
+              addNewNode({
+                uuid: newUuid,
+                type: clipData.nodeType as NodeType,
+                name,
+                position,
+                data: JSON.parse(JSON.stringify(clipData.data)),
+              });
+
+              setSelectNode(newUuid);
+              useUIStore.getState().setConfigPanelOpen(true);
+              useUIStore.getState().setConfigPanelMode('node');
+              toast.success(getLL().flow.node_pasted_created());
+            }
+          }
+        }
+      } catch {
+        // ignore
+      }
+    };
+
+    const handleMouseMove = (e: MouseEvent) => {
+      mousePosRef.current = { x: e.clientX, y: e.clientY };
+    };
+
+    window.addEventListener('paste', handlePaste);
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => {
+      window.removeEventListener('paste', handlePaste);
+      window.removeEventListener('mousemove', handleMouseMove);
+    };
+  }, [screenToFlowPosition]);
+
 
   // 没有流程时显示空状态
   if (!flow) {
