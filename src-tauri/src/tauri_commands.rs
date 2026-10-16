@@ -526,6 +526,15 @@ pub async fn open_directory(app: tauri::AppHandle, path: String) -> Result<(), S
         .map_err(|e| format!("Failed to open directory: {}", e))
 }
 
+/// 在系统文件管理器中显示文件或目录并高亮选中
+#[tauri::command]
+pub async fn reveal_in_file_manager(app: tauri::AppHandle, path: String) -> Result<(), String> {
+    use tauri_plugin_opener::OpenerExt;
+    app.opener()
+        .reveal_item_in_dir(&path)
+        .map_err(|e| format!("Failed to reveal in file manager: {}", e))
+}
+
 /// 保存 CSV 模板文件到应用数据目录下的 templates 子目录
 /// 返回写入的文件路径
 #[tauri::command]

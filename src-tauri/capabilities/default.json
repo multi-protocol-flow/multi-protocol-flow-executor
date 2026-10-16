@@ -13,6 +13,7 @@
     "core:webview:allow-set-webview-zoom",
     "dialog:default",
     "opener:allow-open-path",
+    "opener:allow-reveal-item-in-dir",
     {
       "identifier": "opener:allow-open-url",
       "allow": [
