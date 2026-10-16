@@ -10,6 +10,7 @@ import { useFlowStore, useDebugStore, useExecutionStore, selectIsNodeRunning, se
 import { BreakpointMarker } from '../BreakpointMarker';
 import { getNodeDisplayName } from '@/lib/nodeMeta';
 import { memo } from 'react';
+import { NodeTitle } from './NodeTitle';
 
 /** Conditional 节点数据类型 */
 export interface ConditionalNodeData {
@@ -72,9 +73,11 @@ export const ConditionalNode = memo(function ConditionalNode({ id, data, selecte
           <span className="text-xs text-orange-600 font-medium uppercase tracking-wide">
             {getNodeDisplayName('conditional')}
           </span>
-          <span className="text-sm font-semibold text-foreground break-words">
-            {nodeData.label || getNodeDisplayName('conditional')}
-          </span>
+          <NodeTitle
+            nodeId={id}
+            label={nodeData.label}
+            defaultLabel={getNodeDisplayName('conditional')}
+          />
         </div>
       </div>
       

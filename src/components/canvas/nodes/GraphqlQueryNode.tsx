@@ -10,6 +10,7 @@ import { useFlowStore, useDebugStore, useExecutionStore, selectIsNodeRunning, se
 import { BreakpointMarker } from '../BreakpointMarker';
 import { getNodeDisplayName } from '@/lib/nodeMeta';
 import { memo } from 'react';
+import { NodeTitle } from './NodeTitle';
 
 /** GraphqlQuery 节点数据类型 */
 export interface GraphqlQueryNodeData {
@@ -72,9 +73,11 @@ export const GraphqlQueryNode = memo(function GraphqlQueryNode({ id, data, selec
           <span className="text-xs text-indigo-600 font-medium tracking-wide">
             {getNodeDisplayName('graphql:query')}
           </span>
-          <span className="text-sm font-semibold text-foreground break-words">
-            {nodeData.label || getNodeDisplayName('graphql:query')}
-          </span>
+          <NodeTitle
+            nodeId={id}
+            label={nodeData.label}
+            defaultLabel={getNodeDisplayName('graphql:query')}
+          />
           {nodeData.config?.connection_id && (
             <span className="text-[10px] text-muted-foreground truncate">
               {nodeData.config.connection_id}

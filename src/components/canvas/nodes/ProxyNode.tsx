@@ -12,6 +12,7 @@ import { getNodeDisplayName } from '@/lib/nodeMeta';
 import { getLL } from '@/i18n/i18n-lazy';
 import { memo } from 'react';
 import { useCurrentLocale } from '@/hooks/useLocale';
+import { NodeTitle } from './NodeTitle';
 
 /** Proxy 节点数据类型 */
 export interface ProxyNodeData {
@@ -82,9 +83,11 @@ export const ProxyNode = memo(function ProxyNode({ id, data, selected }: NodePro
           <span className="text-xs text-lime-600 font-medium uppercase tracking-wide">
             {getNodeDisplayName('proxy')}
           </span>
-          <span className="text-sm font-semibold text-foreground break-words">
-            {nodeData.label || getNodeDisplayName('proxy')}
-          </span>
+          <NodeTitle
+            nodeId={id}
+            label={nodeData.label}
+            defaultLabel={getNodeDisplayName('proxy')}
+          />
           <div className="flex items-center gap-1.5 mt-0.5">
             <span className={cn(
               'inline-flex items-center px-1.5 py-0 rounded text-[10px] font-semibold',

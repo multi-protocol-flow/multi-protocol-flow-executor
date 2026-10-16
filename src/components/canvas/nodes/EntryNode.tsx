@@ -9,6 +9,7 @@ import { useDebugStore, useExecutionStore, selectIsNodeRunning, selectIsDebuggin
 import { BreakpointMarker } from '../BreakpointMarker';
 import { getNodeDisplayName } from '@/lib/nodeMeta';
 import { memo } from 'react';
+import { NodeTitle } from './NodeTitle';
 
 /** Entry 节点数据类型 */
 export interface EntryNodeData {
@@ -52,9 +53,11 @@ export const EntryNode = memo(function EntryNode({ id, data, selected }: NodePro
           <span className="text-xs text-emerald-600 font-medium uppercase tracking-wide">
             {getNodeDisplayName('entry')}
           </span>
-          <span className="text-sm font-semibold text-foreground break-words">
-            {nodeData.label || getNodeDisplayName('entry')}
-          </span>
+          <NodeTitle
+            nodeId={id}
+            label={nodeData.label}
+            defaultLabel={getNodeDisplayName('entry')}
+          />
         </div>
       </div>
       

@@ -30,3 +30,4 @@ export { GraphqlDisconnectNode, type GraphqlDisconnectNodeData } from './Graphql
 export { ProxyNode, type ProxyNodeData } from './ProxyNode';
 export { default as DynamicPluginNode } from './DynamicPluginNode';
 export { EndNode, type EndNodeData } from './EndNode';
+export { NodeTitle, type NodeTitleProps } from './NodeTitle';

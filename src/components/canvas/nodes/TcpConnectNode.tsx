@@ -10,6 +10,7 @@ import { useFlowStore, useDebugStore, useExecutionStore, selectIsNodeRunning, se
 import { BreakpointMarker } from '../BreakpointMarker';
 import { getNodeDisplayName } from '@/lib/nodeMeta';
 import { memo } from 'react';
+import { NodeTitle } from './NodeTitle';
 
 /** TcpConnect 节点数据类型 */
 export interface TcpConnectNodeData {
@@ -72,9 +73,11 @@ export const TcpConnectNode = memo(function TcpConnectNode({ id, data, selected 
           <span className="text-xs text-emerald-600 font-medium tracking-wide">
             {getNodeDisplayName('tcp:connect')}
           </span>
-          <span className="text-sm font-semibold text-foreground break-words">
-            {nodeData.label || getNodeDisplayName('tcp:connect')}
-          </span>
+          <NodeTitle
+            nodeId={id}
+            label={nodeData.label}
+            defaultLabel={getNodeDisplayName('tcp:connect')}
+          />
           {nodeData.config?.host && (
             <span className="text-[10px] text-muted-foreground truncate">
               {nodeData.config.host}:{nodeData.config.port}

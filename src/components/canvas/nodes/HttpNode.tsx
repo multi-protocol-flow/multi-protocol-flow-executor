@@ -10,6 +10,7 @@ import { useFlowStore, useDebugStore, useExecutionStore, selectIsNodeRunning, se
 import { BreakpointMarker } from '../BreakpointMarker';
 import { getNodeDisplayName } from '@/lib/nodeMeta';
 import { memo } from 'react';
+import { NodeTitle } from './NodeTitle';
 
 // T18: @xyflow/react useNodesData 实验性评估
 // useNodesData 可用于在 node 组件中直接订阅特定节点的数据变化，
@@ -83,9 +84,11 @@ export const HttpNode = memo(function HttpNode({ id, data, selected }: NodeProps
           <span className="text-xs text-blue-600 font-medium uppercase tracking-wide">
             {method}
           </span>
-          <span className="text-sm font-semibold text-foreground break-words">
-            {nodeData.label || getNodeDisplayName('http:request')}
-          </span>
+          <NodeTitle
+            nodeId={id}
+            label={nodeData.label}
+            defaultLabel={getNodeDisplayName('http:request')}
+          />
         </div>
       </div>
       

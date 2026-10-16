@@ -10,6 +10,7 @@ import { useFlowStore, useDebugStore, useExecutionStore, selectIsNodeRunning, se
 import { BreakpointMarker } from '../BreakpointMarker';
 import { getNodeDisplayName } from '@/lib/nodeMeta';
 import { memo } from 'react';
+import { NodeTitle } from './NodeTitle';
 
 /** WsSendCollect 节点数据类型 */
 export interface WsSendCollectNodeData {
@@ -72,9 +73,11 @@ export const WsSendCollectNode = memo(function WsSendCollectNode({ id, data, sel
           <span className="text-xs text-teal-600 font-medium tracking-wide">
             {getNodeDisplayName('ws:send_collect')}
           </span>
-          <span className="text-sm font-semibold text-foreground break-words">
-            {nodeData.label || getNodeDisplayName('ws:send_collect')}
-          </span>
+          <NodeTitle
+            nodeId={id}
+            label={nodeData.label}
+            defaultLabel={getNodeDisplayName('ws:send_collect')}
+          />
         </div>
       </div>
       

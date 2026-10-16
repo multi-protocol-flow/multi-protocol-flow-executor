@@ -10,6 +10,7 @@ import { useFlowStore, useDebugStore, useExecutionStore, selectIsNodeRunning, se
 import { BreakpointMarker } from '../BreakpointMarker';
 import { getNodeDisplayName } from '@/lib/nodeMeta';
 import { memo } from 'react';
+import { NodeTitle } from './NodeTitle';
 
 /** WsClose 节点数据类型 */
 export interface WsCloseNodeData {
@@ -72,9 +73,11 @@ export const WsCloseNode = memo(function WsCloseNode({ id, data, selected }: Nod
           <span className="text-xs text-rose-600 font-medium tracking-wide">
             {getNodeDisplayName('ws:close')}
           </span>
-          <span className="text-sm font-semibold text-foreground break-words">
-            {nodeData.label || getNodeDisplayName('ws:close')}
-          </span>
+          <NodeTitle
+            nodeId={id}
+            label={nodeData.label}
+            defaultLabel={getNodeDisplayName('ws:close')}
+          />
         </div>
       </div>
       

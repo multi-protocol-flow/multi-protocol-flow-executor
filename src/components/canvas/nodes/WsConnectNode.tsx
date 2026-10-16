@@ -10,6 +10,7 @@ import { useFlowStore, useDebugStore, useExecutionStore, selectIsNodeRunning, se
 import { BreakpointMarker } from '../BreakpointMarker';
 import { getNodeDisplayName } from '@/lib/nodeMeta';
 import { memo } from 'react';
+import { NodeTitle } from './NodeTitle';
 
 /** WsConnect 节点数据类型 */
 export interface WsConnectNodeData {
@@ -72,9 +73,11 @@ export const WsConnectNode = memo(function WsConnectNode({ id, data, selected }:
           <span className="text-xs text-amber-600 font-medium tracking-wide">
             {getNodeDisplayName('ws:connect')}
           </span>
-          <span className="text-sm font-semibold text-foreground break-words">
-            {nodeData.label || getNodeDisplayName('ws:connect')}
-          </span>
+          <NodeTitle
+            nodeId={id}
+            label={nodeData.label}
+            defaultLabel={getNodeDisplayName('ws:connect')}
+          />
         </div>
       </div>
       

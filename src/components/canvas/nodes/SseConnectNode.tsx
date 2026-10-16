@@ -10,6 +10,7 @@ import { useFlowStore, useDebugStore, useExecutionStore, selectIsNodeRunning, se
 import { BreakpointMarker } from '../BreakpointMarker';
 import { getNodeDisplayName } from '@/lib/nodeMeta';
 import { memo } from 'react';
+import { NodeTitle } from './NodeTitle';
 
 /** SseConnect 节点数据类型 */
 export interface SseConnectNodeData {
@@ -72,9 +73,11 @@ export const SseConnectNode = memo(function SseConnectNode({ id, data, selected 
           <span className="text-xs text-rose-600 font-medium tracking-wide">
             {getNodeDisplayName('sse:connect')}
           </span>
-          <span className="text-sm font-semibold text-foreground break-words">
-            {nodeData.label || getNodeDisplayName('sse:connect')}
-          </span>
+          <NodeTitle
+            nodeId={id}
+            label={nodeData.label}
+            defaultLabel={getNodeDisplayName('sse:connect')}
+          />
           {nodeData.config?.url && (
             <span className="text-[10px] text-muted-foreground truncate">
               {nodeData.config.url}

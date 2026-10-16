@@ -10,6 +10,7 @@ import { useFlowStore, useDebugStore, useExecutionStore, selectIsNodeRunning, se
 import { BreakpointMarker } from '../BreakpointMarker';
 import { getNodeDisplayName } from '@/lib/nodeMeta';
 import { memo } from 'react';
+import { NodeTitle } from './NodeTitle';
 
 /** TcpReceive 节点数据类型 */
 export interface TcpReceiveNodeData {
@@ -72,9 +73,11 @@ export const TcpReceiveNode = memo(function TcpReceiveNode({ id, data, selected 
           <span className="text-xs text-emerald-600 font-medium tracking-wide">
             {getNodeDisplayName('tcp:receive')}
           </span>
-          <span className="text-sm font-semibold text-foreground break-words">
-            {nodeData.label || getNodeDisplayName('tcp:receive')}
-          </span>
+          <NodeTitle
+            nodeId={id}
+            label={nodeData.label}
+            defaultLabel={getNodeDisplayName('tcp:receive')}
+          />
         </div>
       </div>
       

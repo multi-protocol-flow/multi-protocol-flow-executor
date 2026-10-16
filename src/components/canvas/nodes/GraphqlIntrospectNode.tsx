@@ -10,6 +10,7 @@ import { useFlowStore, useDebugStore, useExecutionStore, selectIsNodeRunning, se
 import { BreakpointMarker } from '../BreakpointMarker';
 import { getNodeDisplayName } from '@/lib/nodeMeta';
 import { memo } from 'react';
+import { NodeTitle } from './NodeTitle';
 
 /** GraphqlIntrospect 节点数据类型 */
 export interface GraphqlIntrospectNodeData {
@@ -72,9 +73,11 @@ export const GraphqlIntrospectNode = memo(function GraphqlIntrospectNode({ id, d
           <span className="text-xs text-indigo-600 font-medium tracking-wide">
             {getNodeDisplayName('graphql:introspect')}
           </span>
-          <span className="text-sm font-semibold text-foreground break-words">
-            {nodeData.label || getNodeDisplayName('graphql:introspect')}
-          </span>
+          <NodeTitle
+            nodeId={id}
+            label={nodeData.label}
+            defaultLabel={getNodeDisplayName('graphql:introspect')}
+          />
           {nodeData.config?.connection_id && (
             <span className="text-[10px] text-muted-foreground truncate">
               {nodeData.config.connection_id}

@@ -13,6 +13,7 @@ import { getCachedNodeMeta } from '@/lib/NodeRegistry';
 import type { PortDef } from '@/types/nodeRegistry';
 import { useFlowStore, useDebugStore, useExecutionStore, selectIsNodeRunning, selectIsDebugging, selectIsNodeDebugPaused, selectIsIngressDebugWaiting } from '@/stores';
 import { BreakpointMarker } from '../BreakpointMarker';
+import { NodeTitle } from './NodeTitle';
 
 /** 动态节点数据类型 */
 interface DynamicNodeData {
@@ -128,7 +129,6 @@ function DynamicPluginNode({ id, type, data, selected }: NodeProps) {
   const nodeType = nodeData.config?.type || type || 'unknown';
   const meta = getCachedNodeMeta(nodeType);
   const iconData = ICON_MAP[nodeType];
-  const displayName = nodeData.label || getNodeDisplayName(nodeType);
   const IconComponent = iconData?.icon || (meta?.icon ? resolveBackendIcon(meta.icon) : undefined) || Box;
   const iconBg = iconData?.iconBg || 'bg-slate-500';
   const labelColor = iconData?.labelColor || 'text-slate-600';
@@ -245,9 +245,12 @@ function DynamicPluginNode({ id, type, data, selected }: NodeProps) {
           >
             {nodeType}
           </span>
-          <span className="text-sm font-semibold text-foreground break-words max-w-[110px] leading-snug">
-            {displayName}
-          </span>
+          <NodeTitle
+            nodeId={id}
+            label={nodeData.label}
+            defaultLabel={getNodeDisplayName(nodeType)}
+            className="max-w-[110px] leading-snug"
+          />
           {nodeType === 'mcp:connect' &&
             (() => {
               const counts = getMcpDiscoveryCounts(nodeData);

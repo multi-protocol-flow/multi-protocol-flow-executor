@@ -12,6 +12,7 @@ import { getNodeDisplayName } from '@/lib/nodeMeta';
 import { getLL } from '@/i18n/i18n-lazy';
 import { memo } from 'react';
 import { useCurrentLocale } from '@/hooks/useLocale';
+import { NodeTitle } from './NodeTitle';
 
 /** Assertion 节点数据类型 */
 export interface AssertionNodeData {
@@ -89,9 +90,11 @@ export const AssertionNode = memo(function AssertionNode({ id, data, selected }:
           <span className="text-xs text-purple-600 font-medium uppercase tracking-wide">
             {getNodeDisplayName('assertion')}
           </span>
-          <span className="text-sm font-semibold text-foreground break-words">
-            {nodeData.label || getNodeDisplayName('assertion')}
-          </span>
+          <NodeTitle
+            nodeId={id}
+            label={nodeData.label}
+            defaultLabel={getNodeDisplayName('assertion')}
+          />
           {/* 显示模式信息 */}
           <div className="flex items-center gap-1 mt-0.5 flex-wrap">
             <span className={cn(

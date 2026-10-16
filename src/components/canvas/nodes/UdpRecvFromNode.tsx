@@ -10,6 +10,7 @@ import { useFlowStore, useDebugStore, useExecutionStore, selectIsNodeRunning, se
 import { BreakpointMarker } from '../BreakpointMarker';
 import { getNodeDisplayName } from '@/lib/nodeMeta';
 import { memo } from 'react';
+import { NodeTitle } from './NodeTitle';
 
 /** UdpRecvFrom 节点数据类型 */
 export interface UdpRecvFromNodeData {
@@ -72,9 +73,11 @@ export const UdpRecvFromNode = memo(function UdpRecvFromNode({ id, data, selecte
           <span className="text-xs text-orange-600 font-medium tracking-wide">
             {getNodeDisplayName('udp:recv_from')}
           </span>
-          <span className="text-sm font-semibold text-foreground break-words">
-            {nodeData.label || getNodeDisplayName('udp:recv_from')}
-          </span>
+          <NodeTitle
+            nodeId={id}
+            label={nodeData.label}
+            defaultLabel={getNodeDisplayName('udp:recv_from')}
+          />
         </div>
       </div>
       

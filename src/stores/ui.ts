@@ -130,6 +130,8 @@ interface UIState {
   /** 是否显示动态变量帮助对话框 */
   showDynamicVariablesHelpDialog: boolean;
 
+  /** 当前正在内联重命名的节点 UUID（非 null 时对应节点的标题转为 input 进行就地编辑） */
+  renamingNodeId: string | null;
   /** 流程 UUID / 节点 UUID 冲突状态（非 null 时展示决策弹窗） */
   flowConflict: FlowConflictState | null;
   // ===== 通用确认对话框状态 =====
@@ -240,6 +242,8 @@ interface UIState {
   /** 关闭动态变量帮助对话框 */
   closeDynamicVariablesHelpDialog: () => void;
 
+  /** 设置正在内联重命名的节点 UUID */
+  setRenamingNodeId: (nodeId: string | null) => void;
   /** 打开流程冲突决策对话框 */
   openFlowConflictDialog: (flowConflict: FlowConflictState) => void;
   /** 关闭流程冲突决策对话框 */
@@ -387,8 +391,8 @@ const initialState = {
       // 欢迎引导
       welcomeStep: 0,
   flowTabDisplayMode: loadTabDisplayMode(),
+  renamingNodeId: null as string | null,
 };
-
 export const useUIStore = create<UIState>((set, get) => ({
   ...initialState,
 
@@ -475,6 +479,7 @@ export const useUIStore = create<UIState>((set, get) => ({
   openFlowConflictDialog: (flowConflict) => set({ flowConflict }),
   closeFlowConflictDialog: () => set({ flowConflict: null }),
 
+  setRenamingNodeId: (renamingNodeId) => set({ renamingNodeId }),
   setSettingsDialogTab: (settingsDialogTab) => set({ settingsDialogTab }),
   openPluginSettingsDialog: () => set({ showPluginSettingsDialog: true }),
 
@@ -718,3 +723,5 @@ export const selectExportFlowTarget = (state: UIState) =>
 /** 选择定位流程目标 */
 export const selectLocateFlowTarget = (state: UIState) =>
   state.locateFlowTarget;
+/** 选择当前正在内联重命名的节点 ID */
+export const selectRenamingNodeId = (state: UIState) => state.renamingNodeId;

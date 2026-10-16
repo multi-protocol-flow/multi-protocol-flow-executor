@@ -10,6 +10,7 @@ import { useFlowStore, useDebugStore, useExecutionStore, selectIsNodeRunning, se
 import { BreakpointMarker } from '../BreakpointMarker';
 import { getNodeDisplayName } from '@/lib/nodeMeta';
 import { memo } from 'react';
+import { NodeTitle } from './NodeTitle';
 
 /** UdpSendTo 节点数据类型 */
 export interface UdpSendToNodeData {
@@ -72,9 +73,11 @@ export const UdpSendToNode = memo(function UdpSendToNode({ id, data, selected }:
           <span className="text-xs text-orange-600 font-medium tracking-wide">
             {getNodeDisplayName('udp:send_to')}
           </span>
-          <span className="text-sm font-semibold text-foreground break-words">
-            {nodeData.label || getNodeDisplayName('udp:send_to')}
-          </span>
+          <NodeTitle
+            nodeId={id}
+            label={nodeData.label}
+            defaultLabel={getNodeDisplayName('udp:send_to')}
+          />
         </div>
       </div>
       

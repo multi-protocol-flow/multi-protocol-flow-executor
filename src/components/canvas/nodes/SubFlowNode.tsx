@@ -18,6 +18,7 @@ import {
   selectIsNodeDebugPaused,
   selectIsPaused,
 } from '@/stores';
+import { NodeTitle } from './NodeTitle';
 import { flowStorage } from '@/services/storage';
 import { useCurrentLocale } from '@/hooks/useLocale';
 import { BreakpointMarker } from '../BreakpointMarker';
@@ -149,9 +150,11 @@ export const SubFlowNode = memo(function SubFlowNode({ id, data, selected }: Nod
           <span className="text-[10px] text-violet-600 font-semibold uppercase tracking-wider">
             {getNodeDisplayName('flow:sub')}
           </span>
-          <span className="text-sm font-semibold text-foreground truncate" title={nodeData.label}>
-            {nodeData.label || getNodeDisplayName('flow:sub')}
-          </span>
+          <NodeTitle
+            nodeId={id}
+            label={nodeData.label}
+            defaultLabel={getNodeDisplayName('flow:sub')}
+          />
         </div>
       </div>
 

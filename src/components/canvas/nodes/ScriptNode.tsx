@@ -10,6 +10,7 @@ import { useFlowStore, useDebugStore, useExecutionStore, selectIsNodeRunning, se
 import { BreakpointMarker } from '../BreakpointMarker';
 import { getNodeDisplayName } from '@/lib/nodeMeta';
 import { memo } from 'react';
+import { NodeTitle } from './NodeTitle';
 
 /** Script 节点数据类型 */
 export interface ScriptNodeData {
@@ -72,9 +73,11 @@ export const ScriptNode = memo(function ScriptNode({ id, data, selected }: NodeP
           <span className="text-xs text-indigo-600 font-medium uppercase tracking-wide">
             {getNodeDisplayName('script')}
           </span>
-          <span className="text-sm font-semibold text-foreground break-words">
-            {nodeData.label || getNodeDisplayName('script')}
-          </span>
+          <NodeTitle
+            nodeId={id}
+            label={nodeData.label}
+            defaultLabel={getNodeDisplayName('script')}
+          />
         </div>
       </div>
       

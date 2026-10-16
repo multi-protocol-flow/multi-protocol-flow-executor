@@ -10,6 +10,7 @@ import { useFlowStore, useDebugStore, useExecutionStore, selectIsNodeRunning, se
 import { BreakpointMarker } from '../BreakpointMarker';
 import { getNodeDisplayName } from '@/lib/nodeMeta';
 import { memo } from 'react';
+import { NodeTitle } from './NodeTitle';
 
 /** VariableExtractor 节点数据类型 */
 export interface VariableExtractorNodeData {
@@ -72,9 +73,11 @@ export const VariableExtractorNode = memo(function VariableExtractorNode({ id, d
           <span className="text-xs text-amber-600 font-medium uppercase tracking-wide">
             {getNodeDisplayName('variable:extractor')}
           </span>
-          <span className="text-sm font-semibold text-foreground break-words">
-            {nodeData.label || getNodeDisplayName('variable:extractor')}
-          </span>
+          <NodeTitle
+            nodeId={id}
+            label={nodeData.label}
+            defaultLabel={getNodeDisplayName('variable:extractor')}
+          />
         </div>
       </div>
 

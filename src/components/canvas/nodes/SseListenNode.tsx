@@ -10,6 +10,7 @@ import { useFlowStore, useDebugStore, useExecutionStore, selectIsNodeRunning, se
 import { BreakpointMarker } from '../BreakpointMarker';
 import { getNodeDisplayName } from '@/lib/nodeMeta';
 import { memo } from 'react';
+import { NodeTitle } from './NodeTitle';
 
 /** SseListen 节点数据类型 */
 export interface SseListenNodeData {
@@ -72,9 +73,11 @@ export const SseListenNode = memo(function SseListenNode({ id, data, selected }:
           <span className="text-xs text-rose-600 font-medium tracking-wide">
             {getNodeDisplayName('sse:listen')}
           </span>
-          <span className="text-sm font-semibold text-foreground break-words">
-            {nodeData.label || getNodeDisplayName('sse:listen')}
-          </span>
+          <NodeTitle
+            nodeId={id}
+            label={nodeData.label}
+            defaultLabel={getNodeDisplayName('sse:listen')}
+          />
           {nodeData.config?.connection_id && (
             <span className="text-[10px] text-muted-foreground truncate">
               {nodeData.config.connection_id}

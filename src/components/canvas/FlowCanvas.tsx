@@ -157,6 +157,7 @@ const CANVAS_STYLE_STRING = `
   .react-flow__node {
     /* contain: paint 会裁剪溢出内容（包括节点出入口圆圈），所以只保留 layout style */
     contain: layout style;
+    text-rendering: geometricPrecision;
   }
   /* 插件节点走 React Flow 的 default fallback，wrapper 会套上库的默认节点样式
      （白底/边框/150px 宽/padding），与 DynamicPluginNode 自绘外观冲突产生双重边框。
@@ -294,7 +295,6 @@ function ImportFlowCard({ wc, onImport }: { wc: ReturnType<typeof getLL>['welcom
 function FlowCanvasInner() {
   const flow = useFlowStore(selectFlow);
   const addNode = useFlowStore((s) => s.addNode);
-  const updateNode = useFlowStore((s) => s.updateNode);
   const pendingAddNodeType = useFlowStore((s) => s.pendingAddNodeType);
   const clearPendingAddNodeType = useFlowStore((s) => s.clearPendingAddNodeType);
   const isDirty = useFlowStore(selectIsDirty);
@@ -319,12 +319,6 @@ function FlowCanvasInner() {
     nodeName: string;
   } | null>(null);
 
-  // 重命名浮动输入框状态
-  const [renamingNodeId, setRenamingNodeId] = useState<string | null>(null);
-  const [renamingValue, setRenamingValue] = useState('');
-  const [renamingPosition, setRenamingPosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
-  const renameInputRef = useRef<HTMLInputElement>(null);
-  const isRenameCancellingRef = useRef(false);
   // 流程首次加载或切换时触发 fitView
   useEffect(() => {
     if (flow && flow.uuid !== fittedFlowUuidRef.current) {
@@ -540,47 +534,10 @@ function FlowCanvasInner() {
     []
   );
 
-  // 触发重命名浮动输入框
-  const handleRenameNode = useCallback(
-    (nodeId: string) => {
-      const { flow: currentFlow, activeStage } = useFlowStore.getState();
-      if (!currentFlow) return;
-
-      const node = getStageGraph(currentFlow, activeStage).nodes.find((n) => n.uuid === nodeId);
-      if (!node) return;
-      isRenameCancellingRef.current = false;
-      // 使用右键菜单位置作为输入框位置
-      setRenamingNodeId(nodeId);
-      setRenamingValue(node.name);
-      setRenamingPosition(
-        contextMenu
-          ? { x: contextMenu.x, y: contextMenu.y }
-          : { x: 0, y: 0 }
-      );
-    },
-    [contextMenu]
-  );
-
-  // 重命名确认
-  const handleRenameConfirm = useCallback(() => {
-    if (isRenameCancellingRef.current) {
-      isRenameCancellingRef.current = false;
-      return;
-    }
-    if (renamingNodeId && renamingValue.trim()) {
-      updateNode(renamingNodeId, { name: renamingValue.trim() });
-    }
-    setRenamingNodeId(null);
-    setRenamingValue('');
-  }, [renamingNodeId, renamingValue, updateNode]);
-
-  // 重命名取消
-  const handleRenameCancel = useCallback(() => {
-    isRenameCancellingRef.current = true;
-    setRenamingNodeId(null);
-    setRenamingValue('');
+  // 触发节点就地内联重命名
+  const handleRenameNode = useCallback((nodeId: string) => {
+    useUIStore.getState().setRenamingNodeId(nodeId);
   }, []);
-
 
   // 处理拖拽经过
   const onDragOver = useCallback((event: React.DragEvent) => {
@@ -853,6 +810,44 @@ function FlowCanvasInner() {
     return () => window.removeEventListener('trigger-execute-flow', handler);
   }, []);
 
+  // 1. 阻止触摸板双指捏合（Pinch-to-zoom）放大到极限时穿透触发浏览器原生窗口缩放与失焦
+  // 2. 窗口切换回来时自动恢复画布焦点，避免 Alt+Tab 切回后快捷键失焦
+  useEffect(() => {
+    const handleWheel = (e: WheelEvent) => {
+      // 触摸板 pinch 缩放及 Ctrl+滚轮缩放均带有 ctrlKey
+      // 当 React Flow 达到 maxZoom (1.35) 时内部 d3-zoom 会放弃调用 preventDefault，
+      // 此处兜底阻止浏览器原生触发 Viewport Pinch Zoom，防止整个 Webview 窗口被拉伸失焦
+      if (e.ctrlKey) {
+        e.preventDefault();
+      }
+    };
+
+    const handleGesture = (e: Event) => {
+      // Safari / WebKit 独有的触摸板手势拦截
+      e.preventDefault();
+    };
+
+    const handleWindowFocus = () => {
+      // 切换窗口切回时，若焦点停留在 body 外壳，自动恢复画布 Pane 的交互焦点
+      const pane = document.querySelector('.react-flow__pane') as HTMLElement | null;
+      if (pane && (document.activeElement === document.body || !document.activeElement)) {
+        pane.focus({ preventScroll: true });
+      }
+    };
+
+    window.addEventListener('wheel', handleWheel, { passive: false });
+    window.addEventListener('gesturestart', handleGesture);
+    window.addEventListener('gesturechange', handleGesture);
+    window.addEventListener('focus', handleWindowFocus);
+
+    return () => {
+      window.removeEventListener('wheel', handleWheel);
+      window.removeEventListener('gesturestart', handleGesture);
+      window.removeEventListener('gesturechange', handleGesture);
+      window.removeEventListener('focus', handleWindowFocus);
+    };
+  }, []);
+
   // 没有流程时显示空状态
   if (!flow) {
     return (
@@ -969,42 +964,6 @@ function FlowCanvasInner() {
           onPasteConfig={handlePasteNodeConfig}
           hasClipboardConfig={hasClipboardConfigFor(contextMenu.nodeType)}
         />
-      )}
-
-      {/* 重命名浮动输入框 */}
-      {renamingNodeId && (
-        <div
-          className={cn(
-            'fixed z-50',
-            'animate-in fade-in-0 zoom-in-95 duration-100',
-          )}
-          style={{ left: renamingPosition.x, top: renamingPosition.y }}
-        >
-          <input
-            ref={renameInputRef}
-            type="text"
-            value={renamingValue}
-            onChange={(e) => setRenamingValue(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                handleRenameConfirm();
-              } else if (e.key === 'Escape') {
-                handleRenameCancel();
-              }
-            }}
-            onBlur={handleRenameConfirm}
-            autoFocus
-            className={cn(
-              'w-48 px-2 py-1.5 text-sm',
-              'bg-background border border-border rounded-md',
-              'shadow-lg outline-none',
-              'focus:ring-2 focus:ring-ring focus:ring-offset-1',
-            )}
-          />
-          <div className="text-[10px] text-muted-foreground mt-0.5 px-1">
-            {getLL().flow.rename_hint()}
-          </div>
-        </div>
       )}
 
     </div>

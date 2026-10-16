@@ -10,6 +10,7 @@ import { useFlowStore, useDebugStore, useExecutionStore, selectIsNodeRunning, se
 import { BreakpointMarker } from '../BreakpointMarker';
 import { getNodeDisplayName } from '@/lib/nodeMeta';
 import { memo } from 'react';
+import { NodeTitle } from './NodeTitle';
 
 /** GraphqlConnect 节点数据类型 */
 export interface GraphqlConnectNodeData {
@@ -72,9 +73,11 @@ export const GraphqlConnectNode = memo(function GraphqlConnectNode({ id, data, s
           <span className="text-xs text-indigo-600 font-medium tracking-wide">
             {getNodeDisplayName('graphql:connect')}
           </span>
-          <span className="text-sm font-semibold text-foreground break-words">
-            {nodeData.label || getNodeDisplayName('graphql:connect')}
-          </span>
+          <NodeTitle
+            nodeId={id}
+            label={nodeData.label}
+            defaultLabel={getNodeDisplayName('graphql:connect')}
+          />
           {nodeData.config?.endpoint && (
             <span className="text-[10px] text-muted-foreground truncate">
               {nodeData.config.endpoint}

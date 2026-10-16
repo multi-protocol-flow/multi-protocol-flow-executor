@@ -10,6 +10,7 @@ import { useFlowStore, useDebugStore, useExecutionStore, selectIsNodeRunning, se
 import { BreakpointMarker } from '../BreakpointMarker';
 import { getNodeDisplayName } from '@/lib/nodeMeta';
 import { memo } from 'react';
+import { NodeTitle } from './NodeTitle';
 
 /** TcpClose 节点数据类型 */
 export interface TcpCloseNodeData {
@@ -72,9 +73,11 @@ export const TcpCloseNode = memo(function TcpCloseNode({ id, data, selected }: N
           <span className="text-xs text-emerald-600 font-medium tracking-wide">
             {getNodeDisplayName('tcp:close')}
           </span>
-          <span className="text-sm font-semibold text-foreground break-words">
-            {nodeData.label || getNodeDisplayName('tcp:close')}
-          </span>
+          <NodeTitle
+            nodeId={id}
+            label={nodeData.label}
+            defaultLabel={getNodeDisplayName('tcp:close')}
+          />
         </div>
       </div>
       

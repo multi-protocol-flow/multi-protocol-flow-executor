@@ -10,6 +10,7 @@ import { useFlowStore, useDebugStore, useExecutionStore, selectIsNodeRunning, se
 import { BreakpointMarker } from '../BreakpointMarker';
 import { getNodeDisplayName } from '@/lib/nodeMeta';
 import { memo } from 'react';
+import { NodeTitle } from './NodeTitle';
 
 /** TcpSend 节点数据类型 */
 export interface TcpSendNodeData {
@@ -72,9 +73,11 @@ export const TcpSendNode = memo(function TcpSendNode({ id, data, selected }: Nod
           <span className="text-xs text-emerald-600 font-medium tracking-wide">
             {getNodeDisplayName('tcp:send')}
           </span>
-          <span className="text-sm font-semibold text-foreground break-words">
-            {nodeData.label || getNodeDisplayName('tcp:send')}
-          </span>
+          <NodeTitle
+            nodeId={id}
+            label={nodeData.label}
+            defaultLabel={getNodeDisplayName('tcp:send')}
+          />
         </div>
       </div>
       
