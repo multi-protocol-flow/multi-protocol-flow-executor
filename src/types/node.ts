@@ -289,7 +289,7 @@ export type OnFailureMode = 'route_false' | 'throw';
 /**
  * 节点执行失败处理策略
  */
-export type ExecutionErrorStrategy = 'route_to_false' | 'abort_flow' | 'ignore';
+export type ExecutionErrorStrategy = 'route_to_false' | 'abort_flow' | 'ignore' | 'bypass';
 
 /**
  * 单条断言配置
@@ -1047,6 +1047,8 @@ export interface Node {
   hasBreakpoint?: boolean;
   /** 节点执行失败处理策略（可选） */
   on_error?: ExecutionErrorStrategy;
+  /** 节点是否被临时旁路/禁用（可选，默认 false） */
+  disabled?: boolean;
 }
 
 // ============================================================================

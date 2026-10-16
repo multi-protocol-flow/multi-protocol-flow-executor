@@ -649,6 +649,31 @@ const zh_CN_flow: BaseTranslation = {
   dynamic_var_randomCompanyName: '随机公司名称',
   dynamic_var_randomStreetAddress: '随机街道地址',
   dynamic_var_randomPostalCode: '随机五位邮政编码',
+
+  // 增强体验与快捷操作
+  curl_pasted_node_created: '已根据 cURL 命令创建 HTTP 请求节点',
+  node_pasted_created: '已粘贴创建新节点',
+  no_flow_loaded: '未加载任何流程',
+  bypass_node: '禁用节点 (Bypass)',
+  enable_node: '启用节点',
+  node_bypassed_tag: '已禁用',
+  align_nodes: '对齐与排版',
+  align_left: '左对齐',
+  align_center_h: '水平居中',
+  align_right: '右对齐',
+  align_top: '顶对齐',
+  align_center_v: '垂直居中',
+  align_bottom: '底对齐',
+  distribute_h: '水平均匀分布',
+  distribute_v: '垂直均匀分布',
+  inserted_between_nodes: '已自动插入到连接线中间',
+  multi_branch_warning: '该端口已有输出连接，当前引擎仅按主链路顺序执行',
+  find_and_replace: '查找与替换',
+  replace_search_placeholder: '查找配置文本 (如 URL、域名或参数)...',
+  replace_target_placeholder: '替换为...',
+  replace_all: '全部替换',
+  replace_success: '已替换 {count:number} 处匹配项',
+  replace_no_match: '未找到可替换的匹配项',
 };
 
 export default zh_CN_flow;

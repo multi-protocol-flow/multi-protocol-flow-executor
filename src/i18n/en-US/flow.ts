@@ -649,6 +649,31 @@ const en_US_flow = {
   dynamic_var_randomCompanyName: 'Random company name',
   dynamic_var_randomStreetAddress: 'Random street address',
   dynamic_var_randomPostalCode: 'Random 5-digit postal code',
+
+  // Enhanced Experience & Shortcuts
+  curl_pasted_node_created: 'Created HTTP Request node from cURL command',
+  node_pasted_created: 'Created new node from clipboard',
+  no_flow_loaded: 'No flow loaded',
+  bypass_node: 'Disable Node (Bypass)',
+  enable_node: 'Enable Node',
+  node_bypassed_tag: 'Disabled',
+  align_nodes: 'Align & Distribute',
+  align_left: 'Align Left',
+  align_center_h: 'Align Center Horizontally',
+  align_right: 'Align Right',
+  align_top: 'Align Top',
+  align_center_v: 'Align Middle Vertically',
+  align_bottom: 'Align Bottom',
+  distribute_h: 'Distribute Horizontally',
+  distribute_v: 'Distribute Vertically',
+  inserted_between_nodes: 'Node inserted into connection',
+  multi_branch_warning: 'This port already has an outgoing edge; the engine executes along the primary path',
+  find_and_replace: 'Find & Replace',
+  replace_search_placeholder: 'Find text (e.g. URL, domain, parameter)...',
+  replace_target_placeholder: 'Replace with...',
+  replace_all: 'Replace All',
+  replace_success: 'Replaced {count:number} match(es)',
+  replace_no_match: 'No matches found',
 };
 
 export default en_US_flow;

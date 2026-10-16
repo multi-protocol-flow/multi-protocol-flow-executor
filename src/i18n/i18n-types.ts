@@ -10928,6 +10928,29 @@ type RootTranslation = {
 		 * 随​机​五​位​邮​政​编​码
 		 */
 		dynamic_var_randomPostalCode: string
+		curl_pasted_node_created: string
+		node_pasted_created: string
+		no_flow_loaded: string
+		bypass_node: string
+		enable_node: string
+		node_bypassed_tag: string
+		align_nodes: string
+		align_left: string
+		align_center_h: string
+		align_right: string
+		align_top: string
+		align_center_v: string
+		align_bottom: string
+		distribute_h: string
+		distribute_v: string
+		inserted_between_nodes: string
+		multi_branch_warning: string
+		find_and_replace: string
+		replace_search_placeholder: string
+		replace_target_placeholder: string
+		replace_all: string
+		replace_success: string
+		replace_no_match: string
 	}
 	validation: {
 		/**
@@ -25923,6 +25946,29 @@ export type TranslationFunctions = {
 		 * 随机五位邮政编码
 		 */
 		dynamic_var_randomPostalCode: () => LocalizedString
+		curl_pasted_node_created: () => LocalizedString
+		node_pasted_created: () => LocalizedString
+		no_flow_loaded: () => LocalizedString
+		bypass_node: () => LocalizedString
+		enable_node: () => LocalizedString
+		node_bypassed_tag: () => LocalizedString
+		align_nodes: () => LocalizedString
+		align_left: () => LocalizedString
+		align_center_h: () => LocalizedString
+		align_right: () => LocalizedString
+		align_top: () => LocalizedString
+		align_center_v: () => LocalizedString
+		align_bottom: () => LocalizedString
+		distribute_h: () => LocalizedString
+		distribute_v: () => LocalizedString
+		inserted_between_nodes: () => LocalizedString
+		multi_branch_warning: () => LocalizedString
+		find_and_replace: () => LocalizedString
+		replace_search_placeholder: () => LocalizedString
+		replace_target_placeholder: () => LocalizedString
+		replace_all: () => LocalizedString
+		replace_success: (arg: { count: number }) => LocalizedString
+		replace_no_match: () => LocalizedString
 	}
 	validation: {
 		/**
