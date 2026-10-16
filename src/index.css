@@ -117,7 +117,7 @@
     @apply outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
   }
   /* 修复 Radix ScrollArea Viewport 内部 display:table 导致内容溢出的问题 */
   [data-radix-scroll-area-viewport] > div {
@@ -369,9 +369,14 @@
   color: var(--json-punctuation);
 }
 
-/* 画布平移/拖拽的 GPU 合成层提示 */
-.react-flow__viewport {
-  will-change: transform;
+/* 画布缩放高清渲染优化：
+   1. 严禁在 WebKit/Chromium 中为视口或节点设置 backface-visibility: hidden 或 translateZ(0)，
+      否则 WebKit 会强制将内容按 1x 栅格化为离屏位图纹理，在放大 (scale > 1) 时直接拉伸低清位图，导致严重脱焦模糊
+   2. 节点保留 text-rendering: geometricPrecision 与 -webkit-font-smoothing: antialiased，保持矢量精度
+*/
+.react-flow__node {
+  text-rendering: geometricPrecision;
+  -webkit-font-smoothing: antialiased;
 }
 .react-flow__node.dragging {
   will-change: transform;
