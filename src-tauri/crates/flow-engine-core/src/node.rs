@@ -50,6 +50,8 @@ pub enum ExecutionErrorStrategy {
     Ignore,
     /// 中止整个流程
     AbortFlow,
+    /// 临时旁路/禁用节点（不执行网络动作，输入直接透传到输出）
+    Bypass,
 }
 
 /// 节点数据结构
@@ -99,10 +101,17 @@ impl<'de> serde::Deserialize<'de> for Node {
             pub hasBreakpoint: Option<bool>,
             #[serde(default)]
             pub on_error: Option<ExecutionErrorStrategy>,
+            #[serde(default)]
+            pub disabled: Option<bool>,
         }
 
         let helper = NodeHelper::deserialize(deserializer)?;
         let has_breakpoint = helper.hasBreakpoint.or(helper.has_breakpoint);
+        let on_error = if helper.disabled == Some(true) {
+            Some(ExecutionErrorStrategy::Bypass)
+        } else {
+            helper.on_error
+        };
 
         Ok(Node {
             uuid: helper.uuid,
@@ -112,7 +121,7 @@ impl<'de> serde::Deserialize<'de> for Node {
             data: helper.data,
             ports: helper.ports,
             has_breakpoint,
-            on_error: helper.on_error,
+            on_error,
         })
     }
 }
@@ -129,6 +138,13 @@ impl Default for Node {
             has_breakpoint: None,
             on_error: None,
         }
+    }
+}
+
+impl Node {
+    /// 节点是否被临时旁路/禁用
+    pub fn is_bypassed(&self) -> bool {
+        self.on_error == Some(ExecutionErrorStrategy::Bypass)
     }
 }
 

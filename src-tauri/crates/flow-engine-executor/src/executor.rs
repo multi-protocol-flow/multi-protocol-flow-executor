@@ -803,12 +803,28 @@ impl FlowExecutor {
             context.variables.clear_pending_changes();
             let var_version_before = context.variables.version();
 
-            // 执行当前节点（支持取消中断 + 超时控制）
-            let node_timeout_ms = node
-                .data
-                .execution_timeout_ms()
-                .map(|ms| std::cmp::min(ms, 3600000)); // Cap at 1 hour
-            let node_result = match (context.cancel_receiver.is_some(), node_timeout_ms) {
+            // 检查节点是否被临时旁路/禁用 (Bypass)
+            let is_bypassed = node.is_bypassed();
+            let node_result = if is_bypassed {
+                log::info!(
+                    "[Flow {}] Node {} is disabled (bypassed), passing through without execution",
+                    context.flow_uuid,
+                    node.name
+                );
+                let next_nodes: Vec<String> = flow
+                    .connections
+                    .iter()
+                    .filter(|c| c.source_node_uuid == node.uuid && (c.source_port_id == "out" || c.source_port_id == "true"))
+                    .map(|c| c.target_node_uuid.clone())
+                    .collect();
+                Some(Ok((next_nodes, context.last_node_output.clone())))
+            } else {
+                // 执行当前节点（支持取消中断 + 超时控制）
+                let node_timeout_ms = node
+                    .data
+                    .execution_timeout_ms()
+                    .map(|ms| std::cmp::min(ms, 3600000)); // Cap at 1 hour
+                match (context.cancel_receiver.is_some(), node_timeout_ms) {
                 (true, Some(ms)) => {
                     // 有取消接收器 + 超时：在 select 中同时监听取消和超时
                     let Some(mut rx) = context.cancel_receiver.clone() else {
@@ -886,6 +902,7 @@ impl FlowExecutor {
                             .await,
                     )
                 }
+                }
             };
 
             // 取消中断：跳出循环生成取消报告
@@ -900,13 +917,16 @@ impl FlowExecutor {
                     let node_end_ms = flow_engine_core::utils::unix_timestamp_ms();
                     let node_duration = node_start_time.elapsed().as_millis() as u64;
 
-                    // 根据节点类型设置 used_port_id（通过 registry 查找）
+                    // 根据节点类型设置 used_port_id（旁路节点固定走 out 端口）
                     let type_id = node.data.type_name();
-                    let used_port_id = self
-                        .registry
-                        .get(&type_id)
-                        .map(|plugin| Some(plugin.resolve_port(&output_data)))
-                        .unwrap_or(None);
+                    let used_port_id = if is_bypassed {
+                        Some("out".to_string())
+                    } else {
+                        self.registry
+                            .get(&type_id)
+                            .map(|plugin| Some(plugin.resolve_port(&output_data)))
+                            .unwrap_or(None)
+                    };
 
                     // 构建 input_data（节点消费的输入配置）
                     let input_data = build_input_data_from_node_config(&self.registry, node);
@@ -2038,6 +2058,79 @@ mod tests {
         assert_eq!(data["flow_id"], flow_id);
         assert_eq!(data["executed_count"], 2);
         assert_eq!(result.executed_count, 2);
+    }
+
+    #[tokio::test]
+    async fn test_flow_executor_with_bypassed_node() {
+        init_crypto();
+        let flow_id = Uuid::new_v4().to_string();
+        let start_node = Node {
+            uuid: format!("start-{}", flow_id),
+            node_type: "entry".to_string(),
+            name: "开始".to_string(),
+            position: NodePosition { x: 0.0, y: 0.0 },
+            data: NodeData::entry(),
+            ports: None,
+            has_breakpoint: None,
+            on_error: None,
+        };
+
+        // 中间节点被设置为 Bypass (禁用)
+        let bypassed_node = Node {
+            uuid: format!("bypass-{}", flow_id),
+            node_type: "script".to_string(),
+            name: "被旁路的脚本".to_string(),
+            position: NodePosition { x: 100.0, y: 0.0 },
+            data: NodeData::Script(flow_engine_core::node_config::ScriptNodeConfig {
+                script: "throw new Error('should not execute')".to_string(),
+                ..Default::default()
+            }),
+            ports: None,
+            has_breakpoint: None,
+            on_error: Some(flow_engine_core::node::ExecutionErrorStrategy::Bypass),
+        };
+
+        let end_node = Node {
+            uuid: format!("end-{}", flow_id),
+            node_type: "end".to_string(),
+            name: "End".to_string(),
+            position: NodePosition { x: 200.0, y: 0.0 },
+            data: NodeData::end(),
+            ports: None,
+            has_breakpoint: None,
+            on_error: None,
+        };
+
+        let conn1 = Connection {
+            id: format!("c1-{}", flow_id),
+            source_node_uuid: start_node.uuid.clone(),
+            target_node_uuid: bypassed_node.uuid.clone(),
+            source_port_id: "out".to_string(),
+            target_port_id: "in".to_string(),
+        };
+        let conn2 = Connection {
+            id: format!("c2-{}", flow_id),
+            source_node_uuid: bypassed_node.uuid.clone(),
+            target_node_uuid: end_node.uuid.clone(),
+            source_port_id: "out".to_string(),
+            target_port_id: "in".to_string(),
+        };
+
+        let flow = Flow {
+            uuid: flow_id.clone(),
+            initial_variables: None,
+            name: "Bypass Test Flow".to_string(),
+            description: None,
+            nodes: vec![start_node, bypassed_node, end_node],
+            connections: vec![conn1, conn2],
+            setup: None,
+            teardown: None,
+        };
+
+        let executor = FlowExecutor::new();
+        let result = executor.execute_flow(&flow, None, None, None).await;
+        assert!(result.success, "execution failed: {:?}", result.error);
+        assert_eq!(result.executed_count, 3);
     }
 
     #[tokio::test]
