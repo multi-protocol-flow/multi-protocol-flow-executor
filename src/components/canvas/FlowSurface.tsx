@@ -168,7 +168,7 @@ export const FlowSurface = memo(function FlowSurface({
   const locale = useCurrentLocale();
   const ll = getLL();
 
-  const { fitView, setCenter, getNode, getNodes } = useReactFlow();
+  const { fitView, setCenter, getNode, getNodes, setViewport } = useReactFlow();
 
   // 转换 Flow 数据为 React Flow 初始格式（按当前阶段取子图）
   const initialData = useMemo(() => {
@@ -460,7 +460,7 @@ export const FlowSurface = memo(function FlowSurface({
   const onNodeDragStop = useCallback(
     (_: unknown, node: Node) => {
       updateNode(node.id, {
-        position: { x: node.position.x, y: node.position.y },
+        position: { x: Math.round(node.position.x), y: Math.round(node.position.y) },
       });
     },
     [updateNode],
@@ -504,6 +504,20 @@ export const FlowSurface = memo(function FlowSurface({
       el.style.transform = `translate(${viewport.x}px, ${viewport.y}px) scale(${viewport.zoom})`;
     }
   }, [onCloseContextMenu]);
+
+  const onMoveEnd = useCallback(
+    (event: unknown, viewport: { x: number; y: number; zoom: number }) => {
+      // 用户交互停止时吸附视口坐标到物理整数像素，消除次像素抗锯齿导致的边框与字体模糊发虚
+      if (event) {
+        const rx = Math.round(viewport.x);
+        const ry = Math.round(viewport.y);
+        if (Math.abs(rx - viewport.x) > 0.01 || Math.abs(ry - viewport.y) > 0.01) {
+          setViewport({ x: rx, y: ry, zoom: viewport.zoom }, { duration: 0 });
+        }
+      }
+    },
+    [setViewport],
+  );
 
   const onPaneContextMenu = useCallback(
     (event: React.MouseEvent | MouseEvent) => {
@@ -644,7 +658,6 @@ export const FlowSurface = memo(function FlowSurface({
             className="absolute left-0 top-0"
             style={{
               transformOrigin: '0 0',
-              willChange: 'transform',
             }}
           >
             <ExecutionOverlay />
@@ -681,12 +694,13 @@ export const FlowSurface = memo(function FlowSurface({
       onPaneClick={onPaneClick}
       onPaneContextMenu={onPaneContextMenu}
       onMove={onMove}
+      onMoveEnd={onMoveEnd}
       nodeTypes={nodeTypes}
       edgeTypes={edgeTypes}
       deleteKeyCode={DELETE_KEY_CODES}
       fitViewOptions={FIT_VIEW_OPTIONS}
       minZoom={0.1}
-      maxZoom={2}
+      maxZoom={1.35}
       selectionMode={SelectionMode.Partial}
       proOptions={PRO_OPTIONS}
       colorMode={resolvedTheme === 'dark' ? 'dark' : 'light'}

@@ -470,7 +470,7 @@ function CanvasReportViewerInner({
           onNodeClick={onNodeClick}
           onPaneClick={onPaneClick}
           minZoom={0.1}
-          maxZoom={2}
+          maxZoom={1.35}
           proOptions={{ hideAttribution: true }}
           fitView={false}
         >

@@ -510,7 +510,7 @@ function CanvasDiffTabInner({
           fitView
           fitViewOptions={{ padding: 0.2 }}
           minZoom={0.1}
-          maxZoom={2}
+          maxZoom={1.35}
           proOptions={{ hideAttribution: true }}
           defaultEdgeOptions={{ animated: true }}
         >
