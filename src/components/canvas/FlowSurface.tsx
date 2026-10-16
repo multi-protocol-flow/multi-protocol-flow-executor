@@ -1,6 +1,6 @@
 /**
  * FlowSurface - 画布核心渲染表面
- * 承载 ReactFlow 实例、节点/边状态、视口交互及画布内部装饰层 (Background/Controls/MiniMap/ExecutionOverlay)。
+ * 承载 ReactFlow 实例、节点/边状态、视口交互及画布内部装饰层 (Background/Controls/MiniMap)。
  * 下沉状态以保证节点拖拽/画布平移帧不触发 FlowCanvasInner 重渲染。
  */
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -57,7 +57,6 @@ import {
 } from './nodes';
 import DynamicPluginNode from './nodes/DynamicPluginNode';
 import { CustomEdge } from './edges/CustomEdge';
-import { ExecutionOverlay } from './ExecutionOverlay';
 import {
   useFlowStore,
   useUIStore,
@@ -326,7 +325,6 @@ export const FlowSurface = memo(function FlowSurface({
   });
   const classNameUpdateRafRef = useRef<number | null>(null);
   const finalClassNameDoneRef = useRef(false);
-  const overlayInnerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const init = useExecutionStore.getState();
@@ -497,12 +495,8 @@ export const FlowSurface = memo(function FlowSurface({
     setConfigPanelMode('node');
     useUIStore.getState().closeNodePalette();
   }, [selectNode, setConfigPanelMode, onCloseContextMenu]);
-  const onMove = useCallback((_event: unknown, viewport: { x: number; y: number; zoom: number }) => {
+  const onMove = useCallback(() => {
     onCloseContextMenu?.();
-    const el = overlayInnerRef.current;
-    if (el) {
-      el.style.transform = `translate(${viewport.x}px, ${viewport.y}px) scale(${viewport.zoom})`;
-    }
   }, [onCloseContextMenu]);
 
   const onMoveEnd = useCallback(
@@ -651,18 +645,6 @@ export const FlowSurface = memo(function FlowSurface({
             zoomable
           />
         )}
-        {/* 执行状态叠加层 — 独立渲染，执行期间不触发 React Flow reconcile */}
-        <div className="absolute inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 5 }}>
-          <div
-            ref={overlayInnerRef}
-            className="absolute left-0 top-0"
-            style={{
-              transformOrigin: '0 0',
-            }}
-          >
-            <ExecutionOverlay />
-          </div>
-        </div>
       </>
     ),
     [
