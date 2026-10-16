@@ -15,7 +15,7 @@ components/
 │   ├── CanvasToolbar.tsx 缩放/布局/撤销
 │   ├── DebugToolbar.tsx  调试步进/继续/断点
 │   ├── NodePalette.tsx   拖拽调色板
-│   ├── NodeContextMenu.tsx / BreakpointMarker / ExecutionOverlay
+│   ├── NodeContextMenu.tsx / BreakpointMarker
 │   ├── nodes/ (94 文件)  每 NodeType 一个 .tsx 组件
 │   ├── edges/CustomEdge  含动画执行箭头
 │   └── layout.ts / utils.ts
