@@ -4,7 +4,8 @@
  */
 import { useEffect, useRef } from 'react';
 import { useReactFlow } from '@xyflow/react';
-import { Copy, Trash2, Pencil, ClipboardCopy, ClipboardPaste, Play, RotateCcw } from 'lucide-react';
+import { Copy, Trash2, Pencil, ClipboardCopy, ClipboardPaste, Play, RotateCcw, Ban, CheckCircle, Terminal } from 'lucide-react';
+import { generateCurlCommand, type CurlExportOptions } from '@/lib/curlExporter';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { getLL } from '@/i18n/i18n-lazy';
@@ -82,6 +83,9 @@ export function NodeContextMenu({
   );
   // 单例入口节点（entry / http:ingress）仅在当前阶段存在其他可用入口时允许删除，避免删至 0 个入口
   const canDeleteNode = !isEntryType || hasAlternativeEntry;
+  const targetNode = stageNodes.find((n) => n.uuid === nodeId);
+  const isNodeDisabled = targetNode?.disabled === true;
+
 
   // 构建菜单项
   const LL = getLL();
@@ -137,6 +141,49 @@ export function NodeContextMenu({
             icon: <Copy className="w-4 h-4" />,
             action: () => {
               onCopy(nodeId);
+              onClose();
+            },
+          },
+        ]
+      : []),
+    ...(!isEntryType
+      ? [
+          {
+            key: 'toggle-disabled',
+            label: isNodeDisabled ? LL.flow.enable_node() : LL.flow.bypass_node(),
+            icon: isNodeDisabled ? <CheckCircle className="w-4 h-4 text-emerald-500" /> : <Ban className="w-4 h-4 text-amber-500" />,
+            action: () => {
+              useFlowStore.getState().updateNode(nodeId, { disabled: !isNodeDisabled });
+              onClose();
+            },
+          },
+        ]
+      : []),
+    ...(nodeType === 'http:request' && targetNode
+      ? [
+          {
+            key: 'copy-curl',
+            label: LL.panels.http.curlCopyButton(),
+            icon: <Terminal className="w-4 h-4 text-sky-500" />,
+            action: () => {
+              const config = targetNode.data as unknown as Record<string, unknown>;
+              const url = String(config.url || '');
+              const method = String(config.method || 'GET').toUpperCase();
+              const headersObj = (config.headers as Record<string, string>) || {};
+              const headersArr = Object.entries(headersObj).map(([key, value]) => ({ key, value }));
+              const cmd = generateCurlCommand({
+                url,
+                method,
+                headers: headersArr,
+                bodyContent: config.body ? String(config.body) : undefined,
+                bodyType: (config.body_type as CurlExportOptions['bodyType']) || (config.body ? 'body' : 'none'),
+                contentType: (config.content_type as CurlExportOptions['contentType']) || 'json',
+              });
+              navigator.clipboard.writeText(cmd).then(() => {
+                toast.success(LL.panels.http.curlCopySuccess());
+              }).catch(() => {
+                toast.error(LL.panels.http.curlCopyFailed());
+              });
               onClose();
             },
           },

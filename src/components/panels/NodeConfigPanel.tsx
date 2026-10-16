@@ -90,7 +90,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import type { NodeData, Node, NodeType } from '@/types';
-import { MousePointerClick, PencilLine, CircleHelp } from 'lucide-react';
+import { MousePointerClick, PencilLine, CircleHelp, Play, Loader2, Ban } from 'lucide-react';
+import { startInteractiveSliceExecution } from '@/services/tauri';
+import { useExecutionStore, selectIsExecuting } from '@/stores/execution';
 import { HelpDrawer } from './HelpDrawer';
 import { cn } from '@/lib/utils';
 import { getLL } from '@/i18n/i18n-lazy';
@@ -237,6 +239,30 @@ export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeCo
       toast.success(`${getLL().execution.report.copied()}: ${name}`, { duration: 1500 });
     });
   }, [selectedNode?.name]);
+  const isExecuting = useExecutionStore(selectIsExecuting);
+
+  const handleTestCurrentNode = useCallback(async () => {
+    if (!selectedNode || isExecuting) return;
+    const currentFlow = useFlowStore.getState().flow;
+    if (!currentFlow) return;
+    await startInteractiveSliceExecution(currentFlow, [selectedNode.uuid]);
+  }, [selectedNode, isExecuting]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        const panelElement = panelRef.current;
+        if (panelElement && panelElement.contains(document.activeElement)) {
+          e.preventDefault();
+          e.stopPropagation();
+          handleTestCurrentNode();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown, true);
+    return () => window.removeEventListener('keydown', handleKeyDown, true);
+  }, [handleTestCurrentNode]);
+
 
   // 未选中节点时显示流程属性面板
   if (!selectedNode) {
@@ -349,8 +375,36 @@ export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeCo
             >
               {selectedNode.name}
             </CardTitle>
+            {selectedNode?.disabled && (
+              <span
+                onClick={() => useFlowStore.getState().updateNode(selectedNode.uuid, { disabled: false })}
+                className="ml-2 inline-flex items-center gap-1 rounded-md border border-amber-300 dark:border-amber-700 bg-amber-100/70 dark:bg-amber-950/60 px-2 py-0.5 text-xs font-medium text-amber-800 dark:text-amber-200 cursor-pointer hover:bg-amber-200/70 shrink-0"
+                title={getLL().flow.enable_node()}
+              >
+                <Ban className="h-3 w-3 text-amber-600 dark:text-amber-400" />
+                {getLL().flow.node_bypassed_tag()}
+              </span>
+            )}
           </div>
           <div className="flex items-center gap-2 shrink-0">
+            {selectedNode && !readOnly && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-6 gap-1 px-2 text-xs font-medium border-emerald-500/40 text-emerald-600 hover:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/30 cursor-pointer"
+                onClick={handleTestCurrentNode}
+                disabled={isExecuting}
+                title={`${getLL().flow.context_test_node()} (Ctrl+Enter)`}
+              >
+                {isExecuting ? (
+                  <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                ) : (
+                  <Play className="h-3 w-3 fill-current text-emerald-500" />
+                )}
+                <span>{getLL().flow.context_test_node()}</span>
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="icon"
