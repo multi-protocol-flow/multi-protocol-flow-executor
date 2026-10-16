@@ -275,3 +275,102 @@ export async function globalSearchFlow(
   const validContentResults = contentResults.filter((r): r is GroupedGlobalSearchResult => r !== null);
   return [...nameMatchedFlows, ...validContentResults];
 }
+
+/**
+ * 递归替换对象中的字符串内容
+ */
+function deepReplaceObject(
+  obj: unknown,
+  searchStr: string,
+  replaceWith: string,
+): { newObj: unknown; count: number } {
+  if (typeof obj === 'string') {
+    if (obj.includes(searchStr)) {
+      const parts = obj.split(searchStr);
+      const count = parts.length - 1;
+      const newStr = parts.join(replaceWith);
+      return { newObj: newStr, count };
+    }
+    return { newObj: obj, count: 0 };
+  }
+  if (Array.isArray(obj)) {
+    let totalCount = 0;
+    const newArr = obj.map((item) => {
+      const res = deepReplaceObject(item, searchStr, replaceWith);
+      totalCount += res.count;
+      return res.newObj;
+    });
+    return { newObj: newArr, count: totalCount };
+  }
+  if (typeof obj === 'object' && obj !== null) {
+    let totalCount = 0;
+    const newObj: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(obj)) {
+      const res = deepReplaceObject(v, searchStr, replaceWith);
+      totalCount += res.count;
+      newObj[k] = res.newObj;
+    }
+    return { newObj, count: totalCount };
+  }
+  return { newObj: obj, count: 0 };
+}
+
+/**
+ * 在 Flow 对象中批量替换匹配的文本（覆盖节点名称与配置对象）
+ */
+export function replaceInFlow(
+  flow: Flow,
+  searchStr: string,
+  replaceWith: string,
+): { updatedFlow: Flow; replaceCount: number } {
+  if (!searchStr) return { updatedFlow: flow, replaceCount: 0 };
+
+  let totalCount = 0;
+
+  const replaceNode = (node: Flow['nodes'][number]) => {
+    let nodeCount = 0;
+    let newName = node.name;
+    if (newName.includes(searchStr)) {
+      const parts = newName.split(searchStr);
+      nodeCount += parts.length - 1;
+      newName = parts.join(replaceWith);
+    }
+    const dataRes = deepReplaceObject(node.data, searchStr, replaceWith);
+    nodeCount += dataRes.count;
+    totalCount += nodeCount;
+
+    if (nodeCount > 0) {
+      return {
+        ...node,
+        name: newName,
+        data: dataRes.newObj as typeof node.data,
+      };
+    }
+    return node;
+  };
+
+  const newMainNodes = flow.nodes.map(replaceNode);
+
+  const newSetup = flow.setup
+    ? {
+        ...flow.setup,
+        nodes: flow.setup.nodes.map(replaceNode),
+      }
+    : flow.setup;
+
+  const newTeardown = flow.teardown
+    ? {
+        ...flow.teardown,
+        nodes: flow.teardown.nodes.map(replaceNode),
+      }
+    : flow.teardown;
+
+  const updatedFlow: Flow = {
+    ...flow,
+    nodes: newMainNodes,
+    setup: newSetup,
+    teardown: newTeardown,
+  };
+
+  return { updatedFlow, replaceCount: totalCount };
+}

@@ -4,15 +4,16 @@
  * 结果按节点分组，点击跳转并高亮
  */
 import { useState, useMemo, useCallback } from 'react';
-import { Search, FileSearch, ArrowRight } from 'lucide-react';
+import { Search, FileSearch, ArrowRight, Replace } from 'lucide-react';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useFlowStore } from '@/stores';
-import { searchFlow, type GroupedSearchResult } from '@/lib/flowSearch';
+import { searchFlow, replaceInFlow, type GroupedSearchResult } from '@/lib/flowSearch';
 import { cn } from '@/lib/utils';
 import { getLL } from '@/i18n/i18n-lazy';
-
+import { toast } from 'sonner';
 interface SearchOverlayProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -22,6 +23,41 @@ export function SearchOverlay({ open, onOpenChange }: SearchOverlayProps) {
   const flow = useFlowStore((s) => s.flow);
   const focusOnNode = useFlowStore((s) => s.focusOnNode);
   const [query, setQuery] = useState('');
+  const [showReplace, setShowReplace] = useState(false);
+  const [replaceValue, setReplaceValue] = useState('');
+
+  // 全部替换
+  const handleReplaceAll = useCallback(() => {
+    if (!flow || !query.trim()) return;
+    const { updatedFlow, replaceCount } = replaceInFlow(flow, query.trim(), replaceValue);
+    if (replaceCount === 0) {
+      toast.info(getLL().flow.replace_no_match());
+      return;
+    }
+    const { activeTabUuid, tabSessions, tabs } = useFlowStore.getState();
+    const updatedSessions = { ...tabSessions };
+    if (activeTabUuid && updatedSessions[activeTabUuid]) {
+      const sess = updatedSessions[activeTabUuid];
+      const newPast = [...sess.past, flow];
+      if (newPast.length > 10) newPast.shift();
+      updatedSessions[activeTabUuid] = {
+        ...sess,
+        flow: updatedFlow,
+        isDirty: true,
+        past: newPast,
+        future: [],
+        historyVersion: sess.historyVersion + 1,
+      };
+    }
+    useFlowStore.setState({
+      flow: updatedFlow,
+      isDirty: true,
+      tabSessions: updatedSessions,
+      tabs: tabs.map((t) => (t.uuid === activeTabUuid ? { ...t, isDirty: true } : t)),
+    });
+    toast.success(getLL().flow.replace_success({ count: replaceCount }));
+  }, [flow, query, replaceValue]);
+
 
   // 搜索结果
   const results = useMemo(() => {
@@ -67,27 +103,68 @@ export function SearchOverlay({ open, onOpenChange }: SearchOverlayProps) {
         className="!left-0 !right-0 !top-[10vh] !translate-x-0 !translate-y-0 mx-auto w-[92vw] max-w-[620px] h-[580px] max-h-[75vh] !gap-0 p-0 flex flex-col overflow-hidden border border-border/80 bg-background shadow-2xl rounded-xl data-[state=open]:!zoom-in-100 data-[state=closed]:!zoom-out-100 data-[state=open]:!slide-in-from-top-2 data-[state=closed]:!slide-out-to-top-2 data-[state=open]:!slide-in-from-left-0 data-[state=closed]:!slide-out-to-left-0"
         hideCloseButton
       >
-        {/* 标题 */}
-        <div className="flex items-center gap-2 px-6 pt-5 pb-3 shrink-0">
-          <FileSearch className="w-5 h-5 text-muted-foreground" />
-          <DialogTitle className="text-base font-semibold text-foreground">
-            {getLL().flow.search_flow()}
-          </DialogTitle>
+        {/* 标题与替换切换 */}
+        <div className="flex items-center justify-between px-6 pt-5 pb-2 shrink-0">
+          <div className="flex items-center gap-2">
+            <FileSearch className="w-5 h-5 text-muted-foreground" />
+            <DialogTitle className="text-base font-semibold text-foreground">
+              {showReplace ? getLL().flow.find_and_replace() : getLL().flow.search_flow()}
+            </DialogTitle>
+          </div>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-7 text-xs gap-1 text-muted-foreground hover:text-foreground cursor-pointer"
+            onClick={() => setShowReplace((prev) => !prev)}
+          >
+            <Replace className="w-3.5 h-3.5" />
+            <span>{getLL().flow.find_and_replace()}</span>
+          </Button>
         </div>
 
-        {/* 搜索框 */}
-        <div className="px-6 pb-3 shrink-0">
+        {/* 搜索与替换输入区 */}
+        <div className="px-6 pb-3 shrink-0 space-y-2">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               type="text"
-              placeholder={getLL().flow.search_placeholder()}
+              placeholder={showReplace ? getLL().flow.replace_search_placeholder() : getLL().flow.search_placeholder()}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               className="pl-9 h-9 text-sm"
               autoFocus
             />
           </div>
+          {showReplace && (
+            <div className="flex items-center gap-2 animate-in fade-in slide-in-from-top-1 duration-150">
+              <div className="relative flex-1">
+                <Replace className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="text"
+                  placeholder={getLL().flow.replace_target_placeholder()}
+                  value={replaceValue}
+                  onChange={(e) => setReplaceValue(e.target.value)}
+                  className="pl-9 h-9 text-sm"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleReplaceAll();
+                    }
+                  }}
+                />
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                className="h-9 px-3 text-xs shrink-0 cursor-pointer"
+                disabled={!query.trim()}
+                onClick={handleReplaceAll}
+              >
+                {getLL().flow.replace_all()}
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* 搜索结果 */}
