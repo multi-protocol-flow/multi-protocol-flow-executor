@@ -23,6 +23,20 @@ vi.mock('@/components/ui/scroll-area', () => ({
     <div data-testid="scroll-area">{children}</div>
   ),
 }));
+vi.mock('@tauri-apps/plugin-dialog', () => ({
+  open: vi.fn(),
+  save: vi.fn(),
+}));
+
+vi.mock('@/services/tauri', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/services/tauri')>();
+  return {
+    ...actual,
+    getFlowReportMarkdown: vi.fn().mockResolvedValue('## Mock Markdown Summary'),
+    exportFlowReportHtml: vi.fn().mockResolvedValue(undefined),
+  };
+});
+
 
 describe('ExecutionReport', () => {
   const mockCloseReportDialog = vi.fn();
@@ -351,5 +365,47 @@ describe('ExecutionReport', () => {
     expect(screen.queryByText('入口节点')).toBeNull();
     // 失败节点依然展示
     expect(screen.getAllByText('HTTP请求节点').length).toBeGreaterThan(0);
+  });
+  it('点击复制 Markdown 摘要按钮时调用 getFlowReportMarkdown 并写入剪贴板', async () => {
+    mockStoreState(createStoreState({
+      report: mockReport,
+      isReportDialogOpen: true,
+    }));
+
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.assign(navigator, {
+      clipboard: { writeText },
+    });
+
+    render(<ExecutionReport />);
+
+    const copyMdBtn = screen.getByRole('button', { name: /复制 Markdown 摘要|Copy Markdown Summary/i });
+    fireEvent.click(copyMdBtn);
+
+    const { getFlowReportMarkdown } = await import('@/services/tauri');
+    expect(getFlowReportMarkdown).toHaveBeenCalled();
+  });
+
+  it('点击导出 HTML 报告按钮时调用 save 对话框与 exportFlowReportHtml', async () => {
+    mockStoreState(createStoreState({
+      report: mockReport,
+      isReportDialogOpen: true,
+    }));
+
+    const platform = await import('@/lib/platform');
+    const isTauriSpy = vi.spyOn(platform, 'isTauriEnv').mockReturnValue(true);
+    const { save } = await import('@tauri-apps/plugin-dialog');
+    vi.mocked(save).mockResolvedValue('/tmp/report.html');
+    const { exportFlowReportHtml } = await import('@/services/tauri');
+
+    render(<ExecutionReport />);
+
+    const exportBtn = screen.getByRole('button', { name: /导出 HTML 报告|Export HTML Report/i });
+    await fireEvent.click(exportBtn);
+
+    expect(save).toHaveBeenCalled();
+    expect(exportFlowReportHtml).toHaveBeenCalledWith(mockReport, '/tmp/report.html', undefined);
+
+    isTauriSpy.mockRestore();
   });
 });

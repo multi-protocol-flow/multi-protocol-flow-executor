@@ -22,7 +22,15 @@ import {
   ChevronDown,
   ChevronRight,
   Sparkles,
+  FileDown,
+  FileText,
 } from 'lucide-react';
+import { toast } from 'sonner';
+import { isTauriEnv } from '@/lib/platform';
+import { useEnvironmentStore } from '@/stores/environment';
+import { getFlowReportMarkdown, exportFlowReportHtml } from '@/services/tauri';
+import { save } from '@tauri-apps/plugin-dialog';
+import { revealItemInDir } from '@/services/tauri/settings';
 import {
   Dialog,
   DialogContent,
@@ -159,6 +167,55 @@ export function ExecutionReport() {
         : ll.ai.copilot.prompt_diagnose_flow_generic();
     useAIStore.getState().sendMessage(prompt);
   };
+  const handleCopyMarkdown = async () => {
+    if (!displayReport) return;
+    try {
+      const activeEnv = useEnvironmentStore.getState().activeEnvironmentName;
+      const md = await getFlowReportMarkdown(displayReport, activeEnv ?? undefined);
+      await navigator.clipboard.writeText(md);
+      toast.success(ll.execution.report.copy_markdown_success());
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : String(e));
+    }
+  };
+
+  const handleExportHtml = async () => {
+    if (!displayReport) return;
+    try {
+      const activeEnv = useEnvironmentStore.getState().activeEnvironmentName;
+      if (isTauriEnv()) {
+        const defaultFilename = `flow-report-${displayReport.flow_name.replace(/[/\\:*?"<>|]/g, '_')}-${new Date().toISOString().replace(/[:.]/g, '-')}.html`;
+        const selectedPath = await save({
+          defaultPath: defaultFilename,
+          filters: [{ name: 'HTML Report (*.html)', extensions: ['html'] }],
+        });
+        if (!selectedPath) return;
+        await exportFlowReportHtml(displayReport, selectedPath, activeEnv ?? undefined);
+        toast.success(ll.execution.report.export_html_success(), {
+          action: {
+            label: getLL().flow.reveal_in_file_manager(),
+            onClick: () => {
+              revealItemInDir(selectedPath).catch(() => {});
+            },
+          },
+        });
+      } else {
+        const htmlContent = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${displayReport.flow_name}</title></head><body><h1>${displayReport.flow_name}</h1><pre>${JSON.stringify(displayReport, null, 2)}</pre></body></html>`;
+        const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `flow-report-${displayReport.flow_name.replace(/[/\\:*?"<>|]/g, '_')}.html`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        toast.success(ll.execution.report.export_html_success());
+      }
+    } catch (e) {
+      toast.error(ll.execution.report.export_html_failed());
+    }
+  };
 
   return (
     <Dialog open={isReportDialogOpen} onOpenChange={(open) => !open && handleClose()}>
@@ -255,6 +312,30 @@ export function ExecutionReport() {
                 {ll.execution.report.canvas_view()}
               </button>
             </div>
+
+            {/* 复制 Markdown 摘要 */}
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 px-3 gap-1.5 text-xs font-medium"
+              onClick={handleCopyMarkdown}
+              title={ll.execution.report.copy_markdown()}
+            >
+              <FileText className="w-3.5 h-3.5" />
+              <span>{ll.execution.report.copy_markdown()}</span>
+            </Button>
+
+            {/* 导出 HTML 报告 */}
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 px-3 gap-1.5 text-xs font-medium"
+              onClick={handleExportHtml}
+              title={ll.execution.report.export_html()}
+            >
+              <FileDown className="w-3.5 h-3.5" />
+              <span>{ll.execution.report.export_html()}</span>
+            </Button>
 
             {/* 复制报告 JSON */}
             <CopyButton

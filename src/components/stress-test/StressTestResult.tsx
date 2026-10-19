@@ -12,7 +12,14 @@ import {
   Activity,
   AlertCircle,
   X,
+  FileDown,
+  FileText,
 } from 'lucide-react';
+import { toast } from 'sonner';
+import { isTauriEnv } from '@/lib/platform';
+import { save } from '@tauri-apps/plugin-dialog';
+import { revealItemInDir } from '@/services/tauri/settings';
+import { getStressReportMarkdown, exportStressReportHtml } from '@/services/tauri';
 import {
   Dialog,
   DialogContent,
@@ -152,6 +159,53 @@ export function StressTestResult() {
   const handleClose = () => {
     closeReportDialog();
   };
+  const handleCopyMarkdown = async () => {
+    if (!report) return;
+    try {
+      const md = await getStressReportMarkdown(report);
+      await navigator.clipboard.writeText(md);
+      toast.success(getLL().flow.copy_markdown_success());
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : String(e));
+    }
+  };
+
+  const handleExportHtml = async () => {
+    if (!report) return;
+    try {
+      if (isTauriEnv()) {
+        const defaultFilename = `stress-report-${report.flowName.replace(/[/\\:*?"<>|]/g, '_')}-${new Date().toISOString().replace(/[:.]/g, '-')}.html`;
+        const selectedPath = await save({
+          defaultPath: defaultFilename,
+          filters: [{ name: 'HTML Report (*.html)', extensions: ['html'] }],
+        });
+        if (!selectedPath) return;
+        await exportStressReportHtml(report, selectedPath);
+        toast.success(getLL().flow.export_html_success(), {
+          action: {
+            label: getLL().flow.reveal_in_file_manager(),
+            onClick: () => {
+              revealItemInDir(selectedPath).catch(() => {});
+            },
+          },
+        });
+      } else {
+        const htmlContent = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${report.flowName}</title></head><body><h1>${report.flowName}</h1><pre>${JSON.stringify(report, null, 2)}</pre></body></html>`;
+        const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `stress-report-${report.flowName.replace(/[/\\:*?"<>|]/g, '_')}.html`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        toast.success(getLL().flow.export_html_success());
+      }
+    } catch (e) {
+      toast.error(getLL().flow.export_html_failed());
+    }
+  };
 
   // 使用筛选后的统计数据（如果有筛选的话）
   const displayStats = recalculatedStats ?? report.statistics;
@@ -192,6 +246,30 @@ export function StressTestResult() {
             >
               {isSuccess ? getLL().flow.stress_result_success() : getLL().flow.stress_result_error()}
             </Badge>
+            {/* 复制 Markdown 摘要 */}
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 px-2.5 gap-1.5 text-xs font-medium"
+              onClick={handleCopyMarkdown}
+              title={getLL().flow.copy_markdown()}
+            >
+              <FileText className="w-3.5 h-3.5" />
+              <span>{getLL().flow.copy_markdown()}</span>
+            </Button>
+
+            {/* 导出 HTML 报告 */}
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 px-2.5 gap-1.5 text-xs font-medium"
+              onClick={handleExportHtml}
+              title={getLL().flow.export_html()}
+            >
+              <FileDown className="w-3.5 h-3.5" />
+              <span>{getLL().flow.export_html()}</span>
+            </Button>
+
 
             {/* 关闭按钮 */}
             <Button
