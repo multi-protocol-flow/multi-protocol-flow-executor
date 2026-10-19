@@ -15,7 +15,9 @@ import type {
   StressTestConfig,
   StressTestEvent,
   GetStressTestStatusOutput,
+  StressTestReport,
 } from '@/types/stressTest';
+import { isTauriEnv } from '@/lib/platform';
 import { formatError } from './flow';
 
 /**
@@ -80,5 +82,36 @@ export async function getStressTestStatus(): Promise<GetStressTestStatusOutput> 
     return await invoke<GetStressTestStatusOutput>('get_stress_test_status');
   } catch (error) {
     throw formatError(error, 'get_stress_test_status');
+  }
+}
+/**
+ * 获取压力测试报告的 Markdown 摘要
+ */
+export async function getStressReportMarkdown(
+  report: StressTestReport
+): Promise<string> {
+  if (isTauriEnv()) {
+    try {
+      return await invoke<string>('get_stress_report_markdown', { report });
+    } catch (error) {
+      throw formatError(error, 'get_stress_report_markdown');
+    }
+  }
+  return `## Stress Test: ${report.flowName}\n- Total Iterations: ${report.statistics.totalIterations}\n- Success Rate: ${(report.statistics.successRate * 100).toFixed(2)}%\n`;
+}
+
+/**
+ * 导出压力测试报告为自包含 HTML 文件
+ */
+export async function exportStressReportHtml(
+  report: StressTestReport,
+  filePath: string
+): Promise<void> {
+  if (isTauriEnv()) {
+    try {
+      await invoke<void>('export_stress_report_html', { report, filePath });
+    } catch (error) {
+      throw formatError(error, 'export_stress_report_html');
+    }
   }
 }

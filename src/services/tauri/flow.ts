@@ -5,7 +5,7 @@
 
 import { invoke, Channel } from '@tauri-apps/api/core';
 import type { Flow } from '@/types/flow';
-import type { NodeExecutionReport } from '@/types/report';
+import type { FlowExecutionReport, NodeExecutionReport } from '@/types/report';
 import type {
   CreateFlowCommandInput,
   CreateFlowCommandOutput,
@@ -395,5 +395,45 @@ export async function getActiveIngressPorts(): Promise<number[]> {
     return await invoke<number[]>('get_active_ingress_ports');
   } catch (error) {
     throw formatError(error, 'get_active_ingress_ports');
+  }
+}
+/**
+ * 获取流程执行报告的 Markdown 摘要
+ */
+export async function getFlowReportMarkdown(
+  report: FlowExecutionReport,
+  envName?: string
+): Promise<string> {
+  if (isTauriEnv()) {
+    try {
+      return await invoke<string>('get_flow_report_markdown', {
+        report,
+        envName: envName ?? null,
+      });
+    } catch (error) {
+      throw formatError(error, 'get_flow_report_markdown');
+    }
+  }
+  return `## Flow Execution: ${report.flow_name}\n- Status: ${report.status}\n- Duration: ${report.duration_ms} ms\n`;
+}
+
+/**
+ * 导出流程执行报告为自包含 HTML 文件
+ */
+export async function exportFlowReportHtml(
+  report: FlowExecutionReport,
+  filePath: string,
+  envName?: string
+): Promise<void> {
+  if (isTauriEnv()) {
+    try {
+      await invoke<void>('export_flow_report_html', {
+        report,
+        filePath,
+        envName: envName ?? null,
+      });
+    } catch (error) {
+      throw formatError(error, 'export_flow_report_html');
+    }
   }
 }

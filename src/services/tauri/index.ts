@@ -638,4 +638,6 @@ export async function saveDatasetReport(report: DatasetExecutionReport, reportsD
   }
 }
 
+export { getFlowReportMarkdown, exportFlowReportHtml } from './flow';
+export { getStressReportMarkdown, exportStressReportHtml } from './stressTest';
 export { pluginUiCall } from './plugins';

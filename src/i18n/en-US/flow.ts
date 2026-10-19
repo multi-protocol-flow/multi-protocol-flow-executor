@@ -674,6 +674,11 @@ const en_US_flow = {
   replace_all: 'Replace All',
   replace_success: 'Replaced {count:number} match(es)',
   replace_no_match: 'No matches found',
+  copy_markdown: 'Copy Markdown Summary',
+  copy_markdown_success: 'Markdown summary copied to clipboard',
+  export_html: 'Export HTML Report',
+  export_html_success: 'HTML report exported successfully',
+  export_html_failed: 'Failed to export HTML report',
 };
 
 export default en_US_flow;

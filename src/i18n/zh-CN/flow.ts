@@ -674,6 +674,11 @@ const zh_CN_flow: BaseTranslation = {
   replace_all: '全部替换',
   replace_success: '已替换 {count:number} 处匹配项',
   replace_no_match: '未找到可替换的匹配项',
+  copy_markdown: '复制 Markdown 摘要',
+  copy_markdown_success: 'Markdown 摘要已复制到剪贴板',
+  export_html: '导出 HTML 报告',
+  export_html_success: 'HTML 报告已导出',
+  export_html_failed: '导出 HTML 报告失败',
 };
 
 export default zh_CN_flow;

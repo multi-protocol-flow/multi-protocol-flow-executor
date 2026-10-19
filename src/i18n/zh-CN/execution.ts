@@ -161,6 +161,11 @@ const zh_CN_execution: BaseTranslation = {
     sub_flow_child_nodes: '子节点执行明细 ({count})',
     sub_flow_not_reached_end: '子流程未到达结束节点',
     flow_warning: '流程警告',
+    copy_markdown: '复制 Markdown 摘要',
+    copy_markdown_success: 'Markdown 摘要已复制到剪贴板',
+    export_html: '导出 HTML 报告',
+    export_html_success: 'HTML 报告已导出',
+    export_html_failed: '导出 HTML 报告失败',
   },
   compare: {
     title: '对比: {snapshot} vs {current}',

@@ -159,6 +159,11 @@ const en_US_execution = {
     sub_flow_child_nodes: 'Child node details ({count})',
     sub_flow_not_reached_end: 'Subflow did not reach an end node',
     flow_warning: 'Flow warning',
+    copy_markdown: 'Copy Markdown Summary',
+    copy_markdown_success: 'Markdown summary copied to clipboard',
+    export_html: 'Export HTML Report',
+    export_html_success: 'HTML report exported successfully',
+    export_html_failed: 'Failed to export HTML report',
   },
   compare: {
     title: 'Compare: {snapshot} vs {current}',

@@ -5542,6 +5542,26 @@ type RootTranslation = {
 			 * 流​程​警​告
 			 */
 			flow_warning: string
+			/**
+			 * 复​制​ ​M​a​r​k​d​o​w​n​ ​摘​要
+			 */
+			copy_markdown: string
+			/**
+			 * M​a​r​k​d​o​w​n​ ​摘​要​已​复​制​到​剪​贴​板
+			 */
+			copy_markdown_success: string
+			/**
+			 * 导​出​ ​H​T​M​L​ ​报​告
+			 */
+			export_html: string
+			/**
+			 * H​T​M​L​ ​报​告​已​导​出
+			 */
+			export_html_success: string
+			/**
+			 * 导​出​ ​H​T​M​L​ ​报​告​失​败
+			 */
+			export_html_failed: string
 		}
 		compare: {
 			/**
@@ -10928,29 +10948,119 @@ type RootTranslation = {
 		 * 随​机​五​位​邮​政​编​码
 		 */
 		dynamic_var_randomPostalCode: string
+		/**
+		 * 已​根​据​ ​c​U​R​L​ ​命​令​创​建​ ​H​T​T​P​ ​请​求​节​点
+		 */
 		curl_pasted_node_created: string
+		/**
+		 * 已​粘​贴​创​建​新​节​点
+		 */
 		node_pasted_created: string
+		/**
+		 * 未​加​载​任​何​流​程
+		 */
 		no_flow_loaded: string
+		/**
+		 * 禁​用​节​点​ ​(​B​y​p​a​s​s​)
+		 */
 		bypass_node: string
+		/**
+		 * 启​用​节​点
+		 */
 		enable_node: string
+		/**
+		 * 已​禁​用
+		 */
 		node_bypassed_tag: string
+		/**
+		 * 对​齐​与​排​版
+		 */
 		align_nodes: string
+		/**
+		 * 左​对​齐
+		 */
 		align_left: string
+		/**
+		 * 水​平​居​中
+		 */
 		align_center_h: string
+		/**
+		 * 右​对​齐
+		 */
 		align_right: string
+		/**
+		 * 顶​对​齐
+		 */
 		align_top: string
+		/**
+		 * 垂​直​居​中
+		 */
 		align_center_v: string
+		/**
+		 * 底​对​齐
+		 */
 		align_bottom: string
+		/**
+		 * 水​平​均​匀​分​布
+		 */
 		distribute_h: string
+		/**
+		 * 垂​直​均​匀​分​布
+		 */
 		distribute_v: string
+		/**
+		 * 已​自​动​插​入​到​连​接​线​中​间
+		 */
 		inserted_between_nodes: string
+		/**
+		 * 该​端​口​已​有​输​出​连​接​，​当​前​引​擎​仅​按​主​链​路​顺​序​执​行
+		 */
 		multi_branch_warning: string
+		/**
+		 * 查​找​与​替​换
+		 */
 		find_and_replace: string
+		/**
+		 * 查​找​配​置​文​本​ ​(​如​ ​U​R​L​、​域​名​或​参​数​)​.​.​.
+		 */
 		replace_search_placeholder: string
+		/**
+		 * 替​换​为​.​.​.
+		 */
 		replace_target_placeholder: string
+		/**
+		 * 全​部​替​换
+		 */
 		replace_all: string
-		replace_success: string
+		/**
+		 * 已​替​换​ ​{​c​o​u​n​t​}​ ​处​匹​配​项
+		 * @param {number} count
+		 */
+		replace_success: RequiredParams<'count'>
+		/**
+		 * 未​找​到​可​替​换​的​匹​配​项
+		 */
 		replace_no_match: string
+		/**
+		 * 复​制​ ​M​a​r​k​d​o​w​n​ ​摘​要
+		 */
+		copy_markdown: string
+		/**
+		 * M​a​r​k​d​o​w​n​ ​摘​要​已​复​制​到​剪​贴​板
+		 */
+		copy_markdown_success: string
+		/**
+		 * 导​出​ ​H​T​M​L​ ​报​告
+		 */
+		export_html: string
+		/**
+		 * H​T​M​L​ ​报​告​已​导​出
+		 */
+		export_html_success: string
+		/**
+		 * 导​出​ ​H​T​M​L​ ​报​告​失​败
+		 */
+		export_html_failed: string
 	}
 	validation: {
 		/**
@@ -20658,6 +20768,26 @@ export type TranslationFunctions = {
 			 * 流程警告
 			 */
 			flow_warning: () => LocalizedString
+			/**
+			 * 复制 Markdown 摘要
+			 */
+			copy_markdown: () => LocalizedString
+			/**
+			 * Markdown 摘要已复制到剪贴板
+			 */
+			copy_markdown_success: () => LocalizedString
+			/**
+			 * 导出 HTML 报告
+			 */
+			export_html: () => LocalizedString
+			/**
+			 * HTML 报告已导出
+			 */
+			export_html_success: () => LocalizedString
+			/**
+			 * 导出 HTML 报告失败
+			 */
+			export_html_failed: () => LocalizedString
 		}
 		compare: {
 			/**
@@ -25946,29 +26076,118 @@ export type TranslationFunctions = {
 		 * 随机五位邮政编码
 		 */
 		dynamic_var_randomPostalCode: () => LocalizedString
+		/**
+		 * 已根据 cURL 命令创建 HTTP 请求节点
+		 */
 		curl_pasted_node_created: () => LocalizedString
+		/**
+		 * 已粘贴创建新节点
+		 */
 		node_pasted_created: () => LocalizedString
+		/**
+		 * 未加载任何流程
+		 */
 		no_flow_loaded: () => LocalizedString
+		/**
+		 * 禁用节点 (Bypass)
+		 */
 		bypass_node: () => LocalizedString
+		/**
+		 * 启用节点
+		 */
 		enable_node: () => LocalizedString
+		/**
+		 * 已禁用
+		 */
 		node_bypassed_tag: () => LocalizedString
+		/**
+		 * 对齐与排版
+		 */
 		align_nodes: () => LocalizedString
+		/**
+		 * 左对齐
+		 */
 		align_left: () => LocalizedString
+		/**
+		 * 水平居中
+		 */
 		align_center_h: () => LocalizedString
+		/**
+		 * 右对齐
+		 */
 		align_right: () => LocalizedString
+		/**
+		 * 顶对齐
+		 */
 		align_top: () => LocalizedString
+		/**
+		 * 垂直居中
+		 */
 		align_center_v: () => LocalizedString
+		/**
+		 * 底对齐
+		 */
 		align_bottom: () => LocalizedString
+		/**
+		 * 水平均匀分布
+		 */
 		distribute_h: () => LocalizedString
+		/**
+		 * 垂直均匀分布
+		 */
 		distribute_v: () => LocalizedString
+		/**
+		 * 已自动插入到连接线中间
+		 */
 		inserted_between_nodes: () => LocalizedString
+		/**
+		 * 该端口已有输出连接，当前引擎仅按主链路顺序执行
+		 */
 		multi_branch_warning: () => LocalizedString
+		/**
+		 * 查找与替换
+		 */
 		find_and_replace: () => LocalizedString
+		/**
+		 * 查找配置文本 (如 URL、域名或参数)...
+		 */
 		replace_search_placeholder: () => LocalizedString
+		/**
+		 * 替换为...
+		 */
 		replace_target_placeholder: () => LocalizedString
+		/**
+		 * 全部替换
+		 */
 		replace_all: () => LocalizedString
+		/**
+		 * 已替换 {count} 处匹配项
+		 */
 		replace_success: (arg: { count: number }) => LocalizedString
+		/**
+		 * 未找到可替换的匹配项
+		 */
 		replace_no_match: () => LocalizedString
+		/**
+		 * 复制 Markdown 摘要
+		 */
+		copy_markdown: () => LocalizedString
+		/**
+		 * Markdown 摘要已复制到剪贴板
+		 */
+		copy_markdown_success: () => LocalizedString
+		/**
+		 * 导出 HTML 报告
+		 */
+		export_html: () => LocalizedString
+		/**
+		 * HTML 报告已导出
+		 */
+		export_html_success: () => LocalizedString
+		/**
+		 * 导出 HTML 报告失败
+		 */
+		export_html_failed: () => LocalizedString
 	}
 	validation: {
 		/**
