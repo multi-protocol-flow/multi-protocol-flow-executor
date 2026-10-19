@@ -39,7 +39,7 @@ export const GraphqlDisconnectNode = memo(function GraphqlDisconnectNode({ id, d
         'bg-background',
         'w-[180px]',
         'flex items-center',
-        selected && 'border-[3px] border-indigo-500',
+        selected && 'border-indigo-500 ring-2 ring-indigo-500/20',
         isDebugPausedAtThisNode && 'debug-breathing-purple'
       )}
     >
