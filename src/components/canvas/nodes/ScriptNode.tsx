@@ -39,7 +39,7 @@ export const ScriptNode = memo(function ScriptNode({ id, data, selected }: NodeP
         'bg-background',
         'w-[180px]',
         'flex items-center',
-        selected && 'border-[3px] border-violet-500',
+        selected && 'border-violet-500 ring-2 ring-violet-500/20',
         isDebugPausedAtThisNode && 'debug-breathing-violet'
       )}
     >

@@ -49,7 +49,7 @@ export const ProxyNode = memo(function ProxyNode({ id, data, selected }: NodePro
         'bg-background',
         'w-[180px]',
         'flex items-center',
-        selected && 'border-[3px] border-lime-500',
+        selected && 'border-lime-500 ring-2 ring-lime-500/20',
         isDebugPausedAtThisNode && 'debug-breathing-amber'
       )}
     >
