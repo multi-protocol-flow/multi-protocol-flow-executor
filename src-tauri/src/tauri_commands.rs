@@ -432,6 +432,41 @@ pub fn delete_flow_report(uuid: String, reports_dir: String) -> Result<(), Strin
     }
     res
 }
+/// 获取流程执行报告 Markdown 摘要
+#[tauri::command]
+pub fn get_flow_report_markdown(
+    report: FlowExecutionReport,
+    env_name: Option<String>,
+) -> Result<String, String> {
+    flow_engine::commands::get_flow_report_markdown(report, env_name)
+}
+
+/// 导出流程执行报告为自包含 HTML 文件
+#[tauri::command]
+pub fn export_flow_report_html(
+    report: FlowExecutionReport,
+    file_path: String,
+    env_name: Option<String>,
+) -> Result<(), String> {
+    flow_engine::commands::export_flow_report_html(report, &file_path, env_name)
+}
+
+/// 获取压力测试报告 Markdown 摘要
+#[tauri::command]
+pub fn get_stress_report_markdown(
+    report: flow_engine::stress_test::StressTestReport,
+) -> Result<String, String> {
+    flow_engine::commands::get_stress_report_markdown(report)
+}
+
+/// 导出压力测试报告为自包含 HTML 文件
+#[tauri::command]
+pub fn export_stress_report_html(
+    report: flow_engine::stress_test::StressTestReport,
+    file_path: String,
+) -> Result<(), String> {
+    flow_engine::commands::export_stress_report_html(report, &file_path)
+}
 // ============================================================================
 // SSE 连接测试命令
 // ============================================================================
