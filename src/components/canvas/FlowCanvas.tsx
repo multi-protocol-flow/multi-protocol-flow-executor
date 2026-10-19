@@ -175,18 +175,21 @@ const CANVAS_STYLE_STRING = `
     font-size: inherit !important;
     text-align: inherit !important;
   }
-  /* 被旁路禁用的节点视觉指示（半透明、灰度、虚线边框感） */
+  /* 被旁路禁用的节点视觉指示（半透明弱化显示；严禁任何 :hover 样式与过渡动画，避免在非整数变换视口中触发图层重绘导致全画布节点抖动） */
   .react-flow__node.node-bypassed {
     opacity: 0.52 !important;
-    filter: grayscale(0.6);
-    transition: opacity 0.2s ease, filter 0.2s ease;
+    transition: none !important;
+  }
+  .react-flow__node.node-bypassed * {
+    transition: none !important;
+  }
+  .react-flow__node.node-bypassed .react-flow__handle:hover {
+    transform: none !important;
   }
   .react-flow__node.node-bypassed:hover {
-    opacity: 0.82 !important;
-    filter: grayscale(0.2);
+    opacity: 0.52 !important;
   }
 `;
-
 
 /** MiniMap 节点颜色 — 静态回退 */
 export const FALLBACK_MINIMAP_COLORS: Record<string, string> = {
