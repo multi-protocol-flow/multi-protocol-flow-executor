@@ -43,6 +43,56 @@ pub fn delete_flow_report(uuid: &str, reports_dir: &str) -> Result<(), String> {
     let reports_path = Path::new(reports_dir);
     storage::delete_report(uuid, reports_path)
 }
+/// 获取流程执行报告的 Markdown 摘要
+pub fn get_flow_report_markdown(
+    report: FlowExecutionReport,
+    env_name: Option<String>,
+) -> Result<String, String> {
+    Ok(crate::report_export::generate_flow_markdown_summary(
+        &report,
+        env_name.as_deref(),
+    ))
+}
+
+/// 获取压力测试报告的 Markdown 摘要
+pub fn get_stress_report_markdown(report: crate::stress_test::StressTestReport) -> Result<String, String> {
+    Ok(crate::report_export::generate_stress_markdown_summary(&report))
+}
+
+/// 导出流程执行报告为自包含 HTML 文件
+pub fn export_flow_report_html(
+    report: FlowExecutionReport,
+    file_path: &str,
+    env_name: Option<String>,
+) -> Result<(), String> {
+    let html = crate::report_export::generate_flow_report_html(&report, env_name.as_deref());
+    let path = Path::new(file_path);
+    if let Some(parent) = path.parent() {
+        if !parent.as_os_str().is_empty() && !parent.exists() {
+            std::fs::create_dir_all(parent)
+                .map_err(|e| format!("failed to create parent directory: {}", e))?;
+        }
+    }
+    std::fs::write(path, html.as_bytes())
+        .map_err(|e| format!("failed to write HTML report to {}: {}", file_path, e))
+}
+
+/// 导出压力测试报告为自包含 HTML 文件
+pub fn export_stress_report_html(
+    report: crate::stress_test::StressTestReport,
+    file_path: &str,
+) -> Result<(), String> {
+    let html = crate::report_export::generate_stress_report_html(&report);
+    let path = Path::new(file_path);
+    if let Some(parent) = path.parent() {
+        if !parent.as_os_str().is_empty() && !parent.exists() {
+            std::fs::create_dir_all(parent)
+                .map_err(|e| format!("failed to create parent directory: {}", e))?;
+        }
+    }
+    std::fs::write(path, html.as_bytes())
+        .map_err(|e| format!("failed to write HTML report to {}: {}", file_path, e))
+}
 
 #[cfg(test)]
 mod tests {
@@ -392,5 +442,75 @@ mod tests {
         let reports =
             list_flow_reports(&reports_dir).unwrap_or_else(|e| panic!("列出报告Failed: {e}"));
         assert_eq!(reports[0].status, "failed");
+    }
+    #[test]
+    fn test_report_export_commands() {
+        use crate::stress_test::{
+            ResponseTimeDistribution, StressTestConfig, StressTestReport, StressTestStatistics,
+        };
+        let temp_dir = TempDir::new().unwrap_or_else(|e| panic!("创建临时目录Failed: {e}"));
+
+        // Flow markdown & HTML
+        let flow_report = create_test_report("flow-export-001", ExecutionStatus::Success);
+        let md = get_flow_report_markdown(flow_report.clone(), Some("staging".to_string()))
+            .expect("get_flow_report_markdown failed");
+        assert!(md.contains("🟢 **PASSED**"));
+        assert!(md.contains("`staging`"));
+
+        let flow_html_path = temp_dir.path().join("reports/flow-report.html");
+        let export_flow_res = export_flow_report_html(
+            flow_report,
+            &flow_html_path.to_string_lossy(),
+            Some("staging".to_string()),
+        );
+        assert!(export_flow_res.is_ok());
+        assert!(flow_html_path.exists());
+        let flow_html_content = std::fs::read_to_string(&flow_html_path).unwrap();
+        assert!(flow_html_content.contains("MPE Execution Report"));
+
+        // Stress markdown & HTML
+        let stress_report = StressTestReport {
+            uuid: "stress-cmd-001".to_string(),
+            flow_uuid: "flow-cmd-001".to_string(),
+            flow_name: "Stress Command Test".to_string(),
+            duration_ms: 10000,
+            config: StressTestConfig {
+                concurrent_users: 10,
+                duration_seconds: 10,
+                ..Default::default()
+            },
+            statistics: StressTestStatistics {
+                total_iterations: 100,
+                successful: 100,
+                failed: 0,
+                success_rate: 1.0,
+                rps: 10.0,
+            },
+            response_time_distribution: ResponseTimeDistribution {
+                avg_ms: 50.0,
+                min_ms: 10,
+                max_ms: 200,
+                p50_ms: 45,
+                p90_ms: 80,
+                p95_ms: 100,
+                p99_ms: 150,
+            },
+            ..Default::default()
+        };
+
+        let stress_md = get_stress_report_markdown(stress_report.clone())
+            .expect("get_stress_report_markdown failed");
+        assert!(stress_md.contains("🟢 **PASSED**"));
+        assert!(stress_md.contains("Stress Command Test"));
+
+        let stress_html_path = temp_dir.path().join("nested/stress-report.html");
+        let export_stress_res = export_stress_report_html(
+            stress_report,
+            &stress_html_path.to_string_lossy(),
+        );
+        assert!(export_stress_res.is_ok());
+        assert!(stress_html_path.exists());
+        let stress_html_content = std::fs::read_to_string(&stress_html_path).unwrap();
+        assert!(stress_html_content.contains("MPE Stress Test Report"));
     }
 }

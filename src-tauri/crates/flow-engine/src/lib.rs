@@ -27,6 +27,7 @@ pub use flow_engine_core::ws_stream;
 // Wave 2: 无依赖的基础模块
 pub use flow_engine_executor::command;
 pub use flow_engine_executor::storage;
+pub use flow_engine_executor::report_export;
 
 // Wave 3: 执行器模块（协议 crate 通过 executor 条件转发）
 pub use flow_engine_core::context;

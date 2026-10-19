@@ -35,6 +35,8 @@ pub mod plugin_sub_flow;
 pub mod plugin_variable_extractor;
 /// 协议 provider 构造（DRY: 共享给 executor 和 debug executor）
 pub mod provider_builder;
+/// 报告导出模块，提供 Markdown 与自包含 HTML 报告生成
+pub mod report_export;
 /// 文件存储模块，管理流程文件的读写与持久化
 pub mod storage;
 /// 压力测试模块，支持并发执行与性能指标采集
