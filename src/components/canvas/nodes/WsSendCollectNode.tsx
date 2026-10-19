@@ -39,7 +39,7 @@ export const WsSendCollectNode = memo(function WsSendCollectNode({ id, data, sel
         'bg-background',
         'w-[180px]',
         'flex items-center',
-        selected && 'border-[3px] border-teal-500',
+        selected && 'border-teal-500 ring-2 ring-teal-500/20',
         isDebugPausedAtThisNode && 'debug-breathing-teal'
       )}
     >

@@ -39,7 +39,7 @@ export const WsCloseNode = memo(function WsCloseNode({ id, data, selected }: Nod
         'bg-background',
         'w-[180px]',
         'flex items-center',
-        selected && 'border-[3px] border-rose-500',
+        selected && 'border-rose-500 ring-2 ring-rose-500/20',
         isDebugPausedAtThisNode && 'debug-breathing-rose'
       )}
     >

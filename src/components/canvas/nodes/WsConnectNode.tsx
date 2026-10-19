@@ -39,7 +39,7 @@ export const WsConnectNode = memo(function WsConnectNode({ id, data, selected }:
         'bg-background',
         'w-[180px]',
         'flex items-center',
-        selected && 'border-[3px] border-amber-500',
+        selected && 'border-amber-500 ring-2 ring-amber-500/20',
         isDebugPausedAtThisNode && 'debug-breathing-amber'
       )}
     >
