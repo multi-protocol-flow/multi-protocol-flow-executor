@@ -39,7 +39,7 @@ export const UdpCloseNode = memo(function UdpCloseNode({ id, data, selected }: N
         'bg-background',
         'w-[180px]',
         'flex items-center',
-        selected && 'border-[3px] border-orange-500',
+        selected && 'border-orange-500 ring-2 ring-orange-500/20',
         isDebugPausedAtThisNode && 'debug-breathing-orange'
       )}
     >
