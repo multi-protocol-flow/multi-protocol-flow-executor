@@ -24,6 +24,8 @@ pub async fn execute(
             ramp_up,
             duration,
             output,
+            export_html,
+            summary,
         } => {
             execute_run(
                 &flow,
@@ -33,6 +35,8 @@ pub async fn execute(
                 ramp_up,
                 duration,
                 output.as_deref(),
+                export_html.as_deref(),
+                summary.as_deref(),
                 registry,
                 cancel_rx,
             )
@@ -52,6 +56,8 @@ async fn execute_run(
     ramp_up: u32,
     duration: u32,
     output_path: Option<&str>,
+    export_html: Option<&std::path::Path>,
+    summary: Option<&std::path::Path>,
     registry: Arc<flow_engine::registry::NodeRegistry>,
     cancel_rx: tokio::sync::watch::Receiver<bool>,
 ) -> Result<(), CliError> {
@@ -148,11 +154,40 @@ async fn execute_run(
 
     // 如指定输出路径，写入报告文件
     if let Some(path) = output_path {
-        if let Some(report) = final_report {
-            let json = serde_json::to_string_pretty(&report)
+        if let Some(report) = &final_report {
+            let json = serde_json::to_string_pretty(report)
                 .map_err(|e| CliError::execution(format!("Failed to serialize report: {}", e)))?;
             std::fs::write(path, json)
                 .map_err(|e| CliError::Io(format!("Failed to write report: {}", e)))?;
+        }
+    }
+
+    // Export Step Summary (--summary / GITHUB_STEP_SUMMARY)
+    if let Some(report) = &final_report {
+        if let Err(e) = super::summary::write_stress_step_summary_if_requested(
+            report,
+            summary,
+        ) {
+            eprintln!("Failed to write stress step summary: {}", e);
+        }
+    }
+
+    // Export self-contained HTML report (--export-html)
+    if let Some(html_path) = export_html {
+        if let Some(report) = &final_report {
+            let html_content = flow_engine::report_export::generate_stress_report_html(report);
+            if let Some(parent) = html_path.parent() {
+                if !parent.as_os_str().is_empty() && !parent.exists() {
+                    let _ = std::fs::create_dir_all(parent);
+                }
+            }
+            std::fs::write(html_path, html_content).map_err(|e| {
+                CliError::Io(format!(
+                    "Failed to write HTML report to {}: {}",
+                    html_path.display(),
+                    e
+                ))
+            })?;
         }
     }
 

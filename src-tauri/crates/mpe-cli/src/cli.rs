@@ -161,6 +161,9 @@ pub enum Commands {
         /// Export GitHub Actions Step Summary markdown to this file path
         #[arg(long)]
         summary: Option<std::path::PathBuf>,
+        /// Export execution report as self-contained HTML file
+        #[arg(long)]
+        export_html: Option<std::path::PathBuf>,
     },
     /// Start long-running HTTP Ingress mock server
     Serve {
@@ -315,6 +318,12 @@ pub enum StressCommands {
         /// Output report file path
         #[arg(short, long)]
         output: Option<String>,
+        /// Export stress test report as self-contained HTML file
+        #[arg(long)]
+        export_html: Option<std::path::PathBuf>,
+        /// Export GitHub Actions Step Summary markdown to this file path
+        #[arg(long)]
+        summary: Option<std::path::PathBuf>,
     },
     /// Stress report management
     Report {
@@ -628,6 +637,7 @@ async fn async_main() -> Result<(), CliError> {
             report_format,
             report_file,
             summary,
+            export_html,
         } => {
             let (registry, plugin_manager) = build_shared_registry().await;
             run::execute(
@@ -640,6 +650,7 @@ async fn async_main() -> Result<(), CliError> {
                 &report_format,
                 report_file.as_deref(),
                 summary.as_deref(),
+                export_html.as_deref(),
                 registry,
                 plugin_manager,
                 cancel_rx,

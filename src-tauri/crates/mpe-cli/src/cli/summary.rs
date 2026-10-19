@@ -3,162 +3,59 @@
 //! Generates rich Markdown summaries for CI/CD runs and writes to `$GITHUB_STEP_SUMMARY`
 //! or explicit `--summary <path>`.
 
-use flow_engine::report::{ExecutionStatus, FlowExecutionReport};
+use flow_engine::report::FlowExecutionReport;
 use std::path::Path;
 
 use super::CliError;
 
 /// Generate Markdown formatted execution summary
 pub fn generate_markdown_summary(report: &FlowExecutionReport, env_name: Option<&str>) -> String {
-    let mut md = String::with_capacity(1024);
+    flow_engine::report_export::generate_flow_markdown_summary(report, env_name)
+}
 
-    let is_success = report.status == ExecutionStatus::Success;
-    let badge = if is_success {
-        "🟢 **PASSED**"
-    } else {
-        "🔴 **FAILED**"
-    };
-
-    md.push_str(&format!(
-        "## {} Flow Execution: {}\n\n",
-        badge, report.flow_name
-    ));
-
-    let env_display = env_name.unwrap_or("default");
-    md.push_str(&format!(
-        "- **Status**: {}\n- **Flow UUID**: `{}`\n- **Environment**: `{}`\n- **Total Duration**: {} ms\n- **Main Duration**: {} ms\n\n",
-        if is_success { "Success" } else { "Failed" },
-        report.flow_uuid,
-        env_display,
-        report.duration_ms,
-        report.main_duration_ms
-    ));
-
-    // 阶段统计表格
-    md.push_str("### 📊 Lifecycle Stages\n\n");
-    md.push_str("| Stage | Status | Nodes (Executed/Total) | Duration |\n");
-    md.push_str("|---|---|---|---|\n");
-
-    let status_str = |status: &ExecutionStatus| match status {
-        ExecutionStatus::Success => "🟢 Success",
-        ExecutionStatus::Failed => "🔴 Failed",
-        ExecutionStatus::Skipped => "⚪ Skipped",
-        ExecutionStatus::Cancelled => "🟡 Cancelled",
-    };
-
-    if let Some(setup) = &report.stages.setup {
-        let executed = setup.node_reports.len();
-        md.push_str(&format!(
-            "| Setup | {} | {} | {} ms |\n",
-            status_str(&setup.status),
-            executed,
-            setup.duration_ms
-        ));
-    }
-
-    let main_executed = if !report.stages.main.node_reports.is_empty() {
-        report.stages.main.node_reports.len()
-    } else {
-        report.node_reports.len()
-    };
-    let main_duration = if report.stages.main.duration_ms > 0 {
-        report.stages.main.duration_ms
-    } else {
-        report.main_duration_ms
-    };
-    md.push_str(&format!(
-        "| Main | {} | {} | {} ms |\n",
-        status_str(&report.stages.main.status),
-        main_executed,
-        main_duration
-    ));
-
-    if let Some(teardown) = &report.stages.teardown {
-        let executed = teardown.node_reports.len();
-        md.push_str(&format!(
-            "| Teardown | {} | {} | {} ms |\n",
-            status_str(&teardown.status),
-            executed,
-            teardown.duration_ms
-        ));
-    }
-    md.push('\n');
-
-    // 收集所有阶段的失败节点
-    let mut failed_nodes = Vec::new();
-    if let Some(setup) = &report.stages.setup {
-        for n in &setup.node_reports {
-            if n.status == ExecutionStatus::Failed {
-                failed_nodes.push(("Setup", n));
+/// Write Stress Test Step Summary to file if requested via CLI option or `GITHUB_STEP_SUMMARY` environment variable
+pub fn write_stress_step_summary_if_requested(
+    report: &flow_engine::stress_test::StressTestReport,
+    summary_path: Option<&Path>,
+) -> Result<(), CliError> {
+    let target_path = summary_path
+        .map(|p| p.to_path_buf())
+        .or_else(|| {
+            std::env::var_os("GITHUB_STEP_SUMMARY")
+                .filter(|s| !s.is_empty())
+                .map(std::path::PathBuf::from)
+        });
+    if let Some(path) = target_path {
+        let markdown = flow_engine::report_export::generate_stress_markdown_summary(report);
+        if let Some(parent) = path.parent() {
+            if !parent.as_os_str().is_empty() && !parent.exists() {
+                let _ = std::fs::create_dir_all(parent);
             }
         }
-    }
-    for n in &report.stages.main.node_reports {
-        if n.status == ExecutionStatus::Failed {
-            failed_nodes.push(("Main", n));
-        }
-    }
-    if let Some(teardown) = &report.stages.teardown {
-        for n in &teardown.node_reports {
-            if n.status == ExecutionStatus::Failed {
-                failed_nodes.push(("Teardown", n));
-            }
-        }
-    }
 
-    // 若 stages 中未单独收集，回退到顶级 node_reports
-    if failed_nodes.is_empty() {
-        for n in &report.node_reports {
-            if n.status == ExecutionStatus::Failed {
-                failed_nodes.push(("Main", n));
-            }
-        }
-    }
+        use std::io::Write;
+        let mut file = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(&path)
+            .map_err(|e| {
+                CliError::Io(format!(
+                    "Failed to open step summary file {}: {}",
+                    path.display(),
+                    e
+                ))
+            })?;
 
-    if !failed_nodes.is_empty() {
-        md.push_str("### ❌ Failed Nodes Details\n\n");
-        for (stage, node) in failed_nodes {
-            let err_msg = node
-                .error
-                .as_ref()
-                .map(|e| e.message.as_str())
-                .unwrap_or("Unknown error");
-            let err_kind = node
-                .error
-                .as_ref()
-                .map(|e| format!("{:?}", e.error_kind))
-                .unwrap_or_else(|| "Unknown".to_string());
-
-            let escaped_name = super::junit::xml_escape(&node.node_name);
-            let escaped_err = super::junit::xml_escape(err_msg);
-            md.push_str(&format!(
-                "<details>\n<summary>❌ <b>{}</b> [<code>{}</code>] (<code>{}</code>) — {}</summary>\n\n",
-                escaped_name, stage, node.node_type, escaped_err
-            ));
-
-            md.push_str(&format!("- **Error Kind**: `{}`\n", err_kind));
-            md.push_str(&format!("- **Duration**: {} ms\n", node.duration_ms));
-
-            if let Some(out) = &node.output_data {
-                let formatted_json = serde_json::to_string_pretty(out).unwrap_or_default();
-                md.push_str("\n**Output / Error Snapshot:**\n```json\n");
-                md.push_str(&formatted_json);
-                md.push_str("\n```\n");
-            }
-
-            if let Some(err) = &node.error {
-                if let Some(stack) = &err.stack_trace {
-                    md.push_str("\n**Stack Trace:**\n```text\n");
-                    md.push_str(stack);
-                    md.push_str("\n```\n");
-                }
-            }
-
-            md.push_str("</details>\n\n");
-        }
+        file.write_all(markdown.as_bytes()).map_err(|e| {
+            CliError::Io(format!(
+                "Failed to write step summary to {}: {}",
+                path.display(),
+                e
+            ))
+        })?;
     }
 
-    md
+    Ok(())
 }
 
 /// Write Step Summary to file if requested via CLI option or `GITHUB_STEP_SUMMARY` environment variable
@@ -211,7 +108,7 @@ pub fn write_step_summary_if_requested(
 mod tests {
     use super::*;
     use flow_engine::error::{ErrorDetail, ErrorKind};
-    use flow_engine::report::{ExecutionMode, NodeExecutionReport, StageExecutionReport};
+    use flow_engine::report::{ExecutionMode, ExecutionStatus, NodeExecutionReport, StageExecutionReport};
 
     fn make_test_report(status: ExecutionStatus) -> FlowExecutionReport {
         let mut report = FlowExecutionReport {

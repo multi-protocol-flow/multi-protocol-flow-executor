@@ -42,6 +42,7 @@ pub async fn execute(
     report_format: &str,
     report_file: Option<&std::path::Path>,
     summary_file: Option<&std::path::Path>,
+    export_html: Option<&std::path::Path>,
     registry: Arc<flow_engine::registry::NodeRegistry>,
     plugin_manager: super::PluginManagerHandle,
     cancel_rx: tokio::sync::watch::Receiver<bool>,
@@ -177,6 +178,24 @@ pub async fn execute(
             summary_file,
         ) {
             eprintln!("Failed to write step summary: {}", e);
+        }
+    }
+    // Export self-contained HTML report (--export-html)
+    if let Some(html_path) = export_html {
+        if let Some(flow_report) = &result.flow_report {
+            let html_content = flow_engine::report_export::generate_flow_report_html(flow_report, env);
+            if let Some(parent) = html_path.parent() {
+                if !parent.as_os_str().is_empty() && !parent.exists() {
+                    let _ = std::fs::create_dir_all(parent);
+                }
+            }
+            std::fs::write(html_path, html_content).map_err(|e| {
+                CliError::Io(format!(
+                    "Failed to write HTML report to {}: {}",
+                    html_path.display(),
+                    e
+                ))
+            })?;
         }
     }
 
