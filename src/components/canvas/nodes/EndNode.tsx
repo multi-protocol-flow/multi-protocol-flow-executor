@@ -36,7 +36,7 @@ export const EndNode = memo(function EndNode({ id, data, selected }: NodeProps) 
         'bg-background',
         'w-[180px]',
         'flex items-center',
-        selected && 'border-[3px] border-purple-500',
+        selected && 'border-purple-500 ring-2 ring-purple-500/20',
         isDebugPausedAtThisNode && 'debug-breathing-purple'
       )}
     >

@@ -181,7 +181,7 @@ function DynamicPluginNode({ id, type, data, selected }: NodeProps) {
         'bg-background',
         'w-fit min-w-[180px] max-w-[400px]',
         'flex items-center',
-        selected && 'border-[3px] border-slate-500',
+        selected && 'border-slate-500 ring-2 ring-slate-500/20',
         isIngressWaitingNode && 'border-indigo-500/80 shadow-[0_0_15px_rgba(99,102,241,0.3)]',
         isDebugPausedAtThisNode && 'debug-breathing-sky'
       )}

@@ -111,7 +111,7 @@ export const SubFlowNode = memo(function SubFlowNode({ id, data, selected }: Nod
         'bg-background',
         'w-[200px]',
         'flex flex-col gap-1.5',
-        selected && 'border-[3px] border-violet-500 ring-violet-500/40',
+        selected && 'border-violet-500 ring-violet-500/40',
         isDebugPausedAtThisNode && 'debug-breathing-violet',
         isPausedInsideChild && 'ring-4 ring-cyan-400/60 border-violet-500 animate-pulse shadow-lg shadow-cyan-500/20'
       )}

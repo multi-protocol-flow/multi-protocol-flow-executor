@@ -36,7 +36,7 @@ export const EntryNode = memo(function EntryNode({ id, data, selected }: NodePro
         'bg-background',
         'w-[180px]',
         'flex items-center',
-        selected && 'border-[3px] border-emerald-500',
+        selected && 'border-emerald-500 ring-2 ring-emerald-500/20',
         isDebugPausedAtThisNode && 'debug-breathing-emerald'
       )}
     >
