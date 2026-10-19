@@ -50,7 +50,7 @@ export const HttpNode = memo(function HttpNode({ id, data, selected }: NodeProps
         'bg-background',
         'w-[180px]',
         'flex items-center',
-        selected && 'border-[3px] border-sky-500',
+        selected && 'border-sky-500 ring-2 ring-sky-500/20',
         isDebugPausedAtThisNode && 'debug-breathing-sky'
       )}
     >
