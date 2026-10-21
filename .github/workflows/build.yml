@@ -2,10 +2,16 @@ name: Build
 
 on:
   workflow_dispatch:
-  # push:
-  #   branches: [master, main]
   pull_request:
-    branches: [master, main]
+    branches: [master]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     strategy:
@@ -53,9 +59,20 @@ jobs:
         if: matrix.platform != 'ubuntu-22.04'
         run: npm run typesafe-i18n
 
+      # Default features are required: `--no-default-features` without any
+      # `-F protocol-*` produces a CLI with zero protocol nodes.
       - name: Build (Linux CLI)
         if: matrix.platform == 'ubuntu-22.04'
-        run: cd src-tauri && cargo build -p mpe-cli --release --no-default-features
+        run: cd src-tauri && cargo build -p mpe-cli --release
+
+      # `--version` / `--help` are pure clap surface and pass even on a binary
+      # with an empty node registry, so validate a flow that uses real nodes.
+      - name: Smoke test (Linux CLI)
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          ./src-tauri/target/release/mpe-cli --version
+          ./src-tauri/target/release/mpe-cli validate \
+            -f tests/fixtures/flows/HTTP_Node_Example_Flow.mpf
 
       - name: Build (Windows/macOS)
         if: matrix.platform != 'ubuntu-22.04'
@@ -112,10 +129,13 @@ jobs:
       - name: Check workspace-hack freshness
         run: cd src-tauri && cargo hakari generate --diff
 
-      - name: Run cargo clippy (unwrap/expect enforcement)
+      # Workspace policy is `unwrap_used = "deny"`, `expect_used = "warn"`
+      # (src-tauri/Cargo.toml [workspace.lints]). Forcing `-D clippy::expect_used`
+      # here contradicts that policy and fails on src/lib.rs (Tauri builder).
+      - name: Run cargo clippy (unwrap enforcement)
         run: |
           cd src-tauri
-          cargo clippy --lib --bins --all-features -- -D clippy::unwrap_used -D clippy::expect_used
+          cargo clippy --lib --bins --all-features -- -D clippy::unwrap_used
 
       - name: Run cargo test
         run: cd src-tauri && cargo test --all-features

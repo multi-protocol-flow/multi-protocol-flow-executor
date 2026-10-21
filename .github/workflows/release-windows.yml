@@ -9,6 +9,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: release-windows-${{ inputs.version }}
+  cancel-in-progress: false
+
 jobs:
   build:
     runs-on: windows-latest
@@ -66,10 +70,10 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           tagName: v${{ steps.version.outputs.version }}
-          releaseName: 'MPE Flow ${{ github.ref_name }}'
+          releaseName: 'MPE Flow v${{ steps.version.outputs.version }}'
           releaseBody: 'See the assets below to download and install.'
           releaseDraft: false
-          prerelease: ${{ contains(github.ref_name, 'beta') || contains(github.ref_name, 'alpha') }}
+          prerelease: ${{ contains(steps.version.outputs.version, 'beta') || contains(steps.version.outputs.version, 'alpha') }}
           args: --bundles nsis --config src-tauri/tauri.conf.ci.json
           retryAttempts: 3
 

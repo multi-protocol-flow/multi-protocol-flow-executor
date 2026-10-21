@@ -9,6 +9,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: release-linux-${{ inputs.version }}
+  cancel-in-progress: false
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -79,7 +83,7 @@ jobs:
 
       - name: Package
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
+          VERSION="${{ steps.version.outputs.version }}"
           cd src-tauri/target/release
           mv mpe-cli mpe
           tar czf "mpe-v${VERSION}-linux-x86_64.tar.gz" mpe
@@ -90,7 +94,7 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: auto
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
+          VERSION="${{ steps.version.outputs.version }}"
           R2_ENDPOINT="https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com"
           aws s3 cp src-tauri/target/release/mpe-v${VERSION}-linux-x86_64.tar.gz \
             "s3://${{ secrets.R2_BUCKET }}/releases/v${VERSION}/mpe-v${VERSION}-linux-x86_64.tar.gz" \

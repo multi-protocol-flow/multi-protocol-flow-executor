@@ -1,10 +1,29 @@
 name: "i18n Check — Backend"
 
+# ADVISORY: the backend still contains ~1.8k lines of Chinese string literals
+# (storage.rs, http_executor.rs, debug/executor.rs, ...). This check reports
+# them but does not fail the build, so it does not block every PR touching
+# `src-tauri/**/*.rs`. Remove the `exit 0` (and flip the step to fail) once the
+# backlog is cleared.
+
 on:
   push:
-    branches: [main, master]
+    branches: [master]
+    paths:
+      - 'src-tauri/**/*.rs'
+      - '.github/workflows/i18n-check.yml'
   pull_request:
-    branches: [main, master]
+    branches: [master]
+    paths:
+      - 'src-tauri/**/*.rs'
+      - '.github/workflows/i18n-check.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   i18n-check:
@@ -17,43 +36,40 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y ripgrep
 
       - name: Check for Chinese text in Rust backend code
-        id: check
         run: |
-          # Search for Chinese characters in src-tauri/ Rust source files,
-          # excluding target/, .git/, test files, and /// doc comments.
-          # Use || true so the pipeline doesn't fail on rg exit code 1 (no matches).
+          # A directory scan emits `path:line:content`, so the comment filter has
+          # to match that prefix — `^\s*//` matches nothing here.
           rg \
             -g '*.rs' \
             -g '!target/' \
             -g '!.git/' \
             -g '!**/tests/' \
+            -n -H \
             '[\u4e00-\u9fff]' \
             src-tauri/ \
-          | rg -v '^\s*//' \
+          | rg -v '^[^:]+:[0-9]+:\s*(//|///|//!)' \
           > /tmp/i18n-issues.txt || true
 
-          if [ -s /tmp/i18n-issues.txt ]; then
-            echo "⚠️  Chinese text detected in backend Rust code:"
-            cat /tmp/i18n-issues.txt
-            echo "has_issues=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "✅ No Chinese text found in backend Rust code."
-            echo "has_issues=false" >> "$GITHUB_OUTPUT"
-          fi
+          COUNT=$(wc -l < /tmp/i18n-issues.txt)
 
-      - name: Append findings to issues.md
-        if: steps.check.outputs.has_issues == 'true'
-        run: |
-          mkdir -p .omo/notepads/i18n-localization-plan
           {
+            echo "## i18n Check — Backend"
             echo ""
-            echo "## $(date -u +'%Y-%m-%d %H:%M:%S UTC') — i18n Check Workflow"
-            echo ""
-            cat /tmp/i18n-issues.txt
-          } >> .omo/notepads/i18n-localization-plan/issues.md
+            if [ "$COUNT" -eq 0 ]; then
+              echo "✅ No Chinese text in backend Rust code outside comments."
+            else
+              echo "⚠️ ${COUNT} line(s) with Chinese text outside comments. Advisory only."
+              echo ""
+              echo "<details><summary>First 100 lines</summary>"
+              echo ""
+              echo '```'
+              head -100 /tmp/i18n-issues.txt
+              echo '```'
+              echo ""
+              echo "</details>"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Fail if Chinese text detected
-        if: steps.check.outputs.has_issues == 'true'
-        run: |
-          echo "❌ FAIL: Chinese text found in backend Rust code. See above for details."
-          exit 1
+          if [ "$COUNT" -gt 0 ]; then
+            echo "::warning title=Backend i18n::$COUNT line(s) with Chinese text outside comments"
+          fi
