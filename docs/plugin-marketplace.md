@@ -1,6 +1,10 @@
 # 插件市场契约（Plugin Marketplace Contract）
 
-本文档定义宿主（GUI 插件设置面板「插件市场」Tab + CLI `mpe plugin install`）与插件市场服务端之间的 HTTP 接口契约。**当前尚无真实市场服务端**，此文档与宿主代码类型（`flow-engine-plugin-marketplace/src/model.rs` ↔ `src/types/plugins.ts`）即为未来市场接口的对齐基准；真实接口上线后若字段名有差异，仅需修改 `model.rs`。
+本文档定义宿主（GUI 插件设置面板「插件市场」Tab + CLI `mpe plugin install`）与插件市场服务端之间的 HTTP 接口契约。
+
+**服务的实现与运行状态**：官方 registry 已上线，是由 GitHub Pages 托管的静态 JSON 文件，地址为 `https://multi-protocol-flow.github.io/mpe-plugin-registry/plugins`（数据源仓库 `multi-protocol-flow/mpe-plugin-registry`）。本契约与宿主 Rust 类型 `flow-engine-plugin-marketplace/src/model.rs` 对齐（`#[serde(rename_all = "camelCase")]`，即 IPC 载荷字段为 `minHostVersion` / `updatedAt`）。注意 `src/types/plugins.ts` 仍声明为 `min_host_version` / `updated_at`（snake_case），读取这两个字段会得到 `undefined`——当前 UI 未使用它们，但新增消费方须以 camelCase 为准。
+
+**已知限制**：`platforms` 目前只提供 `windows-x64` / `linux-x64` / `macos-x64`，无 arm64 条目；而 macOS 安装包是 universal 构建，在 Apple Silicon 上 `current_platform()` 返回 `macos-arm64`，市场安装会报 `PlatformUnsupported`——arm64 上需手动放置插件。资产仅校验 `sha256`，registry 本身不签名。宿主**不内置**任何插件，首次使用需联网安装或手动放入插件目录。
 
 ## 1. 插件列表
 

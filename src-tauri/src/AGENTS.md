@@ -15,10 +15,13 @@
 | 文件 | 职责 |
 |------|------|
 | `main.rs` | 二进制入口，参数检测 → GUI (`app_lib::run()`) 或 CLI (`app_lib::cli::run_cli()`) |
-| `lib.rs` | 库入口，Tauri Builder 组装、插件注册、77 个 `#[tauri::command]` 注册、re-export |
-| `tauri_commands.rs` | IPC 命令实现（4200+ 行），5 个 State 管理器，`#[tauri::command]` 函数定义 |
+| `lib.rs` | 库入口，Tauri Builder 组装、插件注册、88 个 `#[tauri::command]` 注册、re-export |
+| `tauri_commands.rs` | IPC 命令实现（3000+ 行），多个 State 管理器，`#[tauri::command]` 函数定义 |
 | `tauri_adapters.rs` | Tauri trait 实现：`UnderlyingLogSender` / `ExecutionEventSender` / `DebugEventSender` / `DirectoryOpener` / `AppDirProvider` |
-| `cli.rs` + `cli/*.rs` | **过期副本** — lib.rs 通过 `pub use mpe_cli::cli;` 从 `crates/mpe-cli/src/` 导入。请勿修改此目录；真实 CLI 在 `crates/mpe-cli/src/cli.rs` + `cli/` |
+| `updater.rs` | 更新检测（`changelog.json`）、下载与安装器启动 |
+| `plugin_protocol.rs` | 插件前端 `mpe-plugin://` 自定义协议 |
+
+CLI 实现不在本目录：`lib.rs` 通过 `pub use mpe_cli::cli;` 从 `crates/mpe-cli/src/` 导入。
 
 ## WHERE TO LOOK
 

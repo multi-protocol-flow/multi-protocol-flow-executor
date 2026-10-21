@@ -6,20 +6,21 @@
 
 多协议流程编排与执行引擎。Tauri 2.x 桌面应用 + CLI 模式（同一二进制 `mpe`）。
 - **前端:** React 19 + TypeScript + Vite 6 + TailwindCSS 4 + Zustand 5 + @xyflow/react
-- **后端:** Rust Workspace (18 crates) + Tauri 2.x — 双二进制: `mpe` (GUI+CLI 二合一) + `mpe-cli` (纯 CLI)
+- **后端:** Rust Workspace (14 crates + app) + Tauri 2.x — 双二进制: `mpe` (GUI+CLI 二合一) + `mpe-cli` (纯 CLI)
 
 ## 结构
 
 ```
 root/
 ├── src/                  # 前端 (React 19 + TypeScript)
-├── src-tauri/            # 后端 (Rust workspace, 18 crates)
+├── src-tauri/            # 后端 (Rust workspace, 14 crates)
 ├── tests/                # CLI 测试夹具 (JSON flow files)
-├── echo/                 # 全协议 echo 测试服务 (Docker Compose)
 ├── docs/                 # 架构文档
-├── website/              # 营销网站
-└── public/               # Vite 静态资源
+├── plugins/              # 本地检出副本（.gitignore 排除；各插件为独立仓库）
+└── website/              # 营销网站（独立仓库 multi-protocol-flow/website 部署）
 ```
+
+> `echo/`（多协议 echo 测试服务）与 `plugins/*` 均不随本仓库分发：前者是独立仓库，后者是 12 个独立插件仓库，清单见 `CONTRIBUTING.md`。`website/` 同样被 `.gitignore` 排除。本仓库也不包含 MQTT / IMAP / AMQP 插件。
 
 ## WHERE TO LOOK
 
@@ -36,7 +37,7 @@ root/
 | 生命周期阶段执行 (Setup/Teardown) | `src-tauri/crates/flow-engine-executor/src/subgraph_runner.rs` |
 | 阶段切换栏 | `src/components/canvas/StageTabBar.tsx` |
 | 协议执行器 | `src-tauri/crates/flow-engine-*/` |
-| CLI 入口 | `src-tauri/crates/mpe-cli/src/` (注意: `src-tauri/src/cli/` 是过期副本) |
+| CLI 入口 | `src-tauri/crates/mpe-cli/src/` (`src-tauri/src/lib.rs` 通过 `pub use mpe_cli::cli;` 导入) |
 | CLI 测试夹具 | `tests/cli/` + `tests/fixtures/flows/` |
 | 插件管理器 | `src-tauri/crates/flow-engine-plugin/` |
 | 插件 SDK + wire 协议 | 独立公开仓库 `multi-protocol-flow/mpe-plugin-sdk`（git 依赖 + tag 固定；宿主以 `default-features = false` 取 wire 类型） |
@@ -52,7 +53,7 @@ root/
 
 ```
 Layer 0 (叶子):     flow-engine-core
-Layer 1 (协议):     7 个协议 crate (http, ws, script, assertion, tcp, sse, graphql) — redis/db/mongo 与 smtp/mqtt/kafka/imap/amqp 及 mcp/grpc 已移出宿主，变为第三方插件 plugins/*
+Layer 1 (协议):     7 个协议 crate (http, ws, script, assertion, tcp, sse, graphql) — redis/db/mongo 与 smtp/kafka 及 mcp/grpc 已移出宿主，变为独立仓插件（见 `CONTRIBUTING.md` 的插件仓库列表）；mqtt/imap/amqp 无公开仓库，尚无实现
 Layer 2 (编排):     flow-engine-executor (依赖 Layer 0 + 可选 Layer 1)
 Layer 3 (门面):     flow-engine (re-export 全部)
 Layer 4 (应用):     app (src-tauri/) 仅依赖 flow-engine
@@ -61,11 +62,11 @@ Extra:              workspace-hack (cargo-hakari 自动管理)
 插件系统:           mpe-plugin-sdk (独立公开仓库: 共享 wire 契约 + 作者 SDK) + flow-engine-plugin (宿主侧边进程插件管理)
 ```
 
-`src-tauri/src/cli.rs` + `src-tauri/src/cli/` 为过期副本（lib.rs 通过 `pub use mpe_cli::cli;` 从 mpe-cli crate 导入），真实 CLI 在 `crates/mpe-cli/src/`。
+CLI 实现位于 `crates/mpe-cli/src/`；`src-tauri/src/lib.rs` 通过 `pub use mpe_cli::cli;` 导入，`main.rs` 检测到参数后调用它。`src-tauri/src/` 下不存在 CLI 副本。
 
 **增量编译**: 修改 Layer N → Layer N+1 及以上重编译。修改 core → 全量。插件系统独立于协议分层：`mpe-plugin-sdk` 为独立公开仓库（git 依赖 + tag 固定；宿主 `flow-engine-plugin` 以 `default-features = false` 消费其 `protocol` 模块），`flow-engine-plugin` 依赖 `flow-engine-executor`。
 
-### IPC 命令 (61 个)
+### IPC 命令 (88 个)
 
 注册在 `lib.rs` 的 `invoke_handler` 中。`tauri_commands.rs` 包装，委托 `flow-engine::commands::*`。
 
@@ -83,7 +84,7 @@ Extra:              workspace-hack (cargo-hakari 自动管理)
 
 ### 节点类型 (37 variants)
 
-定义在 `flow-engine-core/src/node.rs`。涵盖：entry, end, http, conditional, ws(3), script, assertion, tcp(4), udp(4), sse(3), graphql(5), variable_extractor, proxy。（redis/db/mongo 与 smtp/mqtt/kafka/imap/amqp 及 mcp/grpc 已移出宿主，见 plugins/*——插件节点以 `<proto>:*` 命名空间提供）
+定义在 `flow-engine-core/src/node.rs`。涵盖：entry, end, http, conditional, ws(3), script, assertion, tcp(4), udp(4), sse(3), graphql(5), variable_extractor, proxy。（redis/db/mongo 与 smtp/kafka 及 mcp/grpc 已移出宿主，位于独立插件仓库——插件节点以 `<proto>:*` 命名空间提供，仓库清单见 `CONTRIBUTING.md`；mqtt/imap/amqp 无公开仓库）
 
 ### 流程生命周期阶段 (Setup / Main / Teardown)
 
@@ -126,8 +127,8 @@ Extra:              workspace-hack (cargo-hakari 自动管理)
 - 无 `unwrap()` 生产代码（用 `?` 或 `expect`）
 - `missing_docs = "warn"`, `correctness = "deny"`
 - Clippy: all/style/complexity/perf = warn, `too_many_arguments`/`type_complexity` = allow
-- 格式化: `cargo fmt`, edition 2021, min rust 1.82.0
-- 16 个协议 crate 均为可选 feature (`protocol-*`)，默认 `all-protocols` 启用
+- 格式化: `cargo fmt`, edition 2021, min rust 1.85.0（受 reqwest 0.13 / clap 4.6 等直接依赖的 MSRV 约束）
+- 7 个协议 crate 均为可选 feature (`protocol-*`)，默认 `all-protocols` 启用
 ### 发布与更新说明 (Release & Changelog)
 
 - **单源变更记录**: 根目录 `CHANGELOG.md` 为版本更新说明的唯一事实来源，统一采用 [Keep a Changelog](https://keepachangelog.com/) 规范，**必须使用英文 (English) 编写**。
@@ -187,7 +188,7 @@ npm run tauri build             # 构建安装包
 - [src/i18n/AGENTS.md](./src/i18n/AGENTS.md) — 国际化
 - [src/lib/AGENTS.md](./src/lib/AGENTS.md) — 工具函数 & 注册表
 - [src/__tests__/AGENTS.md](./src/__tests__/AGENTS.md) — 测试
-- [echo/AGENTS.md](./echo/AGENTS.md) — Echo 测试服务
+- `echo/AGENTS.md` — Echo 测试服务（独立仓库，不在本工作树内）
 - [src-tauri/src/AGENTS.md](./src-tauri/src/AGENTS.md) — Tauri 应用层
 - [src-tauri/crates/AGENTS.md](./src-tauri/crates/AGENTS.md) — Rust Workspace 总览
 - [src-tauri/crates/flow-engine/src/AGENTS.md](./src-tauri/crates/flow-engine/src/AGENTS.md) — 门面 crate

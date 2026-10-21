@@ -805,7 +805,7 @@ if __name__ == "__main__":
 | # | 结论 | 核实依据 |
 |---|---|---|
 | C1 | **`mpe run-node` 存在**（评审中 integrator 曾称"不存在"，被推翻） | `mpe-cli/src/cli.rs:132,426-430` → `run_node.rs:54` → `execute_single_node`；但受 `SUPPORTED_SINGLE_NODE_TYPES` 白名单（executor.rs:101-119）与 `parse_node_type`（flow_edit.rs:62）门控，**插件类型被挡**。单节点插件连通性测试排 P1 |
-| C2 | **`src-tauri/src/cli/*` 是死代码** | `main.rs:16` 走 `app_lib::cli::run_cli()`，`lib.rs:13` 为 `pub use mpe_cli::cli;` → CLI 实际由 mpe-cli crate 提供；`src-tauri/src/cli/` 9 个文件未被引用 |
+| C2 | **`src-tauri/src/cli/*` 已删除**（评审时是死代码） | `main.rs:16` 走 `app_lib::cli::run_cli()`，`lib.rs:13` 为 `pub use mpe_cli::cli;` → CLI 实际由 mpe-cli crate 提供；`src-tauri/src/cli/` 的 9 个未被引用文件已移除，当前 `src-tauri/src/` 只剩 app 层 |
 | C3 | **tokio `process` feature 已就绪**，无需"启用" | `workspace-hack/Cargo.toml:88,162` 已含 `process`（feature 统一）。新 crate 显式声明即可，非 blocker |
 | C4 | 宿主已有"伪装"基础：`NodeData::Plugin(Value)` catch-all（node_config.rs:3796,4108,4216）+ 回环测试 + 字符串型 registry 分发（executor.rs:1182） | 配置解析零改造；**注册表注入**（`with_registry`）才是真缺口：`FlowExecutor::new()` 硬编码 `default_registry()`（executor.rs:154），tauri_commands.rs:3669/3679/3691/3760 每次新建 |
 | C5 | `NodeType` serde 为 `lowercase`（node.rs:7），非 AGENTS.md 所述的 `snake_case` | 功能等价，文档勘误 |

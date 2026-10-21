@@ -4,7 +4,7 @@
 ## OVERVIEW
 14 crate dirs across 4 layers + CLI + workspace-hack（插件系统已独立为公开仓库，不在 workspace 内）:
 - **L0 (Leaves):** `flow-engine-core`
-- **L1 (Protocols):** 7 optional crates (http, ws, script, assertion, tcp, sse, graphql) — redis/db/mongo 与 smtp/mqtt/kafka/imap/amqp 及 mcp/grpc 已移出宿主 → plugins/* 第三方插件
+- **L1 (Protocols):** 7 optional crates (http, ws, script, assertion, tcp, sse, graphql) — redis/db/mongo/kafka/smtp/mcp/grpc 已移出宿主，为独立仓库插件（清单见根 `CONTRIBUTING.md`）。mqtt/imap/amqp 无公开仓库，MQTT 与 IMAP 能力没有对应实现
 - **L2 (Orchestration):** `flow-engine-executor`
 - **L3 (Facade):** `flow-engine`
 - **CLI:** `mpe-cli` (纯 Rust, 无 Tauri 依赖)
@@ -50,7 +50,7 @@ cargo check --workspace                 # full workspace
 ## COMPILE IMPACT
 | Modified | Recompiled |
 |----------|-----------|
-| core | all 18 crates + app |
+| core | all 14 workspace crates + app |
 | Any L1 | executor, facade, app |
 | executor | facade, app, flow-engine-plugin |
 | facade | app, mpe-cli |
