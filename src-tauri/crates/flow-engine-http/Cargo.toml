@@ -2,6 +2,10 @@
 name = "flow-engine-http"
 version = "0.1.0"
 edition = "2021"
+description = "HTTP request/response node executor (hyper)"
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
 
 [dependencies]
 flow-engine-core = { path = "../flow-engine-core" }

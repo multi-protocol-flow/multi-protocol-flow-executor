@@ -2,6 +2,10 @@
 name = "flow-engine-sse"
 version = "0.1.0"
 edition = "2021"
+description = "Server-Sent Events node executors"
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
 
 [dependencies]
 flow-engine-core = { path = "../flow-engine-core" }

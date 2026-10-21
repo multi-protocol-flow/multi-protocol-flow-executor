@@ -3,6 +3,9 @@ name = "flow-engine-plugin"
 version = "0.1.0"
 edition = "2021"
 description = "Host-side MPE plugin manager: discovery, lifecycle, JSON-RPC stdio transport, SidecarPlugin"
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
 
 [features]
 # Independent of `protocol-*`: the plugin manager is not a protocol executor

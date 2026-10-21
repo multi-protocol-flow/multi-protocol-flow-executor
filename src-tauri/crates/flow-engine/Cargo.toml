@@ -2,6 +2,10 @@
 name = "flow-engine"
 version = "0.1.0"
 edition = "2021"
+description = "Facade crate re-exporting the flow engine, protocols and plugin host"
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
 
 [features]
 default = ["all-protocols", "plugin-manager"]

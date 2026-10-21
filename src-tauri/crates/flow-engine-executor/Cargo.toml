@@ -2,6 +2,10 @@
 name = "flow-engine-executor"
 version = "0.1.0"
 edition = "2021"
+description = "Flow orchestration, debugging, stress testing, dataset runs and the ingress gateway"
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
 
 [features]
 default = ["all-protocols", "plugin-manager"]

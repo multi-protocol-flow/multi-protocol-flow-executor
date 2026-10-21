@@ -2,6 +2,10 @@
 name = "flow-engine-graphql"
 version = "0.1.0"
 edition = "2021"
+description = "GraphQL query, mutation, subscription and introspection node executors"
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
 
 [dependencies]
 flow-engine-core = { path = "../flow-engine-core" }

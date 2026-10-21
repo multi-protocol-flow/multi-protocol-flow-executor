@@ -2,6 +2,10 @@
 name = "flow-engine-script"
 version = "0.1.0"
 edition = "2021"
+description = "JavaScript script node executor with the fn.* sandbox API (rquickjs)"
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
 
 [dependencies]
 flow-engine-core = { path = "../flow-engine-core" }

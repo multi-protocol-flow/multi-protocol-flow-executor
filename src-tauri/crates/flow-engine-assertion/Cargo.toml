@@ -2,6 +2,10 @@
 name = "flow-engine-assertion"
 version = "0.1.0"
 edition = "2021"
+description = "Assertion node executor for validating node output"
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
 
 [dependencies]
 flow-engine-core = { path = "../flow-engine-core" }

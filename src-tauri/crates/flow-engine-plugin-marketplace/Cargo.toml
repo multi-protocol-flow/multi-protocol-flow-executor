@@ -3,6 +3,9 @@ name = "flow-engine-plugin-marketplace"
 version = "0.1.0"
 edition = "2021"
 description = "Plugin marketplace client + installer shared by the GUI and CLI"
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
 
 [dependencies]
 # Shared plugin wire types come from the standalone public SDK repo (tag

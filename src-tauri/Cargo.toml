@@ -18,6 +18,12 @@ members = [
 ]
 resolver = "2"
 
+# 各 crate 共享的包元数据（通过 `license.workspace = true` 等继承）
+[workspace.package]
+license = "MIT"
+repository = "https://github.com/multi-protocol-flow/multi-protocol-flow-executor"
+authors = ["MPE Flow contributors"]
+
 # 共享依赖版本管理
 [workspace.dependencies]
 serde = { version = "1.0", features = ["derive"] }
@@ -73,12 +79,12 @@ expect_used = "warn"
 [package]
 name = "app"
 version = "0.5.0-beta"
-description = "A Tauri App"
-authors = ["you"]
-license = ""
-repository = ""
+description = "Multi-Protocol Flow Executor — visual multi-protocol orchestration engine with GUI and CLI"
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
 edition = "2021"
-rust-version = "1.82.0"
+rust-version = "1.85.0"
 default-run = "mpe"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html

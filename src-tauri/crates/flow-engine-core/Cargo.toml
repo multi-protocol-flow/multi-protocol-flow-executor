@@ -2,6 +2,10 @@
 name = "flow-engine-core"
 version = "0.1.0"
 edition = "2021"
+description = "Core types, variables, execution context and node model for the flow engine"
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
 
 [dependencies]
 serde = { workspace = true }
