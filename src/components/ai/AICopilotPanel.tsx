@@ -38,6 +38,7 @@ import { AICompactedMessageCard } from './AICompactedMessageCard';
 import { AIMessageRow } from './AIMessageRow';
 import { AIAssistantTurnCard, groupMessagesIntoTurns } from './AIAssistantTurnCard';
 import { AICopilotInput } from './AICopilotInput';
+import { AIProviderSelect } from './AIProviderSelect';
 import { formatToolTitle } from '@/services/ai/toolTitleFormatter';
 import { getLL } from '@/i18n/i18n-lazy';
 
@@ -50,6 +51,7 @@ export function AICopilotPanel() {
     messages,
     agentStatus,
     activeStreamingMessageId,
+    activeExecutingToolCallId,
     pendingActions,
     isCopilotOpen,
     panelWidth,
@@ -538,10 +540,13 @@ export function AICopilotPanel() {
               )}
             </div>
 
-            {activeProvider && effectiveWidth >= 480 && (
-              <span className="truncate text-[10px] px-1.5 py-0.5 rounded font-mono bg-muted text-muted-foreground max-w-[90px] shrink-0">
-                {activeProvider.name}
-              </span>
+            {effectiveWidth >= 400 && (
+              <AIProviderSelect
+                direction="down"
+                compact
+                disabled={isGenerating}
+                maxWidthClass="max-w-[105px]"
+              />
             )}
           </div>
 
@@ -860,6 +865,7 @@ export function AICopilotPanel() {
                   toolResults={toolResultsMap}
                   activeStreamingThoughtRef={activeStreamingThoughtRef}
                   onPreviewImage={setPreviewImageUrl}
+                  activeExecutingToolCallId={activeExecutingToolCallId}
                 />
               );
             }
@@ -876,10 +882,15 @@ export function AICopilotPanel() {
 
           {/* 状态加载指示器 */}
           {isGenerating && agentStatus === 'executing_tools' && (() => {
-            const lastMsg = messages[messages.length - 1];
-            const activeTool = lastMsg?.tool_calls?.find(
-              (tc) => !toolResultsMap[tc.id],
-            );
+            const activeTool = activeExecutingToolCallId
+              ? messages
+                  .flatMap((m) => m.tool_calls || [])
+                  .find((tc) => tc.id === activeExecutingToolCallId)
+              : messages
+                  .slice()
+                  .reverse()
+                  .find((m) => m.role === 'assistant' && m.tool_calls && m.tool_calls.length > 0)
+                  ?.tool_calls?.find((tc) => !toolResultsMap[tc.id] && !tc.output);
             const activeToolTitle = activeTool
               ? formatToolTitle(activeTool.function.name, activeTool.function.arguments).fullTitle
               : null;

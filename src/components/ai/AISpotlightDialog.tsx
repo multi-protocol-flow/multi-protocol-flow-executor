@@ -21,11 +21,12 @@ import { Button } from '@/components/ui/button';
 import { MarkdownViewer } from '@/components/ui/MarkdownViewer';
 import { useAIStore } from '@/stores/ai';
 import { useSettingsStore } from '@/stores/settings';
-import { AIToolCallItem } from './AIToolCallItem';
+import { AIToolCallItem, type AIToolCallStatus } from './AIToolCallItem';
 import { AIConfirmCard } from './AIConfirmCard';
 import { AIErrorMessageCard } from './AIErrorMessageCard';
 import { ThinkingDots } from './ThinkingSpinner';
 import { getLL } from '@/i18n/i18n-lazy';
+import { AIProviderSelect } from './AIProviderSelect';
 import type { AIMessage } from '@/types/ai';
 
 export function AISpotlightDialog() {
@@ -37,6 +38,7 @@ export function AISpotlightDialog() {
     messages,
     agentStatus,
     activeStreamingMessageId,
+    activeExecutingToolCallId,
     pendingActions,
     sendMessage,
     stopGeneration,
@@ -122,14 +124,12 @@ export function AISpotlightDialog() {
             className="flex-1 bg-transparent border-0 text-sm font-medium text-foreground focus:outline-none placeholder:text-muted-foreground/60"
           />
 
-          {activeProvider && (
-            <span
-              className="text-[10px] px-2 py-0.5 rounded font-mono bg-muted text-muted-foreground shrink-0 max-w-[120px] truncate"
-              title={activeProvider.name}
-            >
-              {activeProvider.name}
-            </span>
-          )}
+          <AIProviderSelect
+            direction="down"
+            compact
+            disabled={isGenerating}
+            maxWidthClass="max-w-[130px]"
+          />
 
           {isGenerating ? (
             <Button
@@ -287,17 +287,36 @@ export function AISpotlightDialog() {
                       {/* 工具调用项展示 */}
                       {msg.tool_calls && msg.tool_calls.length > 0 && (
                         <div className="space-y-1">
-                          {msg.tool_calls.map((tc) => {
+                          {msg.tool_calls.map((tc, idx) => {
                             const toolMsg = recentMessages.find(
                               (m) => m.role === 'tool' && m.tool_call_id === tc.id,
                             );
                             const resultStr = tc.output ?? toolMsg?.content;
+                            const isFinished = resultStr !== undefined;
+                            let status: AIToolCallStatus;
+                            if (isFinished) {
+                              status = 'success';
+                            } else if (activeExecutingToolCallId === tc.id) {
+                              status = 'running';
+                            } else if (
+                              isGenerating &&
+                              !activeExecutingToolCallId &&
+                              idx === msg.tool_calls!.findIndex((t) => {
+                                const tm = recentMessages.find((m) => m.role === 'tool' && m.tool_call_id === t.id);
+                                return t.output === undefined && tm === undefined;
+                              })
+                            ) {
+                              status = 'running';
+                            } else {
+                              status = 'pending';
+                            }
                             return (
                               <AIToolCallItem
                                 key={tc.id}
                                 toolCall={tc}
                                 result={resultStr}
-                                isExecuted={!isStreaming && resultStr !== undefined}
+                                status={status}
+                                isExecuted={isFinished}
                               />
                             );
                           })}

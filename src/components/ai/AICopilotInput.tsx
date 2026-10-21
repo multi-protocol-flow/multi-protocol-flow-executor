@@ -19,6 +19,7 @@ import {
   extractImagesFromDrop,
 } from '@/lib/imageUtils';
 import { getLL } from '@/i18n/i18n-lazy';
+import { AIProviderSelect } from './AIProviderSelect';
 import type { AIWorkspaceContext } from '@/types/ai';
 import type { AIProviderConfig } from '@/types/ai';
 
@@ -345,25 +346,31 @@ export const AICopilotInput = memo(function AICopilotInput({
         />
 
         <div className="flex items-center justify-between px-2.5 pb-2">
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1.5 min-w-0">
             {/* 附加图片按钮 */}
             <Button
               size="icon"
               variant="ghost"
-              className="h-6 w-6 text-muted-foreground hover:text-foreground"
+              className="h-6 w-6 text-muted-foreground hover:text-foreground shrink-0"
               onClick={() => fileInputRef.current?.click()}
               disabled={!activeProvider}
               title={ll.ai.copilot.attach_image()}
             >
               <ImageIcon className="h-3.5 w-3.5" />
             </Button>
-            <span className="text-[10px] text-muted-foreground">
-              {attachedImages.length > 0
-                ? ll.ai.copilot.image_attached({ count: attachedImages.length })
-                : ll.ai.copilot.image_support()}
-            </span>
+            {attachedImages.length > 0 && (
+              <span className="text-[10px] text-muted-foreground shrink-0">
+                {ll.ai.copilot.image_attached({ count: attachedImages.length })}
+              </span>
+            )}
+            {/* 对话内快捷切换供应商 */}
+            <AIProviderSelect
+              direction="up"
+              compact
+              disabled={isGenerating}
+              maxWidthClass="max-w-[120px]"
+            />
           </div>
-
           <div className="flex items-center gap-1.5">
             {isGenerating ? (
               <>
