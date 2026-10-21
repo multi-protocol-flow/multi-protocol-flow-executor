@@ -251,6 +251,8 @@ export interface AIState {
   agentStatus: AIAgentStatus;
   /** 当前正在流式输出的消息 ID */
   activeStreamingMessageId: string | null;
+  /** 当前正在执行的 Tool Call ID */
+  activeExecutingToolCallId: string | null;
   /** 待确认的高风险操作列表 */
   pendingActions: AIPendingAction[];
   /** Copilot 侧边栏是否展开 */

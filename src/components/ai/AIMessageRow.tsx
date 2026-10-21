@@ -14,11 +14,12 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { MarkdownViewer } from '@/components/ui/MarkdownViewer';
-import { AIToolCallItem } from './AIToolCallItem';
+import { AIToolCallItem, type AIToolCallStatus } from './AIToolCallItem';
 import { AIErrorMessageCard } from './AIErrorMessageCard';
 import { ThinkingDots } from './ThinkingSpinner';
 import { getLL } from '@/i18n/i18n-lazy';
 import type { AIMessage } from '@/types/ai';
+import { useAIStore } from '@/stores/ai';
 
 export interface AIMessageRowProps {
   message: AIMessage;
@@ -44,6 +45,7 @@ export const AIMessageRow = memo(function AIMessageRow({
   onPreviewImage,
 }: AIMessageRowProps) {
   const ll = getLL();
+  const activeExecutingToolCallId = useAIStore((s) => s.activeExecutingToolCallId);
 
   if (msg.role === 'system') return null;
 
@@ -183,14 +185,30 @@ export const AIMessageRow = memo(function AIMessageRow({
           {/* 工具调用项展示 */}
           {msg.tool_calls && msg.tool_calls.length > 0 && (
             <div className="space-y-1">
-              {msg.tool_calls.map((tc) => {
+              {msg.tool_calls.map((tc, idx) => {
                 const resultStr = tc.output ?? (toolResults ? toolResults[tc.id] : undefined);
+                const isFinished = resultStr !== undefined;
+                let status: AIToolCallStatus;
+                if (isFinished) {
+                  status = 'success';
+                } else if (activeExecutingToolCallId === tc.id) {
+                  status = 'running';
+                } else if (
+                  isGenerating &&
+                  !activeExecutingToolCallId &&
+                  idx === msg.tool_calls!.findIndex((t) => (t.output ?? toolResults?.[t.id]) === undefined)
+                ) {
+                  status = 'running';
+                } else {
+                  status = 'pending';
+                }
                 return (
                   <AIToolCallItem
                     key={tc.id}
                     toolCall={tc}
                     result={resultStr}
-                    isExecuted={!isStreaming && resultStr !== undefined}
+                    status={status}
+                    isExecuted={isFinished}
                   />
                 );
               })}

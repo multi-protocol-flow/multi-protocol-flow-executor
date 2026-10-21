@@ -169,6 +169,7 @@ const initialState: AIState = {
   messages: [],
   agentStatus: 'idle',
   activeStreamingMessageId: null,
+  activeExecutingToolCallId: null,
   pendingActions: [],
   isCopilotOpen: false,
   isSpotlightOpen: false,
@@ -442,6 +443,7 @@ export const useAIStore = create<AIStore>((set, get) => ({
       error: null,
       pendingActions: [],
       agentStatus: 'idle',
+      activeExecutingToolCallId: null,
     });
   },
 
@@ -479,7 +481,7 @@ export const useAIStore = create<AIStore>((set, get) => ({
   clearMessages: () => {
     get().stopGeneration();
     const currentId = get().currentSessionId;
-    set({ messages: [], error: null, pendingActions: [], agentStatus: 'idle' });
+    set({ messages: [], error: null, pendingActions: [], agentStatus: 'idle', activeExecutingToolCallId: null });
 
     if (currentId) {
       aiSessionStorage.loadSession(currentId).then((sess) => {
@@ -657,6 +659,7 @@ export const useAIStore = create<AIStore>((set, get) => ({
     set((s) => ({
       agentStatus: 'idle',
       activeStreamingMessageId: null,
+      activeExecutingToolCallId: null,
       messages: s.messages.filter(
         (m) =>
           !(
@@ -1083,6 +1086,7 @@ export const useAIStore = create<AIStore>((set, get) => ({
 
         for (const tc of result.tool_calls) {
           if (sessionSignal.aborted) break;
+          set({ activeExecutingToolCallId: tc.id });
           let parsedArgs: Record<string, unknown> = {};
           try {
             parsedArgs = tc.function.arguments
@@ -1205,6 +1209,7 @@ export const useAIStore = create<AIStore>((set, get) => ({
           };
 
           set((s) => ({
+            activeExecutingToolCallId: null,
             messages: [
               ...s.messages.map((m) =>
                 m.id === assistantMsgId && m.tool_calls
@@ -1259,7 +1264,7 @@ export const useAIStore = create<AIStore>((set, get) => ({
       sessionAbortController = null;
       currentIterationAbortController = null;
       if (get().agentStatus !== 'waiting_confirmation') {
-        set({ agentStatus: 'idle', activeStreamingMessageId: null });
+        set({ agentStatus: 'idle', activeStreamingMessageId: null, activeExecutingToolCallId: null });
       }
     }
   },

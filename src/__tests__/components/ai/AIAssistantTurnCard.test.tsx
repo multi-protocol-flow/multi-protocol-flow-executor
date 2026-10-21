@@ -257,5 +257,115 @@ describe('AIAssistantTurnCard & groupMessagesIntoTurns', () => {
       const ll = getLL();
       expect(screen.getByText(ll.ai.copilot.error_title())).toBeInTheDocument();
     });
+    it('多操作按顺序执行时：已完成展示已完成、当前执行项展示执行中、后续任务展示等待执行，不全部显示为执行中', () => {
+      const turn = {
+        id: 'turn-multi',
+        messages: [],
+        finalMessage: undefined,
+        thoughts: [],
+        intermediateTexts: [],
+        toolCalls: [
+          {
+            toolCall: {
+              id: 'call-1',
+              type: 'function' as const,
+              function: { name: 'add_node', arguments: '{"type":"http:request"}' },
+              output: '{"success":true}',
+            },
+            result: '{"success":true}',
+          },
+          {
+            toolCall: {
+              id: 'call-2',
+              type: 'function' as const,
+              function: { name: 'connect_nodes', arguments: '{"from":"n1","to":"n2"}' },
+            },
+            result: undefined,
+          },
+          {
+            toolCall: {
+              id: 'call-3',
+              type: 'function' as const,
+              function: { name: 'run_flow', arguments: '{}' },
+            },
+            result: undefined,
+          },
+        ],
+      };
+
+      render(
+        <AIAssistantTurnCard
+          turn={turn}
+          isStreaming={false}
+          isGenerating={true}
+          isLatest={true}
+          activeExecutingToolCallId="call-2"
+        />
+      );
+
+      const ll = getLL();
+      // call-1 已完成
+      expect(screen.getByText(ll.ai.tool_call.done())).toBeInTheDocument();
+      // call-2 正在执行
+      expect(screen.getByText(ll.ai.tool_call.running())).toBeInTheDocument();
+      // call-3 等待执行
+      expect(screen.getByText(ll.ai.tool_call.pending())).toBeInTheDocument();
+    });
+
+    it('多操作全部执行完毕后，后续单轮流式输出时状态保持稳定，绝不来回跳变为正在执行', () => {
+      const turn = {
+        id: 'turn-all-done',
+        messages: [],
+        finalMessage: {
+          id: 'asst-final',
+          role: 'assistant' as const,
+          content: '正在生成最终回复总结...',
+          status: 'streaming' as const,
+          timestamp: 500,
+        },
+        thoughts: [],
+        intermediateTexts: [],
+        toolCalls: [
+          {
+            toolCall: {
+              id: 'call-1',
+              type: 'function' as const,
+              function: { name: 'add_node', arguments: '{}' },
+              output: '{"success":true}',
+            },
+            result: '{"success":true}',
+          },
+          {
+            toolCall: {
+              id: 'call-2',
+              type: 'function' as const,
+              function: { name: 'run_flow', arguments: '{}' },
+              output: '{"success":true}',
+            },
+            result: '{"success":true}',
+          },
+        ],
+      };
+
+      // 模拟下一轮 ReAct 流式输出最终总结，此时 isStreaming=true，且所有工具已完成
+      render(
+        <AIAssistantTurnCard
+          turn={turn}
+          isStreaming={true}
+          isGenerating={true}
+          isLatest={true}
+          activeExecutingToolCallId={null}
+        />
+      );
+
+      const ll = getLL();
+      // 折叠卡片默认已展开（正在生成阶段）
+      const accordionHeader = screen.getByText(ll.ai.copilot.execution_steps({ count: 2 }));
+      expect(accordionHeader).toBeInTheDocument();
+      // 所有工具均应显示"执行成功"，而不是来回跳变为"正在执行"
+      const doneElements = screen.getAllByText(ll.ai.tool_call.done());
+      expect(doneElements).toHaveLength(2);
+      expect(screen.queryByText(ll.ai.tool_call.running())).not.toBeInTheDocument();
+    });
   });
 });

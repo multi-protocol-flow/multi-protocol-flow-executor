@@ -10,24 +10,29 @@ import {
   CheckCircle2,
   XCircle,
   AlertCircle,
-  Copy,
   Check,
+  Copy,
   Loader2,
+  Clock,
 } from 'lucide-react';
 import type { AIToolCall } from '@/types/ai';
 import { getLL } from '@/i18n/i18n-lazy';
 import { formatToolTitle } from '@/services/ai/toolTitleFormatter';
 
-interface AIToolCallItemProps {
+export type AIToolCallStatus = 'pending' | 'running' | 'success' | 'error';
+
+export interface AIToolCallItemProps {
   toolCall: AIToolCall;
   result?: string;
   isExecuted?: boolean;
+  status?: AIToolCallStatus;
 }
 
 export const AIToolCallItem = memo(function AIToolCallItem({
   toolCall,
   result,
-  isExecuted = true,
+  isExecuted,
+  status,
 }: AIToolCallItemProps) {
   const ll = getLL();
   const [isOpen, setIsOpen] = useState(false);
@@ -100,6 +105,26 @@ export const AIToolCallItem = memo(function AIToolCallItem({
       errorMessage: error,
     };
   }, [toolCall.function.arguments, rawResult]);
+  const hasResult = rawResult !== undefined;
+
+  const resolvedStatus: AIToolCallStatus = useMemo(() => {
+    if (hasResult) {
+      return isResultSuccess ? 'success' : 'error';
+    }
+    if (status) {
+      return status;
+    }
+    if (isExecuted === false) {
+      return 'running';
+    }
+    if (isExecuted === true) {
+      return isResultSuccess ? 'success' : 'error';
+    }
+    return 'pending';
+  }, [hasResult, isResultSuccess, status, isExecuted]);
+
+  const isComplete = resolvedStatus === 'success' || resolvedStatus === 'error';
+
   const handleCopy = useCallback(
     async (e: React.MouseEvent) => {
       e.stopPropagation();
@@ -153,12 +178,17 @@ export const AIToolCallItem = memo(function AIToolCallItem({
           )}
         </div>
         {/* 状态徽章 */}
-        {!isExecuted ? (
+        {resolvedStatus === 'pending' ? (
           <span className="ml-auto shrink-0 flex items-center gap-1 text-[11px] text-muted-foreground whitespace-nowrap pl-1">
+            <Clock className="h-3 w-3 text-muted-foreground/70 shrink-0" />
+            <span className="shrink-0 whitespace-nowrap">{ll.ai.tool_call.pending()}</span>
+          </span>
+        ) : resolvedStatus === 'running' ? (
+          <span className="ml-auto shrink-0 flex items-center gap-1 text-[11px] text-primary whitespace-nowrap pl-1">
             <Loader2 className="h-3 w-3 animate-spin text-primary shrink-0" />
             <span className="shrink-0 whitespace-nowrap">{ll.ai.tool_call.running()}</span>
           </span>
-        ) : !isResultSuccess ? (
+        ) : resolvedStatus === 'error' ? (
           <span className="ml-auto shrink-0 flex items-center gap-1 text-[11px] text-destructive whitespace-nowrap pl-1">
             <XCircle className="h-3 w-3 shrink-0 text-destructive" />
             <span>{ll.ai.tool_call.failed()}</span>
@@ -205,10 +235,10 @@ export const AIToolCallItem = memo(function AIToolCallItem({
                 }`}
               >
                 <span>{ll.ai.tool_call.execution_result()}</span>
-                {isExecuted && (
+                {isComplete && (
                   <span
                     className={`h-1.5 w-1.5 rounded-full ${
-                      !isResultSuccess ? 'bg-destructive' : 'bg-emerald-500'
+                      resolvedStatus === 'error' ? 'bg-destructive' : 'bg-emerald-500'
                     }`}
                   />
                 )}
@@ -256,7 +286,12 @@ export const AIToolCallItem = memo(function AIToolCallItem({
             </pre>
           ) : (
             <div>
-              {!isExecuted ? (
+              {resolvedStatus === 'pending' ? (
+                <div className="p-4 flex items-center justify-center gap-2 text-xs text-muted-foreground">
+                  <Clock className="h-3.5 w-3.5 text-muted-foreground/70" />
+                  <span>{ll.ai.tool_call.pending()}</span>
+                </div>
+              ) : resolvedStatus === 'running' ? (
                 <div className="p-4 flex items-center justify-center gap-2 text-xs text-muted-foreground">
                   <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
                   <span>{ll.ai.tool_call.running()}</span>

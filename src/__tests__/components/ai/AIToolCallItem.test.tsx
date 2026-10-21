@@ -55,6 +55,16 @@ describe('AIToolCallItem', () => {
     expect(runningEl).toHaveClass('shrink-0');
     expect(runningEl).toHaveClass('whitespace-nowrap');
   });
+  it('2.1 status 为 pending 时渲染等待执行状态', () => {
+    render(<AIToolCallItem toolCall={sampleToolCall} status="pending" />);
+
+    const ll = getLL();
+    const pendingEl = screen.getByText(ll.ai.tool_call.pending());
+    expect(pendingEl).toBeInTheDocument();
+    expect(pendingEl).toHaveClass('shrink-0');
+    expect(pendingEl).toHaveClass('whitespace-nowrap');
+  });
+
 
   it('3. 点击展开参数并支持一键复制参数', async () => {
     // Mock navigator.clipboard

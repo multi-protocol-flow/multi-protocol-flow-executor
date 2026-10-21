@@ -14,7 +14,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { MarkdownViewer } from '@/components/ui/MarkdownViewer';
-import { AIToolCallItem } from './AIToolCallItem';
+import { AIToolCallItem, type AIToolCallStatus } from './AIToolCallItem';
 import { AIErrorMessageCard } from './AIErrorMessageCard';
 import { ThinkingDots } from './ThinkingSpinner';
 import { getLL } from '@/i18n/i18n-lazy';
@@ -178,6 +178,7 @@ export interface AIAssistantTurnCardProps {
   toolResults?: Record<string, string>;
   activeStreamingThoughtRef?: React.RefObject<HTMLDivElement | null>;
   onPreviewImage?: (imageUrl: string) => void;
+  activeExecutingToolCallId?: string | null;
 }
 
 export const AIAssistantTurnCard = memo(function AIAssistantTurnCard({
@@ -187,6 +188,7 @@ export const AIAssistantTurnCard = memo(function AIAssistantTurnCard({
   isLatest = false,
   toolResults,
   activeStreamingThoughtRef,
+  activeExecutingToolCallId,
 }: AIAssistantTurnCardProps) {
   const ll = getLL();
 
@@ -223,10 +225,19 @@ export const AIAssistantTurnCard = memo(function AIAssistantTurnCard({
     userToggled !== null
       ? userToggled
       : isStreaming || (isGenerating && isLatest) || (!hasContent && isLatest);
-  // 判断当前流式生成阶段是否有正在执行中的工具
+  // 判断当前是否有未执行完成的工具
+  const incompleteTools = turn.toolCalls.filter((tc) => {
+    const res = tc.result ?? toolResults?.[tc.toolCall.id] ?? tc.toolCall.output;
+    return res === undefined;
+  });
+  const hasIncompleteTools = incompleteTools.length > 0;
+
+  // 判断当前正在执行的具体工具
   const activeTool =
-    isStreaming && isGenerating
-      ? turn.toolCalls.find((tc) => !tc.result && !toolResults?.[tc.toolCall.id])
+    isGenerating && hasIncompleteTools
+      ? (activeExecutingToolCallId
+          ? turn.toolCalls.find((tc) => tc.toolCall.id === activeExecutingToolCallId)
+          : incompleteTools[0]) ?? null
       : null;
 
   const activeToolName = useMemo(() => {
@@ -257,19 +268,20 @@ export const AIAssistantTurnCard = memo(function AIAssistantTurnCard({
 
               <span className="inline-flex items-center gap-1.5 min-w-0 flex-1 overflow-hidden">
                 <span className="font-medium text-[11px] truncate">
-                  {isStreaming && isGenerating
+                  {isGenerating && hasIncompleteTools
                     ? activeToolName
                       ? ll.ai.copilot.executing_tool_named({ name: activeToolName })
                       : ll.ai.copilot.execution_steps_in_progress({ count: Math.max(operationCount, 1) })
-                    : ll.ai.copilot.execution_steps({ count: Math.max(operationCount, 1) })}
+                    : isStreaming && isGenerating && !hasContent
+                      ? ll.ai.copilot.execution_steps_in_progress({ count: Math.max(operationCount, 1) })
+                      : ll.ai.copilot.execution_steps({ count: Math.max(operationCount, 1) })}
                 </span>
-                {isStreaming && isGenerating && (
+                {isGenerating && (hasIncompleteTools || (isStreaming && !hasContent)) && (
                   <span className="inline-flex items-center gap-1 text-[10px] text-primary font-normal shrink-0">
                     <ThinkingDots dotClassName="w-1 h-1" />
                   </span>
                 )}
               </span>
-
               {isAccordionOpen ? (
                 <ChevronDown className="h-3 w-3 ml-auto shrink-0" />
               ) : (
@@ -307,14 +319,32 @@ export const AIAssistantTurnCard = memo(function AIAssistantTurnCard({
                 {/* 工具调用项展示 */}
                 {turn.toolCalls.length > 0 && (
                   <div className="space-y-1">
-                    {turn.toolCalls.map(({ toolCall, result }) => {
-                      const res = result ?? (toolResults ? toolResults[toolCall.id] : undefined);
+                    {turn.toolCalls.map(({ toolCall, result }, idx) => {
+                      const res = result ?? (toolResults ? toolResults[toolCall.id] : undefined) ?? toolCall.output;
+                      const isFinished = res !== undefined;
+
+                      let status: AIToolCallStatus;
+                      if (isFinished) {
+                        status = 'success';
+                      } else if (activeExecutingToolCallId === toolCall.id) {
+                        status = 'running';
+                      } else if (
+                        isGenerating &&
+                        !activeExecutingToolCallId &&
+                        idx === turn.toolCalls.findIndex((t) => (t.result ?? toolResults?.[t.toolCall.id] ?? t.toolCall.output) === undefined)
+                      ) {
+                        status = 'running';
+                      } else {
+                        status = 'pending';
+                      }
+
                       return (
                         <AIToolCallItem
                           key={toolCall.id}
                           toolCall={toolCall}
                           result={res}
-                          isExecuted={!isStreaming && res !== undefined}
+                          status={status}
+                          isExecuted={isFinished}
                         />
                       );
                     })}
