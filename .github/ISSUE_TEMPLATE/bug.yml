@@ -1,0 +1,81 @@
+name: Bug report
+description: Something does not work as documented
+labels: ["bug", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        For security issues use [private vulnerability reporting](../security/advisories/new) instead of this form.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: The actual behaviour, including the exact error text.
+      placeholder: |
+        Running `mpe run flow.mpf -e staging` exits with code 1 and the report says
+        "Variable not found: API_URL", but the environment file defines API_URL.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: A minimal flow file is worth more than a description. Attach or paste it.
+      placeholder: |
+        1. Create flow with an `http:request` node using `{{API_URL}}/users`
+        2. Create `environments/staging.yaml` with `API_URL: https://example.com`
+        3. `mpe run flow.mpf -e staging`
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: MPE version
+      description: Output of `mpe --version`, or the installer filename.
+      placeholder: 0.5.0-beta
+    validations:
+      required: true
+
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Where does it happen
+      multiple: true
+      options:
+        - Desktop app (GUI)
+        - "CLI (`mpe` / `mpe-cli`)"
+        - "`mpe serve` ingress gateway"
+        - Plugin
+        - AI Copilot
+        - Not sure
+    validations:
+      required: true
+
+  - type: input
+    id: platform
+    attributes:
+      label: Platform
+      placeholder: macOS 15.2 arm64 / Ubuntu 24.04 x64 / Windows 11 x64
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Report, logs, or traceback
+      description: |
+        Attach the execution report if one was produced, or run with `--stream` for NDJSON output.
+        Redact credentials and internal hostnames.
+      render: shell
+    validations:
+      required: false

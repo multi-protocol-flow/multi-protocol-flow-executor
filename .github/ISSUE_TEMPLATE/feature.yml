@@ -1,0 +1,53 @@
+name: Feature request
+description: Propose a capability or an improvement
+labels: ["enhancement", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Open an issue before writing code for anything that touches the flow data model,
+        the plugin wire protocol, or the report schema — those are versioned contracts
+        consumed by existing `.mpf` files, plugins, and CI pipelines.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What are you unable to do today? Describe the workflow, not the solution.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: What would you like to happen? Sketches and flow diagrams welcome.
+    validations:
+      required: false
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Existing workarounds, other tools, or why a plugin would not do.
+    validations:
+      required: false
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      multiple: true
+      options:
+        - Canvas / editor UX
+        - Execution engine
+        - New protocol or plugin
+        - Plugin system / SDK
+        - CLI / CI integration
+        - Ingress gateway (`mpe serve`)
+        - Reports
+        - AI Copilot
+        - Stress testing
+        - Documentation
+    validations:
+      required: true

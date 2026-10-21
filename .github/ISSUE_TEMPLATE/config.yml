@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/multi-protocol-flow/multi-protocol-flow-executor/security/advisories/new
+    about: Report security issues privately, not as a public issue.
+  - name: Plugin issue
+    url: https://github.com/multi-protocol-flow
+    about: Protocol plugins live in their own repositories under this organisation.
+  - name: Documentation
+    url: https://mpe.run/docs.html
+    about: Guides, CLI reference, and the plugin SDK documentation.
