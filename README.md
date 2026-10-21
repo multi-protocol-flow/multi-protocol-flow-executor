@@ -1,53 +1,61 @@
 # Multi-Protocol Flow Executor
 
-> 多协议流程编排与执行引擎
+> Multi-protocol workflow orchestration and execution engine
 
-一个强大的工作流编排与执行引擎，提供可视化编辑器和命令行执行能力。基于 **Rust + Tauri 2.x + React** 构建的跨平台桌面应用。
+**English** | [简体中文](./README.zh-CN.md)
 
-## ✨ 主要特性
+A workflow orchestration and execution engine with a visual editor and a scriptable CLI, built as a cross-platform desktop application on **Rust + Tauri 2.x + React**.
 
-### 可视化流程编辑器
-- 🎨 拖拽式流程设计，基于 React Flow
-- 📦 节点库面板，快速添加各类节点
-- ⚙️ 实时节点配置面板
-- 📋 流程列表管理，支持创建、删除、切换
+## ✨ Features
 
-### 流程执行引擎
-- ⚡ 高性能 Rust 后端执行引擎
-- 🔄 支持多种核心节点类型：Entry（入口）、HTTP（请求）、Conditional（条件分支）
-- 📝 实时执行日志与详细报告
-- ✅ 流程验证与错误检测
-- 📊 执行统计与历史记录
-- 🚀 内置流程模板，首次启动自动加载示例流程
+### Visual flow editor
+- 🎨 Drag-and-drop flow design on React Flow
+- 📦 Node palette for adding every supported node type
+- ⚙️ Live node configuration panel
+- 📋 Flow list with create / delete / switch
 
-### CLI 模式
-- 💻 独立的命令行工具，支持批量执行和自动化集成
-- 📄 支持执行 JSON 格式的流程文件
-- 🔧 灵活的命令行参数配置
-- 📤 结构化 JSON 输出，便于解析和集成
+### Execution engine
+- ⚡ High-performance Rust execution engine
+- 🔄 Core node types: Entry, HTTP, Conditional
+- 📝 Live execution logs and detailed reports
+- ✅ Flow validation and error detection
+- 📊 Execution statistics and history
+- 🚀 Built-in templates loaded on first launch
 
-### 全局设置
-- ⚙️ 可自定义报告和日志存储位置
-- 💾 设置自动持久化保存
-- 📂 支持选择目录和打开目录功能
+### Lifecycle stages
+- 🧩 **Setup / Main / Teardown** as first-class stages of a flow
+- 🔗 Setup exports variables straight into the Main context
+- 📄 Teardown reads the Main report as the read-only `$report` variable
+- 🧪 Stress and dataset runs execute Setup/Teardown once, so QPS and P99 stay pure Main measurements
 
-## 🏗️ 架构概览
+### CLI mode
+- 💻 Standalone command-line tool for batch execution and CI integration
+- 📄 Runs JSON and YAML flow files
+- 🔧 Flexible command-line arguments
+- 📤 Structured JSON output for downstream tooling
+- 🎯 JUnit XML, GitHub Step Summary, and self-contained HTML reports
+
+### Global settings
+- ⚙️ Configurable report and log locations
+- 💾 Settings persisted automatically
+- 📂 Directory picker and reveal-in-file-manager
+
+## 🏗️ Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                        前端 (React + TypeScript)                         │
+│                       Frontend (React + TypeScript)                      │
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐     │
-│  │  FlowCanvas │  │ NodeLibrary │  │ ConfigPanel │  │ Execution   │     │
-│  │  流程画布   │  │  节点库面板 │  │  配置面板   │  │  执行报告   │     │
+│  │  FlowCanvas │  │ NodeLibrary │  │ ConfigPanel │  │  Execution  │     │
+│  │    canvas   │  │    palette  │  │   config    │  │   reports   │     │
 │  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘     │
 └─────────────────────────────────────────────────────────────────────────┘
                               ↕ Tauri IPC
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                    后端 (Rust + Tauri 2.x)                               │
+│                         Backend (Rust + Tauri 2.x)                       │
 │                                                                          │
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐                      │
 │  │  Executor   │  │  Validator  │  │   Storage   │                      │
-│  │  执行引擎   │  │  流程验证器 │  │  存储管理   │                      │
 │  └─────────────┘  └─────────────┘  └─────────────┘                      │
 │                                                                          │
 │  ┌───────────────────────────────────────────────────────────────────┐  │
@@ -60,208 +68,210 @@
 └─────────────────────────────────────────────────────────────────────────┘
                               ↕
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                         CLI 独立二进制                                    │
-│               支持命令行执行 JSON 格式流程文件                              │
+│                        Standalone CLI binaries                           │
+│              run JSON / YAML flow files without a GUI                    │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
-## 🚀 快速开始
+## 🚀 Getting started
 
-### 环境要求
+### Requirements
 
-- **Rust** >= 1.82.0
-- **Node.js** >= 18 (推荐使用 bun)
-- **pnpm** / **npm** / **bun** 包管理器
+- **Rust** >= 1.85.0
+- **Node.js** >= 18 (`bun` also works)
+- A package manager: `pnpm` / `npm` / `bun`
 
-### 安装依赖
+### Install dependencies
 
 ```bash
-# 安装前端依赖
+# Install frontend dependencies
 npm install
-# 或使用 bun
+# or
 bun install
 ```
 
-### 开发模式
+### Development
 
 ```bash
-# 启动 Tauri 开发模式（前端 + 后端热重载）
+# Tauri dev mode (frontend + backend hot reload)
 npx tauri dev
 ```
 
-### 编译 GUI 应用（Tauri 桌面版）
+### Build the desktop app
 
 ```bash
-# 构建生产版本（包含前端资源 + Tauri 后端）
+# Production build (bundles frontend assets + Tauri backend)
 npx tauri build
 ```
 
-编译产物位置：`src-tauri/target/release/bundle/`（平台对应安装包）
+Artifacts land in `src-tauri/target/release/bundle/` (per-platform installer).
 
-### 编译 CLI 工具
+### Build the CLI
 
-项目提供二种二进制入口：
+The project ships two binary entry points:
 
-| 二进制 | 适用场景 | 依赖 |
-|--------|----------|------|
-| `mpe` | GUI + CLI 二合一 | 需要 Tauri + 前端资源 |
-| `mpe-cli` | 纯 CLI（服务器/CI/Docker） | 纯 Rust，无 GUI 依赖 |
+| Binary | Use case | Dependencies |
+|--------|----------|--------------|
+| `mpe` | GUI + CLI in one binary | Tauri + bundled frontend assets |
+| `mpe-cli` | Pure CLI (servers / CI / Docker) | Plain Rust, no GUI dependencies |
 
-#### 构建桌面版 CLI（二合一 `mpe`）
+#### Combined desktop binary (`mpe`)
 
 ```bash
-# 开发版本
+# Debug build
 cd src-tauri
 cargo build
 
-# 生产版本（体积优化）
+# Release build (size-optimized)
 cd src-tauri
 cargo build --release
 ```
 
-产物位置：
-- Windows: `src-tauri\target\debug\mpe.exe`（或 `release\mpe.exe`）
-- Linux/macOS: `src-tauri/target/debug/mpe`（或 `release/mpe`）
+Artifacts:
+- Windows: `src-tauri\target\debug\mpe.exe` (or `release\mpe.exe`)
+- Linux/macOS: `src-tauri/target/debug/mpe` (or `release/mpe`)
 
-> 注意：二合一 `mpe` 编译依赖完整前端构建，需要先 `npm install`。
+> The combined `mpe` binary needs the frontend build, so run `npm install` first.
 
-#### 构建独立 CLI（纯 Rust，推荐给 Linux 服务器使用）
+#### Standalone CLI (pure Rust, recommended for Linux servers)
 
 ```bash
 # Linux / macOS
 cd src-tauri
 cargo build -p mpe-cli --release
-cp target/release/mpe-cli /usr/local/bin/mpe    # 安装到系统路径
+cp target/release/mpe-cli /usr/local/bin/mpe    # install on PATH
 
-# 按需选择协议（减少编译时间/二进制体积）
-cargo build -p mpe-cli --release --no-default-features -F protocol-http -F protocol-script
+# Pick only the protocols you need (smaller binary, faster build).
+# `plugin-manager` is not optional: the CLI reads the plugin connection
+# config unconditionally, so a build without it fails to compile.
+cargo build -p mpe-cli --release --no-default-features \
+  -F plugin-manager -F protocol-http -F protocol-script
 ```
 
-产物：`src-tauri/target/release/mpe-cli`
+Artifact: `src-tauri/target/release/mpe-cli`
 
-##### musl 静态编译（兼容所有 Linux 系统）
+##### musl static build (runs on any Linux)
 
-如需一个不依赖 glibc 版本、可在任何 Linux 上直接运行的二进制，用 Docker 进行 musl 静态编译：
+For a binary that does not depend on the host glibc version:
 
 ```bash
-# 构建 Docker 编译镜像（首次需等待 rustup 安装）
+# Build the Docker toolchain image (waits for rustup the first time)
 docker build -t mpe-musl-builder -f Dockerfile.musl .
 
-# 编译 musl 静态 mpe-cli
+# Compile the static mpe-cli
 docker run --rm \
   -v $PWD:/src \
   -v musl-cargo:/root/.cargo/registry \
   mpe-musl-builder \
   sh -c "cd src-tauri && cargo build -p mpe-cli --release"
 
-# 产物在 src-tauri/target/release/mpe-cli
+# Artifact is src-tauri/target/release/mpe-cli
 file src-tauri/target/release/mpe-cli
-# 输出：ELF ... static-pie linked（不依赖 glibc）
+# => ELF ... static-pie linked (no glibc dependency)
 ```
 
-> GitHub Release 中 `mpe-v*-linux-x86_64.tar.gz` 即为 musl 静态编译版本。
+> The `mpe-v*-linux-x86_64.tar.gz` assets on GitHub Releases are these musl static builds.
 
-#### Windows 交叉编译 Linux CLI
+#### Cross-compiling the Linux CLI from Windows
 
-从 Windows 构建 Linux 独立 CLI 有两种方式：
-
-**方式一：WSL（推荐）**
+**Option 1: WSL (recommended)**
 
 ```bash
-# 在 WSL（Ubuntu/Debian）中
+# Inside WSL (Ubuntu/Debian)
 sudo apt install build-essential pkg-config libssl-dev
 cd /path/to/multi-protocol-flow-executor/src-tauri
 cargo build -p mpe-cli --release
-# 产物在 target/release/mpe-cli，直接 cp 到 Linux 机器使用
+# Artifact: target/release/mpe-cli — copy it to the Linux host
 ```
 
-**方式二：Rust 交叉编译**
+**Option 2: Rust cross-compilation**
 
 ```bash
-# 1. 安装 Linux 目标
+# 1. Add the Linux target
 rustup target add x86_64-unknown-linux-gnu
 
-# 2. 安装交叉编译器（需要 MSYS2 或 mingw64）
-# 或直接使用 WSL 更简单（见方式一）
+# 2. Install a cross linker (MSYS2 / mingw64), or just use WSL
 
-# 3. 构建
+# 3. Build
 cd src-tauri
 cargo build -p mpe-cli --release --target x86_64-unknown-linux-gnu
 ```
 
-#### 安装到 Linux 系统路径
+#### Install on Linux
 
 ```bash
-cp src-tauri/target/release/mpe-cli /usr/local/bin/mpe   # 或 /root/bin/mpe
+cp src-tauri/target/release/mpe-cli /usr/local/bin/mpe
 mpe --help
 ```
 
-### 浏览器模式（前端独立运行，无需 Tauri 后端）
+### Browser mode (frontend only, no Tauri backend)
 
-前端支持在浏览器中独立运行，所有 Tauri 后端调用会自动降级为 Mock 实现。
+The frontend runs standalone in a browser; every Tauri call falls back to a mock implementation.
 
 ```bash
-# 浏览器模式开发（热重载）
+# Browser dev mode (hot reload)
 npm run dev:web
 
-# 构建为静态站点，产物输出到 website/playground/
+# Static site build, output to website/playground/
 npm run build:web
 
-# 如果使用 VSCode 或其他编辑器，直接 npm run dev 效果等同
+# npm run dev behaves the same way in a plain editor
 ```
 
-构建产物位于 `website/playground/`，可直接部署到任何静态文件服务器或 GitHub Pages。
+The build output in `website/playground/` can be served from any static host or GitHub Pages.
 
-### 使用 CLI
+### Using the CLI
 
 ```bash
-# 执行流程文件
+# Execute a flow
 mpe run -f <path-to-flow.json>
 
-# 验证流程
+# Validate a flow
 mpe validate -f <path-to-flow.json>
 
-# 压力测试
+# Stress test
 mpe stress run -f <path-to-flow.json>
 
-# 显示帮助
+# Help
 mpe --help
 ```
 
-### 插件 (Plugins)
+### Plugins
 
-插件系统允许第三方开发者以**独立进程**方式为 MPE 扩展新的节点类型，无需重新编译宿主应用。插件功能默认开启，启动时自动扫描插件目录。
+The plugin system lets third parties add node types as **separate processes** without rebuilding the host. Plugins are enabled by default and the plugin directory is scanned at startup.
 
-**安装插件：** 将包含 `plugin.json` 清单和入口脚本（如 `main.py`、`index.js`）的插件文件夹放入插件目录即可，开箱即用。
+**Installing a plugin:** drop a folder containing a `plugin.json` manifest and an entry script (`main.py`, `index.js`, …) into the plugin directory.
 
-| 插件目录 | 说明 |
-|----------|------|
-| 默认 | `get_data_dir()/plugins`（应用数据目录下的 `plugins` 文件夹） |
-| 环境变量 | 设置 `MPE_PLUGIN_DIR` 指向其他目录，优先于默认目录 |
+| Plugin directory | Notes |
+|------------------|-------|
+| Default | `get_data_dir()/plugins` (a `plugins` folder inside the app data directory) |
+| Environment variable | `MPE_PLUGIN_DIR` overrides the default |
 
-**插件作者**：开发指南见 [docs/plugin-sdk.md](./docs/plugin-sdk.md)，线协议规范见 [docs/plugin-protocol.md](./docs/plugin-protocol.md)，性能设计见 [docs/plugin-perf.md](./docs/plugin-perf.md)。
+Official protocol plugins live in separate repositories under the [`multi-protocol-flow`](https://github.com/multi-protocol-flow) organisation (redis, db, mongo, grpc, kafka, smtp, mcp, llm, agent, openapi, postman, eolink). See [CONTRIBUTING.md](./CONTRIBUTING.md#repository-layout) for the list.
 
-## 📖 使用指南
+**Plugin authors:** start with [docs/plugin-sdk.md](./docs/plugin-sdk.md), the wire protocol in [docs/plugin-protocol.md](./docs/plugin-protocol.md), the performance notes in [docs/plugin-perf.md](./docs/plugin-perf.md), and the runnable templates in [`sdk-templates/`](./sdk-templates).
 
-### 可视化编辑器
+## 📖 Usage
 
-1. **创建流程**: 点击左侧「新建流程」按钮
-2. **添加节点**: 从节点库拖拽节点到画布
-3. **连接节点**: 从节点输出端口拖拽到另一节点的输入端口
-4. **配置节点**: 选中节点后在右侧面板配置参数
-5. **执行流程**: 点击顶部「执行」按钮
-6. **查看报告**: 执行完成后查看详细报告
+### Visual editor
 
-### 流程文件示例
+1. **Create a flow**: click *New Flow* in the left sidebar
+2. **Add nodes**: drag nodes from the palette onto the canvas
+3. **Connect nodes**: drag from an output port to another node's input port
+4. **Configure**: select a node and edit it in the right-hand panel
+5. **Run**: click *Run* in the toolbar
+6. **Inspect**: open the detailed report when execution finishes
 
-流程文件使用 **FlowFile 包装格式**，包含 `_version`（版本号）、`flow`（流程数据）和 `_meta`（元数据）三个顶层键：
+### Flow file example
+
+Flow files use the **FlowFile wrapper format** with three top-level keys: `_version` (schema version), `flow` (the flow itself), and `_meta` (metadata):
 
 ```json
 {
   "_version": 1,
   "flow": {
     "uuid": "flow-001",
-    "name": "示例流程",
+    "name": "Example flow",
     "initial_variables": {
       "api_base": "https://api.example.com"
     },
@@ -269,17 +279,17 @@ mpe --help
       {
         "uuid": "entry-001",
         "type": "entry",
-        "name": "入口",
+        "name": "Entry",
         "position": { "x": 0, "y": 0 },
         "data": { "type": "entry" }
       },
       {
         "uuid": "http-001",
-        "type": "http",
-        "name": "获取数据",
+        "type": "http:request",
+        "name": "Fetch users",
         "position": { "x": 200, "y": 0 },
         "data": {
-          "type": "http",
+          "type": "http:request",
           "url": "{{api_base}}/users",
           "method": "get",
           "timeout_ms": 30000
@@ -300,241 +310,254 @@ mpe --help
 }
 ```
 
-### 节点类型
+### Node types
 
-| 类型 | 说明 | 用途 |
-|------|------|------|
-| `entry` | 入口节点 | 流程起点，每个流程必须有且仅有一个 |
-| `http` | HTTP 请求节点 | 发送 HTTP 请求，支持 GET/POST/PUT/DELETE/PATCH，多种请求体类型（JSON、表单、文件） |
-| `conditional` | 条件分支节点 | 根据条件选择执行路径 |
-| `script` | 脚本节点 | 执行 JavaScript 代码，支持数据提取、变量操作、断言验证 |
+| Type id | Description | Purpose |
+|---------|-------------|---------|
+| `entry` | Entry node | Flow start; exactly one per flow |
+| `http:request` | HTTP request node | GET/POST/PUT/DELETE/PATCH with JSON, form, and file bodies |
+| `conditional` | Conditional branch | Routes execution by expression |
+| `script` | Script node | Runs JavaScript for data extraction, variable manipulation, and assertions |
+| `flow:sub` | Subflow node | Runs another `.mpf` flow inline |
+| `http:ingress` / `http:respond` | Mock service entry/exit | Serves a flow over HTTP (`mpe serve`) |
 
-#### 脚本节点
+Type ids are namespaced `<protocol>:<operation>`, the same scheme plugin nodes use
+(`db:query`, `grpc:call`, …). A node file written against the pre-0.4 ids
+(`http`, `ws_connect`) validates as an unknown node type.
 
-脚本节点允许在流程中运行 JavaScript 代码，提供丰富的 `fn.*` API：
+#### Script node
 
-- `fn.variables.*` - 变量操作
-- `fn.response.*` - 响应数据访问
-- `fn.console.*` - 日志输出
-- `fn.flow.*` - 流程控制
-- `fn.util.*` - 工具函数（编码、加密、时间、UUID 等）
-- `fn.expect()` - 链式断言
+Script nodes run JavaScript with a rich `fn.*` API:
 
-详细 API 文档请参考 [docs/script-node.md](./docs/script-node.md)
+- `fn.variables.*` — variable access
+- `fn.response.*` — response data
+- `fn.console.*` — logging
+- `fn.flow.*` — flow control
+- `fn.util.*` — helpers (encoding, crypto, time, UUID, …)
+- `fn.expect()` — chained assertions
 
-### 变量引用
+Full API reference: [docs/script-node.md](./docs/script-node.md)
 
-使用 `{{path.to.value}}` 语法引用变量：
+### Variable references
 
-| 语法 | 说明 |
-|------|------|
-| `{{initial_variables.xxx}}` | 引用流程初始变量 |
-| `{{status}}` | 引用上一个 HTTP 响应的状态码 |
-| `{{body.xxx}}` | 引用上一个 HTTP 响应的 JSON 数据 |
-| `{{headers.xxx}}` | 引用上一个 HTTP 响应的响应头 |
+`{{name}}` is resolved against the flow's variable storage by **bare key** — there is
+no namespace prefix. Nested paths walk into objects (`{{user.profile.name}}`);
+index access (`[0]`) and function calls are rejected.
 
-#### 详细文档
+| Syntax | Meaning |
+|--------|---------|
+| `{{api_base}}` | A variable carried by the flow (initial variables, environment file, `--var`, or a node that wrote it) |
+| `{{user.id}}` | Nested path inside an object-valued variable |
+| `{{$uuid}}`, `{{$timestamp}}`, `{{$randomInt}}` | Built-in dynamic generators, evaluated at run time |
+| `{{$report.status}}` | Main-stage report, available **only in Teardown** |
 
-更多 CLI 使用说明请参考 [CLI_USAGE.md](./CLI_USAGE.md)
+An unknown key fails the node (`Variable not found: <key>`) rather than substituting
+an empty string. Response data from a previous node is *not* injected as variables —
+read it through a `variable:extractor` node (JSONPath → variables) or a `script` node
+via `fn.response.*`.
 
-## 🧪 测试
+#### More documentation
 
-> **测试文件分布：**
+CLI usage in depth: [CLI_USAGE.md](./CLI_USAGE.md)
+
+## 🧪 Testing
+
+> **Where tests live:**
 >
-> | 位置 | 类型 | 说明 |
-> |------|------|------|
-> | 各 crate 源码 `mod tests` | 单元测试 | 业务代码内联的单测 |
-> | `src-tauri/tests/*.rs`（15个文件） | 集成测试 | 全流程、CLI、报告等端到端测试 |
-> | `src-tauri/crates/**/tests/*.rs` | 集成测试 | 各协议的集成测试（如 gRPC） |
-> | `tests/`（根目录） | 测试夹具 | JSON 流程文件、证书、测试服务 |
+> | Location | Type | Notes |
+> |----------|------|-------|
+> | `mod tests` inside each crate | Unit tests | Inline unit tests next to the code |
+> | `src-tauri/tests/*.rs` (15 files) | Integration tests | End-to-end flows, CLI, reports |
+> | `src-tauri/crates/**/tests/*.rs` | Integration tests | Per-protocol integration suites |
+> | `tests/` (repo root) | Fixtures | Flow JSON files, certificates, test servers |
 
-### 后端测试
+### Backend tests
 
-> **测试运行器：** 项目标准为 [cargo-nextest](https://nexte.st)（`cargo nextest run`）——进程级并行、输出捕获、失败重跑、按测试分组报告。nextest 不支持 doctest，文档测试用 `cargo test --doc` 补充。
+> **Test runner:** [cargo-nextest](https://nexte.st) (`cargo nextest run`) — process-per-test parallelism, output capture, retries, per-test grouping. nextest does not support doctests, so run those with `cargo test --doc`.
 
 ```bash
-# 进入后端目录
+# Enter the backend directory
 cd src-tauri
 
-# ── 全量测试 ─────────────────────────────────────────────────
-cargo nextest run                  # 运行所有测试（单测 + 集成测试，进程级并行）
-cargo nextest run --nocapture      # 实时显示 println 输出（nextest 下隐含串行）
-cargo nextest run --test-threads 4 # 控制并行测试进程数（-j 别名）
+# ── Everything ────────────────────────────────────────────────
+cargo nextest run                  # all tests (unit + integration)
+cargo nextest run --nocapture      # stream println output (implies serial)
+cargo nextest run --test-threads 4 # limit parallel test processes
 
-# ── 文档测试（nextest 不支持，用 cargo 补充） ────────────────
-cargo test --doc                   # 运行 doctest
+# ── Doctests (not supported by nextest) ───────────────────────
+cargo test --doc
 
-# ── 只跑单元测试（跳过集成测试） ──────────────────────────────
-cargo nextest run --lib            # 所有 crate 的单测
+# ── Unit tests only ───────────────────────────────────────────
+cargo nextest run --lib            # every crate's unit tests
 
-# ── 单 crate 测试 ────────────────────────────────────────────
-cargo nextest run -p flow-engine-core --lib        # flow-engine-core 单测
-cargo nextest run -p flow-engine-executor          # executor 全部测试
-cargo nextest run -p flow-engine-http              # HTTP 协议全部测试
-cargo nextest run -p flow-engine-assertion         # 断言全部测试
-cargo nextest run -p flow-engine-ws                # WebSocket 全部测试
-# db/mcp 等插件在独立工程（仓库根 plugins/）:
-#   cargo nextest run --manifest-path ../plugins/db/Cargo.toml
-cargo nextest run -p flow-engine-script            # 脚本全部测试
-cargo nextest run -p flow-engine-grpc              # gRPC 全部测试
-cargo nextest run -p flow-engine-sse               # SSE 全部测试
-cargo nextest run -p flow-engine-graphql           # GraphQL 全部测试
-cargo nextest run -p flow-engine-tcp               # TCP/UDP 全部测试
-cargo nextest run -p mpe-cli                       # CLI 全部测试
+# ── Single crate ──────────────────────────────────────────────
+cargo nextest run -p flow-engine-core --lib        # core unit tests
+cargo nextest run -p flow-engine-executor          # executor
+cargo nextest run -p flow-engine-http              # HTTP protocol
+cargo nextest run -p flow-engine-assertion         # assertions
+cargo nextest run -p flow-engine-ws                # WebSocket
+cargo nextest run -p flow-engine-script            # script
+cargo nextest run -p flow-engine-sse               # SSE
+cargo nextest run -p flow-engine-graphql           # GraphQL
+cargo nextest run -p flow-engine-tcp               # TCP/UDP
+cargo nextest run -p mpe-cli                       # CLI
 
-# ── 按测试名称过滤 ────────────────────────────────────────────
-cargo nextest run cli_tests                # 仅 CLI 集成测试
-cargo nextest run proptest                 # 仅属性测试
-cargo nextest run variable                 # 变量相关测试
-cargo nextest run report                   # 报告相关测试
-cargo nextest run ws_debug                 # WebSocket 调试流测试
-cargo nextest run http_executor            # HTTP 执行器测试
-cargo nextest run assertion_executor       # 断言执行器测试
-cargo nextest run dependency_test          # 依赖检测测试
-cargo nextest run report_storage           # 报告存储测试
+# Protocol plugins (db/mcp/grpc/kafka/redis/mongo/smtp/llm/agent…)
+# are separate repositories; clone one and run:
+#   cargo nextest run --manifest-path <plugin>/Cargo.toml
 
-# ── 按模块路径过滤（单测模块级） ──────────────────────────────
-cargo nextest run -p flow-engine-core --lib 'variable::tests::'  # core 变量模块单测
-cargo nextest run -p flow-engine-core --lib 'node::tests::'      # core 节点模块单测
-cargo nextest run -p flow-engine-core --lib 'context::tests::'   # core 上下文模块单测
+# ── By test name ──────────────────────────────────────────────
+cargo nextest run cli_tests                # CLI integration tests
+cargo nextest run proptest                 # property tests
+cargo nextest run variable                 # variable handling
+cargo nextest run report                   # reports
+cargo nextest run ws_debug                 # WebSocket debug streams
+cargo nextest run http_executor            # HTTP executor
+cargo nextest run assertion_executor       # assertion executor
+cargo nextest run dependency_test          # dependency detection
+cargo nextest run report_storage           # report storage
 
-# ── 指定集成测试文件 ─────────────────────────────────────────
-cargo nextest run --test integration                # 主集成测试
-cargo nextest run --test cli_tests                  # CLI 集成测试
-cargo nextest run --test dependency_test            # 依赖检测测试
-cargo nextest run --test variable_tracking_test     # 变量追踪测试
-cargo nextest run --test ws_debug_flow_test         # WS 调试流测试
-cargo nextest run -p flow-engine-grpc --test grpc_integration  # gRPC 集成测试
+# ── By module path (unit tests) ───────────────────────────────
+cargo nextest run -p flow-engine-core --lib 'variable::tests::'
+cargo nextest run -p flow-engine-core --lib 'node::tests::'
+cargo nextest run -p flow-engine-core --lib 'context::tests::'
 
-# ── 其他组合 ──────────────────────────────────────────────────
-cargo nextest run --lib --nocapture              # 所有单测 + 实时输出
-cargo nextest run -p flow-engine-core            # core 全部测试（含集成）
-cargo nextest run --workspace                    # workspace 所有包的全部测试
+# ── Specific integration test files ───────────────────────────
+cargo nextest run --test integration                # main integration suite
+cargo nextest run --test cli_tests                  # CLI integration
+cargo nextest run --test dependency_test            # dependency detection
+cargo nextest run --test variable_tracking_test     # variable tracking
+cargo nextest run --test ws_debug_flow_test         # WS debug stream
 
-# ── 外部服务集成测试（依赖 echo Docker 服务） ────────────────
-# 部分测试（HTTP、WebSocket、gRPC 等）依赖本地 echo Docker 服务，
-# 已在代码中标记 #[ignore]，默认不执行。
-# 如需运行，先启动 echo 服务，再使用 --include-ignored：
-#
-#   cd echo && docker compose up -d    # 启动所有 echo 服务
-#   bash echo/scripts/verify.sh        # 验证全部服务就绪
-#   cargo nextest run --include-ignored    # 运行所有测试（含 ignored）
-#   cargo nextest run -p flow-engine-http --include-ignored  # 仅 HTTP
-#   cargo nextest run -p flow-engine-ws --include-ignored    # 仅 WebSocket
-#   cargo nextest run cli_tests --include-ignored             # 仅 CLI
+# ── Other combos ──────────────────────────────────────────────
+cargo nextest run --lib --nocapture              # unit tests with live output
+cargo nextest run -p flow-engine-core            # core incl. integration
+cargo nextest run --workspace                    # every workspace package
+
+# ── Tests that need external services ─────────────────────────
+# Some HTTP / WebSocket tests need a multi-protocol echo server and are
+# marked #[ignore]. That echo service is not part of this repository
+# (/echo/ is git-ignored). Start an equivalent service, then use:
+#   cargo nextest run --include-ignored
+#   cargo nextest run -p flow-engine-http --include-ignored
+#   cargo nextest run -p flow-engine-ws --include-ignored
+#   cargo nextest run cli_tests --include-ignored
 ```
 
-### 前端测试
+### Frontend tests
 
 ```bash
-# 运行前端单元测试
+# Unit tests
 npm run test
 
-# 类型检查
+# Type checking
 npm run typecheck
 ```
 
-## 📁 项目结构
+## 📁 Repository structure
 
 ```
 multi-protocol-flow-executor/
-├── src/                        # 前端源代码 (React + TypeScript)
+├── src/                        # Frontend (React + TypeScript)
 │   ├── components/
-│   │   ├── canvas/             # 流程画布组件
-│   │   │   ├── nodes/          # 自定义节点组件
-│   │   │   └── edges/          # 自定义边组件
-│   │   ├── panels/             # 配置面板组件
-│   │   ├── sidebar/            # 侧边栏组件
-│   │   ├── execution/          # 执行相关组件
-│   │   ├── dialogs/            # 对话框组件
-│   │   └── ui/                 # 基础 UI 组件 (shadcn/ui)
-│   ├── stores/                 # Zustand 状态管理
-│   ├── services/               # 服务层 (Tauri IPC, Storage)
-│   ├── types/                  # TypeScript 类型定义
-│   ├── hooks/                  # 自定义 Hooks
-│   ├── layouts/                # 布局组件
-│   └── lib/                    # 工具函数
+│   │   ├── canvas/             # Flow canvas, custom nodes and edges
+│   │   ├── panels/             # Node configuration panels
+│   │   ├── sidebar/            # Sidebar
+│   │   ├── execution/          # Execution and report UI
+│   │   ├── dialogs/            # Dialogs
+│   │   └── ui/                 # Base UI primitives (shadcn/ui)
+│   ├── stores/                 # Zustand stores
+│   ├── services/               # Tauri IPC and storage services
+│   ├── types/                  # TypeScript types
+│   ├── hooks/                  # Custom hooks
+│   ├── layouts/                # Layout components
+│   ├── i18n/                   # Localisation catalogues
+│   └── lib/                    # Utilities and registries
 │
-├── src-tauri/                  # 后端源代码 (Rust)
-│   ├── src/
-│   │   ├── lib.rs              # 库入口
-│   │   ├── main.rs             # Tauri 应用入口
-│   │   ├── executor.rs         # 执行引擎核心 (FlowExecutor)
-│   │   ├── context.rs          # 执行上下文 + 变量存储
-│   │   ├── node.rs             # 节点定义 (Node/NodeType/Port)
-│   │   ├── node_config.rs      # 节点配置枚举
-│   │   ├── connection.rs       # 连接定义
-│   │   ├── flow.rs             # 流程定义
-│   │   ├── validator.rs        # 流程验证器
-│   │   ├── error.rs            # 错误类型定义
-│   │   ├── report.rs           # 执行报告
-│   │   ├── statistics.rs       # 统计信息
-│   │   ├── storage.rs          # 文件存储
-│   │   ├── command.rs          # 命令输入/输出类型
-│   │   ├── commands.rs         # Tauri IPC 命令
-│   │   ├── entry_executor.rs   # 入口节点执行器
-│   │   ├── http_executor.rs    # HTTP 请求节点执行器
-│   │   ├── conditional_executor.rs # 条件分支节点执行器
-│   │   └── end_executor.rs     # 终止节点执行器
-│   ├── bin/
-│   │   └── cli.rs              # CLI 独立二进制入口
-│   ├── tests/
-│   │   ├── cli_tests.rs        # CLI 集成测试
-│   │   └── integration.rs      # 流程集成测试
-│   ├── Cargo.toml              # Rust 依赖配置
-│   └── tauri.conf.json         # Tauri 配置
+├── src-tauri/                  # Backend (Rust workspace)
+│   ├── src/                    # Tauri app layer (the `app` crate only)
+│   │   ├── lib.rs              # Library entry + invoke_handler registration
+│   │   ├── main.rs             # Single binary: args → CLI, no args → GUI
+│   │   ├── tauri_commands.rs   # Wrappers for the 88 IPC commands
+│   │   ├── updater.rs          # Update checks, download, install
+│   │   └── plugin_protocol.rs  # Plugin frontend custom protocol
+│   ├── crates/                 # Workspace crates
+│   │   ├── flow-engine-core/       # Base types, variables, context
+│   │   ├── flow-engine-executor/   # Engine: orchestration, debug, stress, ingress
+│   │   ├── flow-engine-{http,ws,tcp,sse,graphql,script,assertion}/  # Protocol executors
+│   │   ├── flow-engine-plugin/     # Plugin host (sidecar lifecycle)
+│   │   ├── flow-engine-plugin-marketplace/  # Marketplace client + installer
+│   │   ├── flow-engine/            # Facade crate (re-exports everything)
+│   │   └── mpe-cli/                # Pure Rust CLI binary
+│   ├── tests/                  # Integration tests
+│   ├── Cargo.toml              # Workspace + app manifest
+│   └── tauri.conf.json         # Tauri configuration
 │
-├── tests/                      # 测试文件
-│   ├── cli/                    # CLI 测试用例
+├── tests/                      # Test fixtures
+│   ├── cli/                    # CLI test cases
 │   │   ├── 01_simple_entry_http.json
 │   │   ├── 02_http_all_methods.json
 │   │   ├── ...
-│   │   └── edge_cases/         # 边界情况测试
-│   └── fixtures/               # 测试夹具
-│       └── flows/              # 流程测试用例
+│   │   └── edge_cases/         # Edge cases
+│   ├── certs/                  # Self-signed TLS fixtures (see its README)
+│   └── fixtures/
+│       └── flows/              # Flow fixtures
 │
-├── docs/                       # 文档目录
-│   ├── executor_architecture.md # 架构设计文档
-│   ├── node_structure.md       # 节点结构文档
-│   └── executor/               # 执行器详细文档
+├── docs/                       # Documentation
+│   ├── executor_architecture.md # Architecture design
+│   ├── node_structure.md       # Node structure
+│   ├── plugin-*.md             # Plugin architecture / SDK / wire / performance
+│   └── executor/               # Executor internals
 │
-├── README.md                   # 项目说明（本文件）
-├── CLI_USAGE.md                # CLI 使用文档
-└── AGENTS.md                   # 项目知识库
+├── sdk-templates/              # Runnable plugin templates (Python / Node.js)
+├── README.md                   # This file (English)
+├── README.zh-CN.md             # Simplified Chinese README
+├── CONTRIBUTING.md             # Contribution guide and DCO
+├── SECURITY.md                 # Security policy
+├── CLI_USAGE.md                # CLI reference
+├── CHANGELOG.md                # Release notes (single source of truth)
+├── LICENSE                     # MIT
+└── AGENTS.md                   # Project knowledge base
 ```
 
-## 🔧 开发指南
+> The protocol plugins (redis / db / mongo / grpc / kafka / smtp / mcp / llm / agent / openapi / postman / eolink)
+> are separate repositories and are not part of this working tree (`/plugins/` is git-ignored).
+> The full list is in [CONTRIBUTING.md](./CONTRIBUTING.md#repository-layout).
 
-### 前端开发
+## 🔧 Development
+
+### Frontend
 
 - React 19 + TypeScript
-- 状态管理：Zustand
-- UI 组件：shadcn/ui + Tailwind CSS
-- 流程画布：@xyflow/react
-- 表单：react-hook-form + zod
+- State: Zustand
+- UI: shadcn/ui + Tailwind CSS
+- Canvas: @xyflow/react
+- Forms: react-hook-form + zod
 
 ```bash
-# 启动开发服务器
-npm run dev
-
-# 类型检查
-npm run typecheck
-
-# 运行测试
-npm run test
+npm run dev                        # dev server
+npm run typecheck                  # tsc --noEmit
+npm run test                       # vitest
 ```
 
-### 后端开发
+### Backend
 
 - Rust 2021 edition
-- 执行引擎采用模块化设计，基于 `NodeExecutor` trait 扩展节点类型
-- 使用 Clippy 进行代码质量检查：`cargo clippy`
+- The engine is modular: implement the `NodeExecutor` trait to add node types
+- Lint with `cargo clippy`
 
-### 添加新节点类型
+**Formatting:**
 
-1. **后端**：在 `src-tauri/src/node.rs` 中添加新的 `NodeType` 枚举值
-2. **后端**：在 `src-tauri/src/node_config.rs` 中添加对应的 `NodeData` 配置
-3. **后端**：创建对应的执行器文件 `xxx_executor.rs`，实现 `NodeExecutor` trait：
+- Frontend: ESLint + Prettier
+- Backend: `cargo fmt`
+- `unsafe_code` is forbidden
+
+### Adding a node type
+
+1. **Backend**: add the node's string id constant in `src-tauri/crates/flow-engine-core/src/node_types.rs`
+   (ids are namespaced `<protocol>:<operation>`, e.g. `myproto:call`)
+2. **Backend**: add the matching `NodeData` variant in `src-tauri/crates/flow-engine-core/src/node_config.rs`
+3. **Backend**: implement the `NodeExecutor` trait in a new `*_executor.rs`:
 
 ```rust
 #[async_trait::async_trait]
@@ -542,51 +565,53 @@ impl NodeExecutor for MyNodeExecutor {
     async fn execute(
         &self,
         node: &Node,
-        context: &ExecutionContext,
+        context: &mut ExecutionContext,
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<Value>), String>;
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail>;
 }
 ```
 
-4. **后端**：在 `src-tauri/src/executor.rs` 的 `execute_node()` 方法中注册新执行器
-5. **前端**：在 `src/components/canvas/nodes/` 中创建对应的节点组件
-6. **前端**：在 `src/components/panels/` 中创建对应的配置面板
-7. 添加对应的单元测试和集成测试
+4. **Backend**: register the `NodePlugin` in `default_registry()` in `src-tauri/crates/flow-engine-executor/src/default_registry.rs`
+5. **Frontend**: add the node component under `src/components/canvas/nodes/`
+6. **Frontend**: add the config panel under `src/components/panels/`
+7. **Frontend**: register in all three registries — `src/lib/NodeRegistry.ts`, `src/lib/configPanelRegistry.ts`, `src/lib/viewerRegistry.tsx`
+8. Add unit and integration tests
 
-### 代码规范
+Third-party node types do not need any of this — ship a [plugin](#plugins) instead.
 
-**前端：**
-- 格式化：使用 ESLint + Prettier
-- 类型安全：禁止 `as any`、`@ts-ignore`、`@ts-expect-error`
+### Conventions
 
-**后端：**
-- 格式化：`cargo fmt`
-- Lint 检查：`cargo clippy`
-- 禁止 `unsafe_code`
+- TypeScript is `strict`; `as any`, `@ts-ignore`, and `@ts-expect-error` are rejected
+- Only ES2020 runtime APIs are allowed in the frontend (see `AGENTS.md` for the reasoning)
+- New i18n keys must be added to both `zh-CN` and `en-US` and to `i18n-types.ts`
+- No `unwrap()` in production Rust paths
 
-## 🛠️ 技术栈
+## 🛠️ Tech stack
 
-| 层级 | 技术 |
-|------|------|
-| 前端框架 | React 19 + TypeScript |
-| 状态管理 | Zustand |
-| UI 组件 | shadcn/ui + TailwindCSS 4 |
-| 流程画布 | @xyflow/react |
-| 桌面框架 | Tauri 2.x |
-| 后端语言 | Rust |
-| HTTP 客户端 | reqwest |
-| 表达式求值 | evalexpr |
+| Layer | Technology |
+|-------|------------|
+| Frontend framework | React 19 + TypeScript |
+| State management | Zustand |
+| UI components | shadcn/ui + TailwindCSS 4 |
+| Flow canvas | @xyflow/react |
+| Desktop framework | Tauri 2.x |
+| Backend language | Rust |
+| HTTP client | reqwest |
+| Expression evaluation | evalexpr |
 
 ## 📄 License
 
-MIT
+[MIT](./LICENSE) © MPE Flow contributors.
 
-## 🤝 贡献
+This repository is MIT-licensed. The protocol plugins live in their own
+repositories; their licences are defined and documented there, not here.
 
-欢迎提交 Issue 和 Pull Request！
+## 🤝 Contributing
+
+Read [CONTRIBUTING.md](./CONTRIBUTING.md) before opening a pull request — commits must carry a DCO sign-off (`git commit -s`). For security issues, do **not** open a public issue; follow [SECURITY.md](./SECURITY.md).
 
 ---
 
-**详细架构设计请参考 [docs/executor_architecture.md](./docs/executor_architecture.md)**  
-**项目知识库请参考 [AGENTS.md](./AGENTS.md)**
+**Architecture deep-dive: [docs/executor_architecture.md](./docs/executor_architecture.md)**  
+**Project knowledge base: [AGENTS.md](./AGENTS.md)**
