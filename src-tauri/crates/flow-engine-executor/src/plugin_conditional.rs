@@ -104,27 +104,17 @@ impl NodePlugin for ConditionalPlugin {
                     }
                 }
 
-                // operator must be a known value if present
-                const VALID_OPERATORS: &[&str] = &[
-                    "equal",
-                    "not_equal",
-                    "gt",
-                    "gte",
-                    "lt",
-                    "lte",
-                    "contains",
-                    "matches",
-                    "exists",
-                    "not_exists",
-                    "true",
-                    "false",
-                    "in",
-                    "not_in",
-                    "type_is",
-                    "between",
-                ];
+                // Derive the valid set from `ConditionOperator` itself so the
+                // whitelist can never drift from what the executor accepts.
+                // The previous hand-written list used the pre-rename spellings
+                // (`gt`/`gte`/`lt`/`lte`) and rejected every operator the
+                // frontend can actually emit (`greater`, `less_or_equal`, …).
                 if let Some(op) = config.get("operator").and_then(|v| v.as_str()) {
-                    if !VALID_OPERATORS.contains(&op) {
+                    let parsed: Result<
+                        flow_engine_core::node_config::ConditionOperator,
+                        _,
+                    > = serde_json::from_value(serde_json::Value::String(op.to_string()));
+                    if parsed.is_err() {
                         errors.push(ValidationError {
                             field: "operator".into(),
                             message: format!("Unknown operator: {}", op),
@@ -162,5 +152,54 @@ impl NodePlugin for ConditionalPlugin {
     ) -> Result<(Vec<String>, Option<serde_json::Value>), ErrorDetail> {
         let executor = crate::conditional_executor::ConditionalNodeExecutor::new();
         executor.execute(node, context, connections, node_map).await
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn operator_errors(operator: &str) -> Vec<String> {
+        ConditionalPlugin
+            .validate(&serde_json::json!({
+                "condition_type": "simple",
+                "field_path": "http_response.status",
+                "operator": operator,
+                "expected_value": 200
+            }))
+            .into_iter()
+            .map(|e| e.message)
+            .collect()
+    }
+
+    /// Regression: the whitelist used the pre-rename spellings (`gt`/`lt`), so
+    /// every operator the frontend can emit was rejected by `mpe validate`.
+    #[test]
+    fn accepts_every_operator_the_ui_can_emit() {
+        for op in [
+            "equal",
+            "not_equal",
+            "greater",
+            "greater_or_equal",
+            "less",
+            "less_or_equal",
+            "contains",
+            "starts_with",
+            "ends_with",
+            "exists",
+        ] {
+            let errors = operator_errors(op);
+            assert!(errors.is_empty(), "operator {op} rejected: {errors:?}");
+        }
+    }
+
+    #[test]
+    fn rejects_unknown_operator() {
+        let errors = operator_errors("gt_but_not_really");
+        assert_eq!(errors.len(), 1, "expected one error, got {errors:?}");
+        assert!(
+            errors[0].contains("Unknown operator"),
+            "unexpected message: {errors:?}"
+        );
     }
 }
