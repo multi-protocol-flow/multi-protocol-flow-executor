@@ -14621,6 +14621,10 @@ type RootTranslation = {
 			 */
 			running: string
 			/**
+			 * 等​待​执​行
+			 */
+			pending: string
+			/**
 			 * 复​制​参​数
 			 */
 			copy_arguments: string
@@ -14826,6 +14830,23 @@ type RootTranslation = {
 			 * 你​好​，​我​是​ ​M​P​E​ ​流​程​编​排​架​构​师
 			 */
 			welcome_title: string
+			/**
+			 * 切​换​供​应​商
+			 */
+			switch_provider: string
+			/**
+			 * 选​择​供​应​商
+			 */
+			select_provider: string
+			/**
+			 * 管​理​供​应​商​.​.​.
+			 */
+			manage_providers: string
+			/**
+			 * 已​切​换​为​ ​{​n​a​m​e​}
+			 * @param {string} name
+			 */
+			provider_switched: RequiredParams<'name'>
 			/**
 			 * 我​可​以​感​知​当​前​项​目​的​全​量​上​下​文​，​为​你​自​动​编​排​多​协​议​工​作​流​、​编​写​脚​本​、​排​版​连​线​或​执​行​调​试​。
 			 */
@@ -29633,6 +29654,10 @@ export type TranslationFunctions = {
 			 */
 			running: () => LocalizedString
 			/**
+			 * 等待执行
+			 */
+			pending: () => LocalizedString
+			/**
 			 * 复制参数
 			 */
 			copy_arguments: () => LocalizedString
@@ -29838,6 +29863,22 @@ export type TranslationFunctions = {
 			 * 你好，我是 MPE 流程编排架构师
 			 */
 			welcome_title: () => LocalizedString
+			/**
+			 * 切换供应商
+			 */
+			switch_provider: () => LocalizedString
+			/**
+			 * 选择供应商
+			 */
+			select_provider: () => LocalizedString
+			/**
+			 * 管理供应商...
+			 */
+			manage_providers: () => LocalizedString
+			/**
+			 * 已切换为 {name}
+			 */
+			provider_switched: (arg: { name: string }) => LocalizedString
 			/**
 			 * 我可以感知当前项目的全量上下文，为你自动编排多协议工作流、编写脚本、排版连线或执行调试。
 			 */
