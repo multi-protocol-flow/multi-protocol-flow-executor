@@ -32,10 +32,10 @@
         },
         "data": {
           "type": "http:request",
-          "url": "{{initial_variables.base_url}}/get?user_id={{initial_variables.user_id}}",
+          "url": "{{base_url}}/get?user_id={{user_id}}",
           "method": "get",
           "headers": {
-            "Authorization": "Bearer {{initial_variables.api_key}}"
+            "Authorization": "Bearer {{api_key}}"
           }
         },
         "ports": null
@@ -51,7 +51,7 @@
         "data": {
           "type": "conditional",
           "condition_type": "simple",
-          "field_path": "http_response.status",
+          "field_path": "$.status",
           "operator": "equal",
           "expected_value": 200
         },
@@ -63,15 +63,15 @@
         "id": "conn-001",
         "source_node_uuid": "entry-001",
         "target_node_uuid": "http-001",
-        "source_port_id": "output",
-        "target_port_id": "input"
+        "source_port_id": "out",
+        "target_port_id": "in"
       },
       {
         "id": "conn-002",
         "source_node_uuid": "http-001",
         "target_node_uuid": "conditional-001",
-        "source_port_id": "output",
-        "target_port_id": "input"
+        "source_port_id": "true",
+        "target_port_id": "in"
       }
     ]
   },

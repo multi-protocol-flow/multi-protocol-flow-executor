@@ -42,8 +42,8 @@
         "id": "conn-001",
         "source_node_uuid": "entry-001",
         "target_node_uuid": "http-001",
-        "source_port_id": "output",
-        "target_port_id": "input"
+        "source_port_id": "out",
+        "target_port_id": "in"
       }
     ]
   },

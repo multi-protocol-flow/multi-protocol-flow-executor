@@ -77,7 +77,7 @@
         "id": "conn-001",
         "source_node_uuid": "entry-001",
         "target_node_uuid": "agent-001",
-        "source_port_id": "output",
+        "source_port_id": "out",
         "target_port_id": "in"
       }
     ]

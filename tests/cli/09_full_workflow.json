@@ -31,10 +31,10 @@
         },
         "data": {
           "type": "http:request",
-          "url": "{{initial_variables.api_base}}/get",
+          "url": "{{api_base}}/get",
           "method": "get",
           "headers": {
-            "Authorization": "Bearer {{initial_variables.token}}"
+            "Authorization": "Bearer {{token}}"
           }
         },
         "ports": null
@@ -50,7 +50,7 @@
         "data": {
           "type": "conditional",
           "condition_type": "advanced",
-          "advanced_expression": "http_response.status >= 200 && http_response.status < 300"
+          "advanced_expression": "status >= 200 && status < 300"
         },
         "ports": null
       },
@@ -64,12 +64,11 @@
         },
         "data": {
           "type": "http:request",
-          "url": "{{initial_variables.api_base}}/post",
+          "url": "{{api_base}}/post",
           "method": "post",
-          "body": {
-            "status": "success",
-            "original_data": "{{http_response.data}}"
-          }
+          "body": "{\"status\": \"success\", \"original_data\": \"{{token}}\"}",
+          "body_type": "body",
+          "content_type": "json"
         },
         "ports": null
       },
@@ -83,12 +82,11 @@
         },
         "data": {
           "type": "http:request",
-          "url": "{{initial_variables.api_base}}/post",
+          "url": "{{api_base}}/post",
           "method": "post",
-          "body": {
-            "status": "error",
-            "error_code": "{{http_response.status}}"
-          }
+          "body": "{\"status\": \"error\", \"error_code\": \"{{token}}\"}",
+          "body_type": "body",
+          "content_type": "json"
         },
         "ports": null
       }
@@ -98,29 +96,29 @@
         "id": "conn-001",
         "source_node_uuid": "entry-001",
         "target_node_uuid": "http-001",
-        "source_port_id": "output",
-        "target_port_id": "input"
+        "source_port_id": "out",
+        "target_port_id": "in"
       },
       {
         "id": "conn-002",
         "source_node_uuid": "http-001",
         "target_node_uuid": "conditional-001",
-        "source_port_id": "output",
-        "target_port_id": "input"
+        "source_port_id": "true",
+        "target_port_id": "in"
       },
       {
         "id": "conn-003",
         "source_node_uuid": "conditional-001",
         "target_node_uuid": "http-002",
         "source_port_id": "true",
-        "target_port_id": "input"
+        "target_port_id": "in"
       },
       {
         "id": "conn-004",
         "source_node_uuid": "conditional-001",
         "target_node_uuid": "http-003",
         "source_port_id": "false",
-        "target_port_id": "input"
+        "target_port_id": "in"
       }
     ]
   },

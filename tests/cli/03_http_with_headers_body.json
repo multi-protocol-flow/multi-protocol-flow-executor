@@ -34,18 +34,9 @@
             "Content-Type": "application/json",
             "X-Custom-Header": "custom-value"
           },
-          "body": {
-            "username": "testuser",
-            "email": "test@example.com",
-            "data": {
-              "nested": "value",
-              "array": [
-                1,
-                2,
-                3
-              ]
-            }
-          }
+          "body": "{\"username\": \"testuser\", \"email\": \"test@example.com\", \"data\": {\"nested\": \"value\", \"array\": [1, 2, 3]}}",
+          "body_type": "body",
+          "content_type": "json"
         },
         "ports": null
       }
@@ -55,8 +46,8 @@
         "id": "conn-001",
         "source_node_uuid": "entry-001",
         "target_node_uuid": "http-post-001",
-        "source_port_id": "output",
-        "target_port_id": "input"
+        "source_port_id": "out",
+        "target_port_id": "in"
       }
     ]
   },

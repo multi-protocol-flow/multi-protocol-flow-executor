@@ -44,9 +44,9 @@
           "type": "http:request",
           "url": "https://httpbin.org/post",
           "method": "post",
-          "body": {
-            "key": "value"
-          }
+          "body": "{\"key\": \"value\"}",
+          "body_type": "body",
+          "content_type": "json"
         },
         "ports": null
       },
@@ -62,9 +62,9 @@
           "type": "http:request",
           "url": "https://httpbin.org/put",
           "method": "put",
-          "body": {
-            "key": "updated"
-          }
+          "body": "{\"key\": \"updated\"}",
+          "body_type": "body",
+          "content_type": "json"
         },
         "ports": null
       },
@@ -95,48 +95,48 @@
           "type": "http:request",
           "url": "https://httpbin.org/patch",
           "method": "patch",
-          "body": {
-            "key": "patched"
-          }
+          "body": "{\"key\": \"patched\"}",
+          "body_type": "body",
+          "content_type": "json"
         },
         "ports": null
       }
     ],
     "connections": [
       {
-        "id": "conn-001",
+        "id": "conn-entry-001-http-get-001",
         "source_node_uuid": "entry-001",
         "target_node_uuid": "http-get-001",
-        "source_port_id": "output",
-        "target_port_id": "input"
+        "source_port_id": "out",
+        "target_port_id": "in"
       },
       {
-        "id": "conn-002",
-        "source_node_uuid": "entry-001",
+        "id": "conn-http-get-001-http-post-001",
+        "source_node_uuid": "http-get-001",
         "target_node_uuid": "http-post-001",
-        "source_port_id": "output",
-        "target_port_id": "input"
+        "source_port_id": "true",
+        "target_port_id": "in"
       },
       {
-        "id": "conn-003",
-        "source_node_uuid": "entry-001",
+        "id": "conn-http-post-001-http-put-001",
+        "source_node_uuid": "http-post-001",
         "target_node_uuid": "http-put-001",
-        "source_port_id": "output",
-        "target_port_id": "input"
+        "source_port_id": "true",
+        "target_port_id": "in"
       },
       {
-        "id": "conn-004",
-        "source_node_uuid": "entry-001",
+        "id": "conn-http-put-001-http-delete-001",
+        "source_node_uuid": "http-put-001",
         "target_node_uuid": "http-delete-001",
-        "source_port_id": "output",
-        "target_port_id": "input"
+        "source_port_id": "true",
+        "target_port_id": "in"
       },
       {
-        "id": "conn-005",
-        "source_node_uuid": "entry-001",
+        "id": "conn-http-delete-001-http-patch-001",
+        "source_node_uuid": "http-delete-001",
         "target_node_uuid": "http-patch-001",
-        "source_port_id": "output",
-        "target_port_id": "input"
+        "source_port_id": "true",
+        "target_port_id": "in"
       }
     ]
   },

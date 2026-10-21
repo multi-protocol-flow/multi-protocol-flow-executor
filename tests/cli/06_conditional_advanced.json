@@ -43,7 +43,7 @@
         "data": {
           "type": "conditional",
           "condition_type": "advanced",
-          "advanced_expression": "http_response.status >= 200 && http_response.status < 300"
+          "advanced_expression": "status >= 200 && status < 300"
         },
         "ports": null
       }
@@ -53,15 +53,15 @@
         "id": "conn-001",
         "source_node_uuid": "entry-001",
         "target_node_uuid": "http-001",
-        "source_port_id": "output",
-        "target_port_id": "input"
+        "source_port_id": "out",
+        "target_port_id": "in"
       },
       {
         "id": "conn-002",
         "source_node_uuid": "http-001",
         "target_node_uuid": "conditional-001",
-        "source_port_id": "output",
-        "target_port_id": "input"
+        "source_port_id": "true",
+        "target_port_id": "in"
       }
     ]
   },

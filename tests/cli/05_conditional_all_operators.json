@@ -18,6 +18,26 @@
         "ports": null
       },
       {
+        "uuid": "http-001",
+        "type": "http:request",
+        "name": "Fetch url",
+        "position": {
+          "x": 150,
+          "y": 0
+        },
+        "data": {
+          "type": "http:request",
+          "url": "https://httpbin.org/get",
+          "method": "get",
+          "headers": null,
+          "body_type": "none",
+          "content_type": "json",
+          "body": null
+        },
+        "ports": null,
+        "has_breakpoint": null
+      },
+      {
         "uuid": "conditional-equal",
         "type": "conditional",
         "name": "equal Operator",
@@ -28,9 +48,10 @@
         "data": {
           "type": "conditional",
           "condition_type": "simple",
-          "field_path": "http_response.status",
+          "field_path": "$.status",
           "operator": "equal",
-          "expected_value": 200
+          "expected_value": 200,
+          "source_node_id": "http-001"
         },
         "ports": null
       },
@@ -45,9 +66,10 @@
         "data": {
           "type": "conditional",
           "condition_type": "simple",
-          "field_path": "http_response.status",
+          "field_path": "$.status",
           "operator": "not_equal",
-          "expected_value": 404
+          "expected_value": 404,
+          "source_node_id": "http-001"
         },
         "ports": null
       },
@@ -62,9 +84,10 @@
         "data": {
           "type": "conditional",
           "condition_type": "simple",
-          "field_path": "http_response.status",
+          "field_path": "$.status",
           "operator": "greater",
-          "expected_value": 199
+          "expected_value": 199,
+          "source_node_id": "http-001"
         },
         "ports": null
       },
@@ -79,9 +102,10 @@
         "data": {
           "type": "conditional",
           "condition_type": "simple",
-          "field_path": "http_response.status",
+          "field_path": "$.status",
           "operator": "greater_or_equal",
-          "expected_value": 200
+          "expected_value": 200,
+          "source_node_id": "http-001"
         },
         "ports": null
       },
@@ -96,9 +120,10 @@
         "data": {
           "type": "conditional",
           "condition_type": "simple",
-          "field_path": "http_response.status",
+          "field_path": "$.status",
           "operator": "less",
-          "expected_value": 300
+          "expected_value": 300,
+          "source_node_id": "http-001"
         },
         "ports": null
       },
@@ -113,9 +138,10 @@
         "data": {
           "type": "conditional",
           "condition_type": "simple",
-          "field_path": "http_response.status",
+          "field_path": "$.status",
           "operator": "less_or_equal",
-          "expected_value": 299
+          "expected_value": 299,
+          "source_node_id": "http-001"
         },
         "ports": null
       },
@@ -130,9 +156,10 @@
         "data": {
           "type": "conditional",
           "condition_type": "simple",
-          "field_path": "http_response.data.message",
+          "field_path": "$.body.url",
           "operator": "contains",
-          "expected_value": "success"
+          "expected_value": "httpbin",
+          "source_node_id": "http-001"
         },
         "ports": null
       },
@@ -147,9 +174,10 @@
         "data": {
           "type": "conditional",
           "condition_type": "simple",
-          "field_path": "http_response.data.status",
+          "field_path": "$.body.url",
           "operator": "starts_with",
-          "expected_value": "ok"
+          "expected_value": "https",
+          "source_node_id": "http-001"
         },
         "ports": null
       },
@@ -164,9 +192,10 @@
         "data": {
           "type": "conditional",
           "condition_type": "simple",
-          "field_path": "http_response.data.filename",
+          "field_path": "$.body.url",
           "operator": "ends_with",
-          "expected_value": ".json"
+          "expected_value": "get",
+          "source_node_id": "http-001"
         },
         "ports": null
       },
@@ -181,83 +210,91 @@
         "data": {
           "type": "conditional",
           "condition_type": "simple",
-          "field_path": "http_response.data.id",
+          "field_path": "$.body.url",
           "operator": "exists",
-          "expected_value": null
+          "expected_value": null,
+          "source_node_id": "http-001"
         },
         "ports": null
       }
     ],
     "connections": [
       {
-        "id": "conn-001",
+        "id": "c-entry",
         "source_node_uuid": "entry-001",
+        "target_node_uuid": "http-001",
+        "source_port_id": "out",
+        "target_port_id": "in"
+      },
+      {
+        "id": "c-http",
+        "source_node_uuid": "http-001",
         "target_node_uuid": "conditional-equal",
-        "source_port_id": "output",
-        "target_port_id": "input"
+        "source_port_id": "true",
+        "target_port_id": "in"
       },
       {
-        "id": "conn-002",
-        "source_node_uuid": "entry-001",
+        "id": "c-conditional-equal",
+        "source_node_uuid": "conditional-equal",
         "target_node_uuid": "conditional-not-equal",
-        "source_port_id": "output",
-        "target_port_id": "input"
+        "source_port_id": "true",
+        "target_port_id": "in"
       },
       {
-        "id": "conn-003",
-        "source_node_uuid": "entry-001",
+        "id": "c-conditional-not-equal",
+        "source_node_uuid": "conditional-not-equal",
         "target_node_uuid": "conditional-greater",
-        "source_port_id": "output",
-        "target_port_id": "input"
+        "source_port_id": "true",
+        "target_port_id": "in"
       },
       {
-        "id": "conn-004",
-        "source_node_uuid": "entry-001",
+        "id": "c-conditional-greater",
+        "source_node_uuid": "conditional-greater",
         "target_node_uuid": "conditional-greater-or-equal",
-        "source_port_id": "output",
-        "target_port_id": "input"
+        "source_port_id": "true",
+        "target_port_id": "in"
       },
       {
-        "id": "conn-005",
-        "source_node_uuid": "entry-001",
+        "id": "c-conditional-greater-or-equal",
+        "source_node_uuid": "conditional-greater-or-equal",
         "target_node_uuid": "conditional-less",
-        "source_port_id": "output",
-        "target_port_id": "input"
+        "source_port_id": "true",
+        "target_port_id": "in"
       },
       {
-        "id": "conn-006",
-        "source_node_uuid": "entry-001",
+        "id": "c-conditional-less",
+        "source_node_uuid": "conditional-less",
         "target_node_uuid": "conditional-less-or-equal",
-        "source_port_id": "output",
-        "target_port_id": "input"
+        "source_port_id": "true",
+        "target_port_id": "in"
       },
       {
-        "id": "conn-007",
-        "source_node_uuid": "entry-001",
+        "id": "c-conditional-less-or-equal",
+        "source_node_uuid": "conditional-less-or-equal",
         "target_node_uuid": "conditional-contains",
-        "source_port_id": "output",
-        "target_port_id": "input"
+        "source_port_id": "true",
+        "target_port_id": "in"
       },
       {
-        "id": "conn-008",
-        "source_node_uuid": "entry-001",
+        "id": "c-conditional-contains",
+        "source_node_uuid": "conditional-contains",
         "target_node_uuid": "conditional-starts-with",
-        "source_port_id": "output",
-        "target_port_id": "input"
+        "source_port_id": "true",
+        "target_port_id": "in"
       },
       {
-        "id": "conn-009",
-        "source_node_uuid": "entry-001",
+        "id": "c-conditional-starts-with",
+        "source_node_uuid": "conditional-starts-with",
         "target_node_uuid": "conditional-ends-with",
-        "source_port_id": "output",
-        "target_port_id": "input"
+        "source_port_id": "true",
+        "target_port_id": "in"
       },
       {
-        "id": "conn-010",
-        "source_node_uuid": "entry-001",
+        "id": "c-conditional-ends-with",
+        "source_node_uuid": "conditional-ends-with",
         "target_node_uuid": "conditional-exists",
-        "source_port_id": "output",
-        "target_port_id": "input"
+        "source_port_id": "true",
+        "target_port_id": "in"
       }
     ]
   },

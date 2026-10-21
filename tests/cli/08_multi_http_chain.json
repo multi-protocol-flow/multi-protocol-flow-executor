@@ -30,10 +30,32 @@
         },
         "data": {
           "type": "http:request",
-          "url": "{{initial_variables.api_base}}/uuid",
+          "url": "{{api_base}}/uuid",
           "method": "get"
         },
         "ports": null
+      },
+      {
+        "uuid": "extract-uuid",
+        "type": "variable:extractor",
+        "name": "Extract UUID",
+        "position": {
+          "x": 400,
+          "y": 0
+        },
+        "data": {
+          "type": "variable:extractor",
+          "output_mappings": [
+            {
+              "source": "$.body.uuid",
+              "target": "uuid_from_step1",
+              "description": "UUID returned by /uuid"
+            }
+          ],
+          "source_node_id": "http-001"
+        },
+        "ports": null,
+        "has_breakpoint": null
       },
       {
         "uuid": "http-002",
@@ -45,11 +67,11 @@
         },
         "data": {
           "type": "http:request",
-          "url": "{{initial_variables.api_base}}/post",
+          "url": "{{api_base}}/post",
           "method": "post",
-          "body": {
-            "uuid_from_step1": "{{http_response.data.uuid}}"
-          }
+          "body": "{\"uuid_from_step1\": \"{{uuid_from_step1}}\"}",
+          "body_type": "body",
+          "content_type": "json"
         },
         "ports": null
       },
@@ -63,7 +85,7 @@
         },
         "data": {
           "type": "http:request",
-          "url": "{{initial_variables.api_base}}/get",
+          "url": "{{api_base}}/get",
           "method": "get"
         },
         "ports": null
@@ -71,25 +93,32 @@
     ],
     "connections": [
       {
-        "id": "conn-001",
+        "id": "c1",
         "source_node_uuid": "entry-001",
         "target_node_uuid": "http-001",
-        "source_port_id": "output",
-        "target_port_id": "input"
+        "source_port_id": "out",
+        "target_port_id": "in"
       },
       {
-        "id": "conn-002",
+        "id": "c2",
         "source_node_uuid": "http-001",
-        "target_node_uuid": "http-002",
-        "source_port_id": "output",
-        "target_port_id": "input"
+        "target_node_uuid": "extract-uuid",
+        "source_port_id": "true",
+        "target_port_id": "in"
       },
       {
-        "id": "conn-003",
+        "id": "c3",
+        "source_node_uuid": "extract-uuid",
+        "target_node_uuid": "http-002",
+        "source_port_id": "out",
+        "target_port_id": "in"
+      },
+      {
+        "id": "c4",
         "source_node_uuid": "http-002",
         "target_node_uuid": "http-003",
-        "source_port_id": "output",
-        "target_port_id": "input"
+        "source_port_id": "true",
+        "target_port_id": "in"
       }
     ]
   },
