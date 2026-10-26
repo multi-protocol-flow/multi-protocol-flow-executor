@@ -2,7 +2,7 @@
  * AI Provider 设置卡片 - 响应式优化版
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Sparkles,
   Plus,
@@ -78,6 +78,14 @@ export function AIProviderSettingsCard({ className }: { className?: string } = {
   const [isCreating, setIsCreating] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
   const [showSystemPrompt, setShowSystemPrompt] = useState(false);
+  const [iterationsInput, setIterationsInput] = useState<string>(
+    String(settings.aiMaxIterations ?? 20)
+  );
+
+  useEffect(() => {
+    setIterationsInput(String(settings.aiMaxIterations ?? 20));
+  }, [settings.aiMaxIterations]);
+
 
   // 测试连接状态
   const [testingId, setTestingId] = useState<string | null>(null);
@@ -654,6 +662,79 @@ export function AIProviderSettingsCard({ className }: { className?: string } = {
         <p className="text-[11px] text-muted-foreground leading-relaxed">
           {ll.ai.settings.trust_mode_desc()}
         </p>
+      </div>
+      {/* 单次最大执行轮次设置 */}
+      <div className="rounded-lg border border-border/60 bg-muted/10 p-3 text-xs space-y-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <RefreshCw className="h-4 w-4 text-primary shrink-0" />
+            <span className="font-medium text-foreground">
+              {ll.ai.settings.max_iterations_label()}
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Input
+              type="number"
+              min={5}
+              max={100}
+              step={1}
+              value={iterationsInput}
+              onChange={(e) => {
+                const text = e.target.value;
+                setIterationsInput(text);
+                if (text !== '') {
+                  const val = parseInt(text, 10);
+                  if (!Number.isNaN(val) && val >= 5 && val <= 100) {
+                    settings.setAiMaxIterations(val);
+                  }
+                }
+              }}
+              onBlur={() => {
+                const val = parseInt(iterationsInput, 10);
+                if (iterationsInput === '' || Number.isNaN(val) || val < 5) {
+                  const fallback = 20;
+                  setIterationsInput(String(fallback));
+                  settings.setAiMaxIterations(fallback);
+                } else if (val > 100) {
+                  const clamped = 100;
+                  setIterationsInput(String(clamped));
+                  settings.setAiMaxIterations(clamped);
+                } else {
+                  settings.setAiMaxIterations(val);
+                }
+              }}
+              className="h-8 w-24 text-xs font-mono text-left px-2.5 py-0"
+              aria-label={ll.ai.settings.max_iterations_label()}
+            />
+            <span className="text-[11px] text-muted-foreground shrink-0">
+              {ll.ai.settings.max_iterations_unit()}
+            </span>
+          </div>
+        </div>
+        <p className="text-[11px] text-muted-foreground leading-relaxed">
+          {ll.ai.settings.max_iterations_desc()}
+        </p>
+        {/* 快捷预设标签（参考 Engine & Performance） */}
+        <div className="flex items-center gap-1.5 pt-0.5">
+          {[10, 20, 30, 50].map((num) => {
+            const isSelected = (settings.aiMaxIterations ?? 20) === num;
+            return (
+              <Button
+                key={num}
+                type="button"
+                variant={isSelected ? 'secondary' : 'outline'}
+                size="sm"
+                className={cn(
+                  'h-6 px-2 text-[10.5px] cursor-pointer',
+                  isSelected && 'font-semibold border-primary/50 bg-primary/10 text-primary'
+                )}
+                onClick={() => settings.setAiMaxIterations(num)}
+              >
+                {num === 20 ? `${num} (${ll.settings.preset_recommended()})` : num}
+              </Button>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

@@ -264,4 +264,39 @@ describe('AIProviderSettingsCard i18n & styling', () => {
       global.fetch = origFetch;
     }
   });
+  it('9. 渲染单次最大执行轮次配置并支持修改与点击快捷预设', async () => {
+    const ll = getLL();
+    useSettingsStore.setState({ aiMaxIterations: 20 });
+    render(<AIProviderSettingsCard />);
+
+    const label = ll.ai.settings.max_iterations_label();
+    expect(screen.getByText(label)).toBeInTheDocument();
+
+    const input = screen.getByLabelText(label) as HTMLInputElement;
+    expect(input).toBeInTheDocument();
+    expect(input.value).toBe('20');
+
+    // 修改数值为 30
+    fireEvent.change(input, { target: { value: '30' } });
+    await waitFor(() => {
+      expect(useSettingsStore.getState().aiMaxIterations).toBe(30);
+    });
+
+    // 验证中间态打字不会被强行锁死，失焦时非法或过小值自动兜底
+    fireEvent.change(input, { target: { value: '' } });
+    expect(input.value).toBe('');
+    fireEvent.blur(input);
+    await waitFor(() => {
+      expect(useSettingsStore.getState().aiMaxIterations).toBe(20);
+      expect(input.value).toBe('20');
+    });
+
+    // 点击预设按钮 50
+    const preset50Btn = screen.getByRole('button', { name: '50' });
+    fireEvent.click(preset50Btn);
+    await waitFor(() => {
+      expect(useSettingsStore.getState().aiMaxIterations).toBe(50);
+      expect(input.value).toBe('50');
+    });
+  });
 });
