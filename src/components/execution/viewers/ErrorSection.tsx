@@ -49,11 +49,11 @@ export function ErrorSection({ error, nodeName, nodeType }: ErrorSectionProps) {
     : error.message;
 
   const fullErrorReport = [
-    `【${nodeName || '未知节点'}】(${nodeType || 'node'}) 执行失败`,
-    `错误类型: ${error.error_kind}`,
-    error.error_code ? `错误代码: ${error.error_code}` : null,
-    `错误详情: ${resolvedMsg}`,
-    error.stack_trace ? `\n堆栈跟踪:\n${error.stack_trace}` : null,
+    ll.viewer.error_report_title({ name: nodeName || 'node', type: nodeType || 'node' }),
+    ll.viewer.error_report_kind({ kind: error.error_kind }),
+    error.error_code ? ll.viewer.error_report_code({ code: error.error_code }) : null,
+    ll.viewer.error_report_detail({ detail: resolvedMsg }),
+    error.stack_trace ? ll.viewer.error_report_stack({ stack: error.stack_trace }) : null,
   ]
     .filter(Boolean)
     .join('\n');

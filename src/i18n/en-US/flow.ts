@@ -679,6 +679,9 @@ const en_US_flow = {
   export_html: 'Export HTML Report',
   export_html_success: 'HTML report exported successfully',
   export_html_failed: 'Failed to export HTML report',
+  unsaved_other_tabs_confirm_desc: '{names} have unsaved changes. Discard and close other tabs?',
+  unsaved_right_tabs_confirm_desc: '{names} have unsaved changes. Discard and close tabs to the right?',
+  unsaved_all_tabs_confirm_desc: '{names} have unsaved changes. Discard and close all tabs?',
 };
 
 export default en_US_flow;

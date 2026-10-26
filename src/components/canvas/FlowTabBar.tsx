@@ -300,7 +300,7 @@ export const FlowTabBar = memo(function FlowTabBar() {
       closeTab(unsavedTabTarget.uuid);
       setUnsavedTabTarget(null);
     } catch (err) {
-      console.error('[FlowTabBar] 保存失败:', err);
+      console.error('[FlowTabBar] Failed to save flow:', err);
       toast.error(getLL().flow.save_flow_failed());
     } finally {
       setIsSaving(false);
@@ -330,7 +330,7 @@ export const FlowTabBar = memo(function FlowTabBar() {
         showConfirm({
           title: LL.flow.unsaved_tab_confirm_title(),
           description: () =>
-            `${dirtyOthers.map((d) => `「${d.name}」`).join('、')} 有未保存的修改。确定放弃并关闭其他标签吗？`,
+            LL.flow.unsaved_other_tabs_confirm_desc({ names: dirtyOthers.map((d) => `"${d.name}"`).join(', ') }),
           confirmText: LL.flow.discard_and_close(),
           onConfirm: () => closeOtherTabs(targetTab.uuid),
         });
@@ -359,7 +359,7 @@ export const FlowTabBar = memo(function FlowTabBar() {
         showConfirm({
           title: LL.flow.unsaved_tab_confirm_title(),
           description: () =>
-            `${dirtyRight.map((d) => `「${d.name}」`).join('、')} 有未保存的修改。确定放弃并关闭右侧标签吗？`,
+            LL.flow.unsaved_right_tabs_confirm_desc({ names: dirtyRight.map((d) => `"${d.name}"`).join(', ') }),
           confirmText: LL.flow.discard_and_close(),
           onConfirm: () => closeTabsToRight(targetTab.uuid),
         });
@@ -383,7 +383,7 @@ export const FlowTabBar = memo(function FlowTabBar() {
       showConfirm({
         title: LL.flow.unsaved_tab_confirm_title(),
         description: () =>
-          `${dirtyTabs.map((d) => `「${d.name}」`).join('、')} 有未保存的修改。确定放弃并关闭所有标签吗？`,
+          LL.flow.unsaved_all_tabs_confirm_desc({ names: dirtyTabs.map((d) => `"${d.name}"`).join(', ') }),
         confirmText: LL.flow.discard_and_close(),
         onConfirm: () => closeAllTabs(),
       });
@@ -429,7 +429,7 @@ export const FlowTabBar = memo(function FlowTabBar() {
         toast.error(getLL().flow.copy_file_path_failed());
       }
     } catch (err) {
-      console.error('[FlowTabBar] 复制流程文件路径失败:', err);
+      console.error('[FlowTabBar] Failed to copy flow file path:', err);
       toast.error(getLL().flow.copy_file_path_failed());
     }
   }, []);
@@ -454,7 +454,7 @@ export const FlowTabBar = memo(function FlowTabBar() {
       }
       await revealItemInDir(targetPath);
     } catch (err) {
-      console.error('[FlowTabBar] 在文件管理器中显示失败:', err);
+      console.error('[FlowTabBar] Failed to reveal in file manager:', err);
       toast.error(getLL().flow.reveal_in_file_manager_failed());
     }
   }, []);

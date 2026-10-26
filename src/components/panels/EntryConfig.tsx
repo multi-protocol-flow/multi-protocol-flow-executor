@@ -381,7 +381,7 @@ function DatasetAssociationSection({ datasetPath, datasetEncoding, onConfigChang
           {!isLoading && fileExists && csvInfo && (
             <div className="rounded-md border bg-muted/20 p-3 space-y-2">
               <p className="text-xs text-muted-foreground">
-                {csvInfo.row_count} 行 × {csvInfo.column_names.length} 列
+                {getLL().execution.csv_row_col_summary({ rows: csvInfo.row_count, cols: csvInfo.column_names.length })}
                 {csvInfo.detected_encoding && (
                   <span className="ml-2 text-muted-foreground/60">
                     {getLL().panels.entryNode.detectedEncoding()} {csvInfo.detected_encoding}

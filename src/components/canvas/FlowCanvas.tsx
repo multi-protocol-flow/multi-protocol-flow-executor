@@ -255,7 +255,7 @@ function ImportFlowCard({ wc, onImport }: { wc: ReturnType<typeof getLL>['welcom
           onImport(flowData as unknown as import('@/types/flow').Flow);
         }
       } catch (err) {
-        console.error('[ImportFlow] 解析流程文件失败:', err);
+        console.error('[ImportFlow] Failed to parse flow file:', err);
       }
     };
     reader.readAsText(file);
@@ -393,7 +393,7 @@ function FlowCanvasInner() {
 
     const timeoutId = setTimeout(() => {
       flowStorage.saveFlow(flow).then(() => markSaved()).catch((err) => {
-        console.error('[FlowCanvas] 自动保存失败:', err);
+        console.error('[FlowCanvas] Auto-save failed:', err);
       });
     }, 500); // 500ms 防抖
 

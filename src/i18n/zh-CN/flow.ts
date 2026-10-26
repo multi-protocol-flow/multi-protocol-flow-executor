@@ -679,6 +679,9 @@ const zh_CN_flow: BaseTranslation = {
   export_html: '导出 HTML 报告',
   export_html_success: 'HTML 报告已导出',
   export_html_failed: '导出 HTML 报告失败',
+  unsaved_other_tabs_confirm_desc: '{names:string} 有未保存的修改。确定放弃并关闭其他标签吗？',
+  unsaved_right_tabs_confirm_desc: '{names:string} 有未保存的修改。确定放弃并关闭右侧标签吗？',
+  unsaved_all_tabs_confirm_desc: '{names:string} 有未保存的修改。确定放弃并关闭所有标签吗？',
 };
 
 export default zh_CN_flow;

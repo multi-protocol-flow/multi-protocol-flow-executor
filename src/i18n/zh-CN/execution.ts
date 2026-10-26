@@ -687,6 +687,16 @@ const zh_CN_execution: BaseTranslation = {
     tool_name_label: '工具名称',
     tool_args_label: '参数预览',
   },
+  drag_resize_hint: '拖动调整宽度，双击恢复默认',
+  search_variables: '搜索变量...',
+  no_matched_variables: '未找到匹配变量',
+  no_variables: '暂无变量',
+  def_nodes: '定义节点',
+  usage_nodes: '使用节点',
+  no_info: '未找到该变量的定义或使用信息',
+  select_hint: '选择一个变量查看其依赖关系',
+  defs_usages: '定义: {defs:number} · 使用: {usages:number}',
+  csv_row_col_summary: '{rows:number} 行 × {cols:number} 列',
 };
 
 export default zh_CN_execution;

@@ -77,7 +77,7 @@ export const pluginToolHandlers = {
     const url =
       args.marketplace_url ||
       settingsStore.pluginRegistryUrl ||
-      'https://plugins.mpe.dev';
+      'https://multi-protocol-flow.github.io/mpe-plugin-registry';
 
     await pluginsStore.installMarketplacePlugin(
       url,

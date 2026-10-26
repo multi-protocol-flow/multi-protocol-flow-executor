@@ -598,6 +598,12 @@ const viewer: Translation['viewer'] = {
       collapse_all: 'Collapse All',
       copy_value: 'Copy Value',
       copied: 'Copied',
-  },};
+  },
+  error_report_title: '[{name}] ({type}) Execution Failed',
+  error_report_kind: 'Error Kind: {kind}',
+  error_report_code: 'Error Code: {code}',
+  error_report_detail: 'Error Detail: {detail}',
+  error_report_stack: '\nStack Trace:\n{stack}',
+};
 
 export default viewer;

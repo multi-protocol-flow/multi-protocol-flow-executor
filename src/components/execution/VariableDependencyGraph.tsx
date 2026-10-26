@@ -3,6 +3,7 @@
  * 显示"哪些节点使用了某变量"和"某节点使用了哪些变量"
  */
 import { useMemo, useState } from 'react';
+import { getLL } from '@/i18n/i18n-lazy';
 import { Search, Variable, ArrowRight, ArrowLeft } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -129,6 +130,7 @@ interface VariableDependencyGraphProps {
 }
 
 export function VariableDependencyGraph({ flow }: VariableDependencyGraphProps) {
+  const ll = getLL();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedVar, setSelectedVar] = useState<string | null>(null);
 
@@ -180,7 +182,7 @@ export function VariableDependencyGraph({ flow }: VariableDependencyGraphProps) 
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
           <Input
             type="text"
-            placeholder="搜索变量..."
+            placeholder={ll.execution.search_variables()}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-8 h-8 text-xs"
@@ -213,7 +215,7 @@ export function VariableDependencyGraph({ flow }: VariableDependencyGraphProps) 
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-mono text-foreground truncate">{path}</p>
                         <p className="text-[10px] text-muted-foreground">
-                          定义: {stats.defs} · 使用: {stats.usages}
+                          {ll.execution.defs_usages({ defs: stats.defs, usages: stats.usages })}
                         </p>
                       </div>
                     </button>
@@ -222,7 +224,7 @@ export function VariableDependencyGraph({ flow }: VariableDependencyGraphProps) 
               </div>
             ) : (
               <div className="py-8 text-center text-xs text-muted-foreground">
-                {searchQuery ? '未找到匹配变量' : '暂无变量'}
+                {searchQuery ? ll.execution.no_matched_variables() : ll.execution.no_variables()}
               </div>
             )}
           </ScrollArea>
@@ -244,7 +246,7 @@ export function VariableDependencyGraph({ flow }: VariableDependencyGraphProps) 
                 <div>
                   <h4 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 flex items-center gap-1">
                     <ArrowRight className="w-3 h-3 text-green-500" />
-                    定义节点
+                    {ll.execution.def_nodes()}
                   </h4>
                   <div className="space-y-1">
                     {selectedDefs.map((def, i) => (
@@ -262,7 +264,7 @@ export function VariableDependencyGraph({ flow }: VariableDependencyGraphProps) 
                 <div>
                   <h4 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 flex items-center gap-1">
                     <ArrowLeft className="w-3 h-3 text-amber-500" />
-                    使用节点
+                    {ll.execution.usage_nodes()}
                   </h4>
                   <div className="space-y-1">
                     {selectedUsages.map((usage, i) => (
@@ -277,13 +279,13 @@ export function VariableDependencyGraph({ flow }: VariableDependencyGraphProps) 
 
               {selectedDefs.length === 0 && selectedUsages.length === 0 && (
                 <p className="text-xs text-muted-foreground py-4 text-center">
-                  未找到该变量的定义或使用信息
+                  {ll.execution.no_info()}
                 </p>
               )}
             </div>
           ) : (
             <div className="py-8 text-center text-xs text-muted-foreground">
-              选择一个变量查看其依赖关系
+              {ll.execution.select_hint()}
             </div>
           )}
         </div>

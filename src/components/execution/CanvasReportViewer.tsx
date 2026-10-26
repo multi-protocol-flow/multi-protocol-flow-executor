@@ -482,7 +482,7 @@ function CanvasReportViewerInner({
       <div
         onMouseDown={handleMouseDown}
         onDoubleClick={() => setPanelWidth(500)}
-        title="拖动调整宽度，双击恢复默认"
+        title={getLL().execution.drag_resize_hint()}
         className="w-3 flex items-center justify-center flex-shrink-0 relative group cursor-col-resize z-10"
       >
         <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-px bg-border group-hover:bg-blue-400 group-active:bg-blue-500 transition-colors" />

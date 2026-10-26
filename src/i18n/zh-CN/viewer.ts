@@ -598,6 +598,12 @@ const viewer: BaseTranslation = {
       collapse_all: '收起全部',
       copy_value: '复制值',
       copied: '已复制',
-  },};
+  },
+  error_report_title: '【{name:string}】({type:string}) 执行失败',
+  error_report_kind: '错误类型: {kind:string}',
+  error_report_code: '错误代码: {code:string}',
+  error_report_detail: '错误详情: {detail:string}',
+  error_report_stack: '\n堆栈跟踪:\n{stack:string}',
+};
 
 export default viewer;

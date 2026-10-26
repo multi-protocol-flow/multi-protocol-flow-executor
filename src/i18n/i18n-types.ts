@@ -7610,6 +7610,50 @@ type RootTranslation = {
 			 */
 			tool_args_label: string
 		}
+		/**
+		 * 拖​动​调​整​宽​度​，​双​击​恢​复​默​认
+		 */
+		drag_resize_hint: string
+		/**
+		 * 搜​索​变​量​.​.​.
+		 */
+		search_variables: string
+		/**
+		 * 未​找​到​匹​配​变​量
+		 */
+		no_matched_variables: string
+		/**
+		 * 暂​无​变​量
+		 */
+		no_variables: string
+		/**
+		 * 定​义​节​点
+		 */
+		def_nodes: string
+		/**
+		 * 使​用​节​点
+		 */
+		usage_nodes: string
+		/**
+		 * 未​找​到​该​变​量​的​定​义​或​使​用​信​息
+		 */
+		no_info: string
+		/**
+		 * 选​择​一​个​变​量​查​看​其​依​赖​关​系
+		 */
+		select_hint: string
+		/**
+		 * 定​义​:​ ​{​d​e​f​s​}​ ​·​ ​使​用​:​ ​{​u​s​a​g​e​s​}
+		 * @param {number} defs
+		 * @param {number} usages
+		 */
+		defs_usages: RequiredParams<'defs' | 'usages'>
+		/**
+		 * {​r​o​w​s​}​ ​行​ ​×​ ​{​c​o​l​s​}​ ​列
+		 * @param {number} cols
+		 * @param {number} rows
+		 */
+		csv_row_col_summary: RequiredParams<'cols' | 'rows'>
 	}
 	settings: {
 		/**
@@ -11061,6 +11105,21 @@ type RootTranslation = {
 		 * 导​出​ ​H​T​M​L​ ​报​告​失​败
 		 */
 		export_html_failed: string
+		/**
+		 * {​n​a​m​e​s​}​ ​有​未​保​存​的​修​改​。​确​定​放​弃​并​关​闭​其​他​标​签​吗​？
+		 * @param {string} names
+		 */
+		unsaved_other_tabs_confirm_desc: RequiredParams<'names'>
+		/**
+		 * {​n​a​m​e​s​}​ ​有​未​保​存​的​修​改​。​确​定​放​弃​并​关​闭​右​侧​标​签​吗​？
+		 * @param {string} names
+		 */
+		unsaved_right_tabs_confirm_desc: RequiredParams<'names'>
+		/**
+		 * {​n​a​m​e​s​}​ ​有​未​保​存​的​修​改​。​确​定​放​弃​并​关​闭​所​有​标​签​吗​？
+		 * @param {string} names
+		 */
+		unsaved_all_tabs_confirm_desc: RequiredParams<'names'>
 	}
 	validation: {
 		/**
@@ -13991,6 +14050,34 @@ type RootTranslation = {
 			 */
 			copied: string
 		}
+		/**
+		 * 【​{​n​a​m​e​}​】​(​{​t​y​p​e​}​)​ ​执​行​失​败
+		 * @param {string} name
+		 * @param {string} type
+		 */
+		error_report_title: RequiredParams<'name' | 'type'>
+		/**
+		 * 错​误​类​型​:​ ​{​k​i​n​d​}
+		 * @param {string} kind
+		 */
+		error_report_kind: RequiredParams<'kind'>
+		/**
+		 * 错​误​代​码​:​ ​{​c​o​d​e​}
+		 * @param {string} code
+		 */
+		error_report_code: RequiredParams<'code'>
+		/**
+		 * 错​误​详​情​:​ ​{​d​e​t​a​i​l​}
+		 * @param {string} detail
+		 */
+		error_report_detail: RequiredParams<'detail'>
+		/**
+		 * 
+	​堆​栈​跟​踪​:​
+	​{​s​t​a​c​k​}
+		 * @param {string} stack
+		 */
+		error_report_stack: RequiredParams<'stack'>
 	}
 	errors: {
 		/**
@@ -22816,6 +22903,46 @@ export type TranslationFunctions = {
 			 */
 			tool_args_label: () => LocalizedString
 		}
+		/**
+		 * 拖动调整宽度，双击恢复默认
+		 */
+		drag_resize_hint: () => LocalizedString
+		/**
+		 * 搜索变量...
+		 */
+		search_variables: () => LocalizedString
+		/**
+		 * 未找到匹配变量
+		 */
+		no_matched_variables: () => LocalizedString
+		/**
+		 * 暂无变量
+		 */
+		no_variables: () => LocalizedString
+		/**
+		 * 定义节点
+		 */
+		def_nodes: () => LocalizedString
+		/**
+		 * 使用节点
+		 */
+		usage_nodes: () => LocalizedString
+		/**
+		 * 未找到该变量的定义或使用信息
+		 */
+		no_info: () => LocalizedString
+		/**
+		 * 选择一个变量查看其依赖关系
+		 */
+		select_hint: () => LocalizedString
+		/**
+		 * 定义: {defs} · 使用: {usages}
+		 */
+		defs_usages: (arg: { defs: number, usages: number }) => LocalizedString
+		/**
+		 * {rows} 行 × {cols} 列
+		 */
+		csv_row_col_summary: (arg: { cols: number, rows: number }) => LocalizedString
 	}
 	settings: {
 		/**
@@ -26209,6 +26336,18 @@ export type TranslationFunctions = {
 		 * 导出 HTML 报告失败
 		 */
 		export_html_failed: () => LocalizedString
+		/**
+		 * {names} 有未保存的修改。确定放弃并关闭其他标签吗？
+		 */
+		unsaved_other_tabs_confirm_desc: (arg: { names: string }) => LocalizedString
+		/**
+		 * {names} 有未保存的修改。确定放弃并关闭右侧标签吗？
+		 */
+		unsaved_right_tabs_confirm_desc: (arg: { names: string }) => LocalizedString
+		/**
+		 * {names} 有未保存的修改。确定放弃并关闭所有标签吗？
+		 */
+		unsaved_all_tabs_confirm_desc: (arg: { names: string }) => LocalizedString
 	}
 	validation: {
 		/**
@@ -29089,6 +29228,28 @@ export type TranslationFunctions = {
 			 */
 			copied: () => LocalizedString
 		}
+		/**
+		 * 【{name}】({type}) 执行失败
+		 */
+		error_report_title: (arg: { name: string, type: string }) => LocalizedString
+		/**
+		 * 错误类型: {kind}
+		 */
+		error_report_kind: (arg: { kind: string }) => LocalizedString
+		/**
+		 * 错误代码: {code}
+		 */
+		error_report_code: (arg: { code: string }) => LocalizedString
+		/**
+		 * 错误详情: {detail}
+		 */
+		error_report_detail: (arg: { detail: string }) => LocalizedString
+		/**
+		 * 
+	堆栈跟踪:
+	{stack}
+		 */
+		error_report_stack: (arg: { stack: string }) => LocalizedString
 	}
 	errors: {
 		/**

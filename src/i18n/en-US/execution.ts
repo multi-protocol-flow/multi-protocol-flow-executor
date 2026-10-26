@@ -686,6 +686,16 @@ const en_US_execution = {
     tool_name_label: 'Tool Name',
     tool_args_label: 'Arguments',
   },
+  drag_resize_hint: 'Drag to resize, double click to reset',
+  search_variables: 'Search variables...',
+  no_matched_variables: 'No matching variables',
+  no_variables: 'No variables',
+  def_nodes: 'Definition Nodes',
+  usage_nodes: 'Usage Nodes',
+  no_info: 'No definition or usage information found for this variable',
+  select_hint: 'Select a variable to view its dependencies',
+  defs_usages: 'Defs: {defs} · Usages: {usages}',
+  csv_row_col_summary: '{rows} rows × {cols} cols',
 };
 
 export default en_US_execution;
