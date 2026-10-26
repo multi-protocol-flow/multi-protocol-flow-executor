@@ -44,6 +44,43 @@ fn find_flow_files(dir: &Path) -> Vec<PathBuf> {
     files.sort();
     files
 }
+#[cfg(unix)]
+async fn wait_for_shutdown_signal(mut cancel_rx: tokio::sync::watch::Receiver<bool>) {
+    use tokio::signal::unix::{signal, SignalKind};
+    let mut sigterm = signal(SignalKind::terminate()).expect("Failed to register SIGTERM handler");
+    tokio::select! {
+        res = tokio::signal::ctrl_c() => {
+            if let Err(e) = res {
+                log::warn!("[Serve] Failed to listen for Ctrl+C: {e}");
+            } else {
+                log::info!("[Serve] Received SIGINT (Ctrl+C)");
+            }
+        }
+        _ = sigterm.recv() => {
+            log::info!("[Serve] Received SIGTERM signal");
+        }
+        _ = cancel_rx.changed() => {
+            log::info!("[Serve] Received cancellation signal");
+        }
+    }
+}
+
+#[cfg(not(unix))]
+async fn wait_for_shutdown_signal(mut cancel_rx: tokio::sync::watch::Receiver<bool>) {
+    tokio::select! {
+        res = tokio::signal::ctrl_c() => {
+            if let Err(e) = res {
+                log::warn!("[Serve] Failed to listen for Ctrl+C: {e}");
+            } else {
+                log::info!("[Serve] Received Ctrl+C");
+            }
+        }
+        _ = cancel_rx.changed() => {
+            log::info!("[Serve] Received cancellation signal");
+        }
+    }
+}
+
 
 /// Execute long-running serve runtime
 pub async fn execute(
@@ -54,7 +91,7 @@ pub async fn execute(
     vars: &[String],
     graceful_timeout: u64,
     registry: Arc<NodeRegistry>,
-    mut cancel_rx: tokio::sync::watch::Receiver<bool>,
+    cancel_rx: tokio::sync::watch::Receiver<bool>,
 ) -> Result<(), CliError> {
     let path = PathBuf::from(flow_path);
     if !path.exists() {
@@ -243,29 +280,17 @@ pub async fn execute(
         println!("\nPress Ctrl+C to stop.");
     }
 
-    // 5. 监听退出信号
-    tokio::select! {
-        res = tokio::signal::ctrl_c() => {
-            if let Err(e) = res {
-                log::warn!("[Serve] Failed to listen for Ctrl+C signal: {}", e);
-            } else {
-                log::info!("[Serve] Received Ctrl+C shutdown signal");
-            }
-        }
-        _ = cancel_rx.changed() => {
-            log::info!("[Serve] Received cancel notification");
-        }
-    }
+    // 5. 监听退出信号 (SIGINT / SIGTERM / cancel)
+    wait_for_shutdown_signal(cancel_rx).await;
 
     // 6. 优雅停机与 Teardown
-    log::info!("[Serve] Stopping ingress listeners...");
-    ingress_manager.stop_all().await;
-
     log::info!(
-        "[Serve] Waiting up to {}s for in-flight requests...",
+        "[Serve] Gracefully stopping ingress listeners (timeout: {}s)...",
         graceful_timeout
     );
-    tokio::time::sleep(Duration::from_millis(50)).await;
+    ingress_manager
+        .stop_all_graceful(Duration::from_secs(graceful_timeout))
+        .await;
 
     // 执行各流程的 Teardown 子图
     for flow in &loaded_flows {

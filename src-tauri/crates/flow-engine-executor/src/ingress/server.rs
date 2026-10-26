@@ -421,9 +421,18 @@ pub struct IngressServerHandle {
     shutdown_tx: Option<oneshot::Sender<()>>,
     /// accept 循环任务句柄（用于停止时等待端口真正释放）
     task: Option<tokio::task::JoinHandle<()>>,
+    /// 正在处理的活跃连接/请求计数
+    active_requests: Arc<std::sync::atomic::AtomicUsize>,
+    /// 连接完成时的排空通知器
+    drain_notify: Arc<tokio::sync::Notify>,
 }
 
 impl IngressServerHandle {
+    /// 获取当前在途活跃请求数
+    pub fn active_requests(&self) -> usize {
+        self.active_requests.load(std::sync::atomic::Ordering::SeqCst)
+    }
+
     /// 发送停止信号（不等待任务退出）
     pub fn stop(&mut self) {
         if let Some(tx) = self.shutdown_tx.take() {
@@ -584,6 +593,47 @@ impl IngressManager {
             handle.shutdown().await;
         }
     }
+
+    /// 优雅停止所有监听服务并排空正在处理的请求
+    pub async fn stop_all_graceful(&self, timeout: Duration) {
+        let handles: Vec<IngressServerHandle> = {
+            let mut servers = self.servers.lock().await;
+            servers.drain().map(|(_, h)| h).collect()
+        };
+
+        let mut drain_waiters = Vec::new();
+        for mut handle in handles {
+            handle.stop();
+            if let Some(task) = handle.task.take() {
+                let _ = tokio::time::timeout(INGRESS_SHUTDOWN_TIMEOUT, task).await;
+            }
+            drain_waiters.push((handle.active_requests.clone(), handle.drain_notify.clone()));
+        }
+
+        if !drain_waiters.is_empty() {
+            let drain_all = async {
+                for (active, notify) in drain_waiters {
+                    while active.load(std::sync::atomic::Ordering::SeqCst) > 0 {
+                        let notified = notify.notified();
+                        tokio::pin!(notified);
+                        notified.as_mut().enable();
+                        if active.load(std::sync::atomic::Ordering::SeqCst) == 0 {
+                            break;
+                        }
+                        notified.await;
+                    }
+                }
+            };
+            if tokio::time::timeout(timeout, drain_all).await.is_err() {
+                log::warn!(
+                    "[Ingress] Graceful shutdown timed out after {}s; in-flight requests may have been aborted",
+                    timeout.as_secs()
+                );
+            } else {
+                log::info!("[Ingress] All in-flight requests drained successfully");
+            }
+        }
+    }
 }
 
 /// 启动 Ingress TCP/HTTP 监听器
@@ -600,6 +650,12 @@ pub async fn start_ingress_server(
     let flow_uuid = config.flow.uuid.clone();
     let flow_name = config.flow.name.clone();
     let ctx = Arc::new(config);
+    let active_requests = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+    let drain_notify = Arc::new(tokio::sync::Notify::new());
+
+    let task_active = active_requests.clone();
+    let task_notify = drain_notify.clone();
+
     let task = tokio::spawn(async move {
         loop {
             tokio::select! {
@@ -613,8 +669,20 @@ pub async fn start_ingress_server(
                             let ctx_clone = ctx.clone();
                             let conn_timeout = ctx_clone
                                 .request_timeout
-                                .saturating_add(Duration::from_secs(15));
+                                 .saturating_add(Duration::from_secs(15));
+                            let active = task_active.clone();
+                            let notify = task_notify.clone();
+                            active.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
                             tokio::spawn(async move {
+                                struct Guard(Arc<std::sync::atomic::AtomicUsize>, Arc<tokio::sync::Notify>);
+                                impl Drop for Guard {
+                                    fn drop(&mut self) {
+                                        if self.0.fetch_sub(1, std::sync::atomic::Ordering::SeqCst) == 1 {
+                                            self.1.notify_waiters();
+                                        }
+                                    }
+                                }
+                                let _guard = Guard(active, notify);
                                 match tokio::time::timeout(
                                     conn_timeout,
                                     handle_http_connection(stream, ctx_clone),
@@ -645,6 +713,8 @@ pub async fn start_ingress_server(
         flow_name,
         shutdown_tx: Some(shutdown_tx),
         task: Some(task),
+        active_requests,
+        drain_notify,
     })
 }
 

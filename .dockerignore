@@ -1,0 +1,10 @@
+node_modules
+target
+src-tauri/target
+dist
+dist-release
+.git
+plugins
+echo
+website
+.env
