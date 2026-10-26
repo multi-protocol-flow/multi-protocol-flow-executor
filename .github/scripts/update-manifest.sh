@@ -95,11 +95,16 @@ echo "  ✓ manifest.json uploaded"
 aws s3 cp "s3://${R2_BUCKET}/changelog.json" "$TMP_DIR/changelog.json" \
   --endpoint-url "${R2_ENDPOINT}" --quiet 2>/dev/null || echo "[]" > "$TMP_DIR/changelog.json"
 
-python3 - << 'PYEOF' "$TMP_DIR/changelog.json" "$PLATFORM" "$VERSION" "$PREFIX" "$DOWNLOAD_BASE"
-import json, sys, re, os
+python3 - << 'PYEOF' "$TMP_DIR/changelog.json" "$PLATFORM" "$VERSION" "$PREFIX" "$DOWNLOAD_BASE" "$R2_ENDPOINT" "$R2_BUCKET"
+import json, sys, re, os, subprocess
 from datetime import datetime, timezone
 
-changelog_path, platform, version, prefix, download_base = sys.argv[1:6]
+changelog_path, platform, version, prefix, download_base, endpoint, bucket = sys.argv[1:8]
+
+def fetch_sig(key):
+    cmd = ["aws", "s3", "cp", f"s3://{bucket}/{prefix}/{key}", "-", "--endpoint-url", endpoint]
+    res = subprocess.run(cmd, capture_output=True, text=True)
+    return res.stdout.strip() if res.returncode == 0 else ""
 
 with open(changelog_path, 'r', encoding='utf-8') as f:
     try:
@@ -152,20 +157,31 @@ if not entry:
         "date": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "notes": notes,
         "prerelease": bool(re.search(r'(beta|alpha)', version)),
-        "downloads": {}
+        "downloads": {},
+        "signatures": {}
     }
     changelog.insert(0, entry)
 elif notes and (not entry.get("notes") or entry.get("notes", "").startswith("Release ")):
     entry["notes"] = notes
 
 entry.setdefault("downloads", {})
+entry.setdefault("signatures", {})
 
 if platform == "windows":
     entry["downloads"]["windows"] = f"{download_base}/{prefix}/mpe-{version}-x64-setup.exe"
+    sig = fetch_sig(f"mpe-{version}-x64-setup.exe.sig")
+    if sig:
+        entry["signatures"]["windows"] = sig
 elif platform == "macos":
     entry["downloads"]["macos"] = f"{download_base}/{prefix}/mpe-{version}-universal.dmg"
+    sig = fetch_sig(f"mpe-{version}-universal.dmg.sig")
+    if sig:
+        entry["signatures"]["macos"] = sig
 elif platform == "linux":
     entry["downloads"]["linux"] = f"{download_base}/{prefix}/mpe-v{version}-linux-x86_64.tar.gz"
+    sig = fetch_sig(f"mpe_{version}_amd64.AppImage.sig")
+    if sig:
+        entry["signatures"]["linux"] = sig
 
 with open(changelog_path, 'w', encoding='utf-8') as f:
     json.dump(changelog, f, indent=2, ensure_ascii=False)

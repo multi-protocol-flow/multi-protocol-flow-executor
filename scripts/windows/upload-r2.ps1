@@ -161,8 +161,18 @@ try {
         }
     }
 
+    $ChangelogMdPath = Join-Path $ProjectRoot "CHANGELOG.md"
+    if (-not $Notes -and (Test-Path $ChangelogMdPath)) {
+        $ChangelogMd = Get-Content $ChangelogMdPath -Raw -Encoding UTF8
+        $CleanVer = [regex]::Escape($Version.TrimStart('v'))
+        $Pattern = "(?s)## \[(?:v)?$CleanVer\][^\n]*\n(.*?)(?=\n## |\Z)"
+        if ($ChangelogMd -match $Pattern) {
+            $ExtractedNotes = $Matches[1].Trim()
+            if ($ExtractedNotes) { $Notes = $ExtractedNotes }
+        }
+    }
     $Manifest.version = $Version
-    if (-not $Manifest.notes) { $Manifest.notes = "Release $Tag" }
+    $Manifest.notes = if ($Notes) { $Notes } else { "Release $Tag" }
     $Manifest.pub_date = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
     if (-not $Manifest.platforms) { $Manifest | Add-Member -NotePropertyName "platforms" -NotePropertyValue ([PSCustomObject]@{}) -Force }
     if (-not $Manifest.assets) { $Manifest | Add-Member -NotePropertyName "assets" -NotePropertyValue ([PSCustomObject]@{}) -Force }
@@ -244,6 +254,12 @@ try {
     }
     if ($ExeName) {
         $entry.downloads | Add-Member -NotePropertyName "windows" -NotePropertyValue "$DownloadBase/$Prefix/$ExeName" -Force
+    }
+    if (-not $entry.signatures) {
+        $entry | Add-Member -NotePropertyName "signatures" -NotePropertyValue ([PSCustomObject]@{}) -Force
+    }
+    if ($WinSig) {
+        $entry.signatures | Add-Member -NotePropertyName "windows" -NotePropertyValue $WinSig -Force
     }
 
     $ChangelogJson = $Changelog | ConvertTo-Json -Depth 10

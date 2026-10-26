@@ -174,6 +174,7 @@ fi
 # Node 处理 JSON 合并
 node -e "
 const fs = require('fs');
+const path = require('path');
 const manifestPath = '$REMOTE_MANIFEST';
 let manifest = {};
 try {
@@ -182,11 +183,26 @@ try {
   manifest = {};
 }
 
+// Read release notes for target version from CHANGELOG.md instead of inheriting stale manifest.notes
+const rootChangelog = path.resolve('$PROJECT_ROOT', 'CHANGELOG.md');
+let releaseNotes = process.env.CHANGELOG_NOTES || ('Release v' + '$VERSION');
+if (!process.env.CHANGELOG_NOTES && fs.existsSync(rootChangelog)) {
+  try {
+    const md = fs.readFileSync(rootChangelog, 'utf8');
+    const cleanVer = '$VERSION'.replace(/^v/, '').replace(/\./g, '\\\\.');
+    const re = new RegExp('## \\\\[(?:v)?' + cleanVer + '\\\\][^\\r\\n]*(?:\\r?\\n)([\\\\s\\\\S]*?)(?=(?:\\r?\\n)## |$)');
+    const m = md.match(re);
+    if (m && m[1].trim()) {
+      releaseNotes = m[1].trim();
+    }
+  } catch (err) {
+    console.warn('  ⚠️ Failed to extract notes from CHANGELOG.md:', err.message);
+  }
+}
 manifest.version = '$VERSION';
-manifest.notes = manifest.notes || 'Release v$VERSION';
+manifest.notes = releaseNotes;
 manifest.pub_date = new Date().toISOString();
 manifest.platforms = manifest.platforms || {};
-
 const downloadBase = '$DOWNLOAD_BASE';
 const prefix = '$PREFIX';
 const cliName = '$CLI_NAME';
@@ -256,7 +272,7 @@ const prefix = '$PREFIX';
 const cliName = '$CLI_NAME';
 const debName = '$DEB_NAME';
 const appImageName = '$APPIMAGE_NAME';
-
+const appImageSig = '$APPIMAGE_SIG';
 let notes = process.env.CHANGELOG_NOTES || ('Release ' + tag);
 if (!process.env.CHANGELOG_NOTES && fs.existsSync(rootChangelog)) {
   try {
@@ -291,6 +307,7 @@ if (!entry) {
 }
 
 entry.downloads = entry.downloads || {};
+entry.signatures = entry.signatures || {};
 if (cliName) {
   entry.downloads.linux = \`\${downloadBase}/\${prefix}/\${cliName}\`;
 }
@@ -300,8 +317,9 @@ if (debName) {
 if (appImageName) {
   entry.downloads.linux_appimage = \`\${downloadBase}/\${prefix}/\${appImageName}\`;
 }
-
-fs.writeFileSync(changelogPath, JSON.stringify(changelog, null, 2) + '\n');
+if (appImageSig) {
+  entry.signatures.linux = appImageSig;
+}
 console.log('  ✓ changelog.json 已更新: ' + (isNew ? ('新增 v' + version) : ('合并 v' + version + ' 下载链接')));
 "
 
