@@ -564,4 +564,45 @@ describe('aiStore', () => {
       streamSpy.mockRestore();
     });
   });
+  it('当达到最大迭代轮次且未自然完成时，自动追加友好提示消息并停止', async () => {
+    // 将最大轮次设置为 5 次便于测试
+    useSettingsStore.setState({ aiMaxIterations: 5 });
+
+    let callCount = 0;
+    const streamSpy = vi
+      .spyOn(openaiClientModule, 'streamChatCompletion')
+      .mockImplementation(async () => {
+        callCount++;
+        // 每一轮都模拟模型发起 tool_calls（如 get_flow_nodes_config）
+        return {
+          content: `第 ${callCount} 轮正在排查...`,
+          tool_calls: [
+            {
+              id: `call_${callCount}`,
+              type: 'function',
+              function: {
+                name: 'get_flow_nodes_config',
+                arguments: '{}',
+              },
+            },
+          ],
+        };
+      });
+
+    await useAIStore.getState().sendMessage('请一直帮我排查');
+
+    // 验证调用了 5 次（maxIterations = 5）
+    expect(callCount).toBe(5);
+
+    const messages = useAIStore.getState().messages;
+    // 验证最后一条消息是提醒消息
+    const lastMsg = messages[messages.length - 1];
+    expect(lastMsg.role).toBe('assistant');
+    expect(lastMsg.id).toContain('iteration_limit');
+    expect(lastMsg.content).toContain('5');
+    expect(lastMsg.content).toContain('已达单次最大操作限制');
+    expect(useAIStore.getState().agentStatus).toBe('idle');
+
+    streamSpy.mockRestore();
+  });
 });

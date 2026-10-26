@@ -896,11 +896,12 @@ export const useAIStore = create<AIStore>((set, get) => ({
     await persistCurrentSession();
 
     const tools = getAllAIToolDefinitions();
-    const MAX_REACT_ITERATIONS = 20;
+    const maxIterations = Math.max(5, Math.min(100, settings.aiMaxIterations ?? 20));
     let iteration = 0;
+    let naturallyFinished = false;
 
     try {
-      while (iteration < MAX_REACT_ITERATIONS) {
+      while (iteration < maxIterations) {
         if (sessionSignal.aborted) break;
         iteration++;
 
@@ -1078,6 +1079,7 @@ export const useAIStore = create<AIStore>((set, get) => ({
         // 如果没有触发 Tool Calls，任务已自然完成或模型向用户做出说明/提问
         if (!result.tool_calls || result.tool_calls.length === 0) {
           set({ agentStatus: 'idle' });
+          naturallyFinished = true;
           break;
         }
 
@@ -1229,6 +1231,21 @@ export const useAIStore = create<AIStore>((set, get) => ({
         }
 
         // 继续下一轮 ReAct 循环，让 LLM 观察工具执行结果
+      }
+
+      // 如果因达到最大执行轮次而退出循环，向用户发出友好明确的提示
+      if (!naturallyFinished && !sessionSignal.aborted && iteration >= maxIterations) {
+        const hitLimitNotice: AIMessage = {
+          id: `msg_${Date.now()}_iteration_limit`,
+          role: 'assistant',
+          content: getLL().ai.copilot.iteration_limit_reached({ count: maxIterations }),
+          timestamp: Date.now(),
+          status: 'done',
+        };
+        set((s) => ({
+          messages: [...s.messages, hitLimitNotice],
+        }));
+        await persistCurrentSession();
       }
     } catch (err: unknown) {
       if (!sessionSignal.aborted) {
