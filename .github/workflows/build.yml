@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   build:
-    if: github.actor != 'dependabot[bot]'
+    if: github.actor != 'dependabot[bot]' && github.ref != 'refs/heads/dev'
     strategy:
       fail-fast: false
       matrix:
