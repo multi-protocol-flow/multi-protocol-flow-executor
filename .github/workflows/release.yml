@@ -212,7 +212,7 @@ jobs:
           name: macos-assets
           path: dist-release/*
 
-  build-linux:
+  build-linux-cli:
     name: Build (Linux CLI musl static)
     needs: check-env
     runs-on: ubuntu-latest
@@ -295,15 +295,123 @@ jobs:
             echo "R2 credentials not provided, skipping R2 upload."
           fi
 
-      - name: Upload Linux assets
+      - name: Upload Linux CLI assets
         uses: actions/upload-artifact@v7
         with:
-          name: linux-assets
+          name: linux-cli-assets
+          path: dist-release/*
+
+  build-linux-gui:
+    name: Build (Linux GUI deb & AppImage)
+    needs: check-env
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install system dependencies (Linux GUI)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            libfuse2 \
+            libssl-dev \
+            libcurl4-openssl-dev \
+            libsasl2-dev \
+            cmake \
+            pkg-config
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Inject version
+        run: |
+          VERSION="${{ needs.check-env.outputs.version }}"
+          node scripts/inject-version.js "$VERSION"
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Generate i18n types
+        run: npm run typesafe-i18n
+
+      - name: Build & Sign (Tauri deb & AppImage)
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          args: --bundles deb,appimage --config src-tauri/tauri.conf.ci.json
+          retryAttempts: 3
+
+      - name: Collect artifacts
+        run: |
+          VERSION="${{ needs.check-env.outputs.version }}"
+          mkdir -p dist-release
+          DEB_SRC=$(find src-tauri/target/release/bundle/deb -maxdepth 1 -name "*.deb" 2>/dev/null | head -n 1 || true)
+          if [ -n "$DEB_SRC" ] && [ -f "$DEB_SRC" ]; then
+            cp "$DEB_SRC" "dist-release/mpe_${VERSION}_amd64.deb"
+          fi
+          APPIMAGE_SRC=$(find src-tauri/target/release/bundle/appimage -maxdepth 1 -name "*.AppImage" 2>/dev/null | head -n 1 || true)
+          if [ -n "$APPIMAGE_SRC" ] && [ -f "$APPIMAGE_SRC" ]; then
+            cp "$APPIMAGE_SRC" "dist-release/mpe_${VERSION}_amd64.AppImage"
+            if [ -f "${APPIMAGE_SRC}.sig" ]; then
+              cp "${APPIMAGE_SRC}.sig" "dist-release/mpe_${VERSION}_amd64.AppImage.sig"
+            fi
+          fi
+
+      - name: Upload to R2
+        env:
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+        run: |
+          VERSION="${{ needs.check-env.outputs.version }}"
+          if [ -n "$R2_ACCESS_KEY_ID" ] && [ -n "$R2_ACCOUNT_ID" ]; then
+            export AWS_ACCESS_KEY_ID="$R2_ACCESS_KEY_ID"
+            export AWS_SECRET_ACCESS_KEY="$R2_SECRET_ACCESS_KEY"
+            export AWS_DEFAULT_REGION="auto"
+            R2_ENDPOINT="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
+            if [ -f "dist-release/mpe_${VERSION}_amd64.deb" ]; then
+              aws s3 cp "dist-release/mpe_${VERSION}_amd64.deb" \
+                "s3://${R2_BUCKET}/releases/v${VERSION}/mpe_${VERSION}_amd64.deb" \
+                --endpoint-url $R2_ENDPOINT
+            fi
+            if [ -f "dist-release/mpe_${VERSION}_amd64.AppImage" ]; then
+              aws s3 cp "dist-release/mpe_${VERSION}_amd64.AppImage" \
+                "s3://${R2_BUCKET}/releases/v${VERSION}/mpe_${VERSION}_amd64.AppImage" \
+                --endpoint-url $R2_ENDPOINT
+            fi
+            if [ -f "dist-release/mpe_${VERSION}_amd64.AppImage.sig" ]; then
+              aws s3 cp "dist-release/mpe_${VERSION}_amd64.AppImage.sig" \
+                "s3://${R2_BUCKET}/releases/v${VERSION}/mpe_${VERSION}_amd64.AppImage.sig" \
+                --endpoint-url $R2_ENDPOINT
+            fi
+          else
+            echo "R2 credentials not provided, skipping R2 upload."
+          fi
+
+      - name: Upload Linux GUI assets
+        uses: actions/upload-artifact@v7
+        with:
+          name: linux-gui-assets
           path: dist-release/*
 
   publish:
     name: Publish Release & Manifest
-    needs: [check-env, build-windows, build-macos, build-linux]
+    needs: [check-env, build-windows, build-macos, build-linux-cli, build-linux-gui]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7

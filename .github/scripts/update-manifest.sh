@@ -70,9 +70,10 @@ elif platform == "macos":
 elif platform == "linux":
     # Check for AppImage signature if present
     sig = fetch_sig(f"mpe_{version}_amd64.AppImage.sig")
+    linux_url = f"{download_base}/{prefix}/mpe_{version}_amd64.AppImage" if sig else f"{download_base}/{prefix}/mpe-v{version}-linux-x86_64.tar.gz"
     manifest["platforms"]["linux-x86_64"] = {
         "signature": sig,
-        "url": f"{download_base}/{prefix}/mpe-v{version}-linux-x86_64.tar.gz"
+        "url": linux_url
     }
 
 from datetime import datetime, timezone
@@ -179,6 +180,8 @@ elif platform == "macos":
         entry["signatures"]["macos"] = sig
 elif platform == "linux":
     entry["downloads"]["linux"] = f"{download_base}/{prefix}/mpe-v{version}-linux-x86_64.tar.gz"
+    entry["downloads"]["linux_deb"] = f"{download_base}/{prefix}/mpe_{version}_amd64.deb"
+    entry["downloads"]["linux_appimage"] = f"{download_base}/{prefix}/mpe_{version}_amd64.AppImage"
     sig = fetch_sig(f"mpe_{version}_amd64.AppImage.sig")
     if sig:
         entry["signatures"]["linux"] = sig
