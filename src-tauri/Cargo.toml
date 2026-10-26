@@ -78,7 +78,7 @@ expect_used = "warn"
 
 [package]
 name = "app"
-version = "0.5.0-beta"
+version = "0.5.1-beta"
 description = "Multi-Protocol Flow Executor — visual multi-protocol orchestration engine with GUI and CLI"
 license.workspace = true
 repository.workspace = true

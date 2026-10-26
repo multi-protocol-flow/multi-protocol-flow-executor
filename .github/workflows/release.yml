@@ -1,0 +1,393 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g. 0.5.0-beta or v0.5.0-beta, defaults to tag or package.json)'
+        required: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  check-env:
+    name: Pre-check & Version Extraction
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Resolve target version
+        id: version
+        run: |
+          RAW_VER="${{ inputs.version }}"
+          if [ -z "$RAW_VER" ]; then
+            RAW_VER="${{ github.ref_name }}"
+          fi
+          VERSION="${RAW_VER#v}"
+          if [ -z "$VERSION" ] || [ "$VERSION" = "master" ] || [ "$VERSION" = "dev" ]; then
+            VERSION=$(node -p "require('./package.json').version")
+          fi
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Target version: ${VERSION}"
+
+      - name: Validate CHANGELOG.md
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          node scripts/prepare-changelog.js "$VERSION" --check-only
+
+  build-windows:
+    name: Build (Windows)
+    needs: check-env
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Inject version
+        shell: bash
+        run: |
+          VERSION="${{ needs.check-env.outputs.version }}"
+          node scripts/inject-version.js "$VERSION"
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Generate i18n types
+        run: npm run typesafe-i18n
+
+      - name: Build & Sign (Tauri)
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          args: --bundles nsis --config src-tauri/tauri.conf.ci.json
+          retryAttempts: 3
+
+      - name: Collect artifacts
+        shell: pwsh
+        run: |
+          $VERSION = "${{ needs.check-env.outputs.version }}"
+          New-Item -ItemType Directory -Force -Path "dist-release"
+          $EXE = (Get-ChildItem "src-tauri/target/release/bundle/nsis/*.exe" | Select-Object -First 1).FullName
+          $SIG = (Get-ChildItem "src-tauri/target/release/bundle/nsis/*.exe.sig" -ErrorAction SilentlyContinue | Select-Object -First 1)?.FullName
+          Copy-Item $EXE "dist-release/mpe-$VERSION-x64-setup.exe"
+          if ($SIG -and (Test-Path $SIG)) {
+            Copy-Item $SIG "dist-release/mpe-$VERSION-x64-setup.exe.sig"
+          }
+
+      - name: Upload to R2
+        env:
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+        shell: pwsh
+        run: |
+          $VERSION = "${{ needs.check-env.outputs.version }}"
+          if ($env:R2_ACCESS_KEY_ID -and $env:R2_ACCOUNT_ID) {
+            $env:AWS_ACCESS_KEY_ID = $env:R2_ACCESS_KEY_ID
+            $env:AWS_SECRET_ACCESS_KEY = $env:R2_SECRET_ACCESS_KEY
+            $env:AWS_DEFAULT_REGION = "auto"
+            $R2_ENDPOINT = "https://$($env:R2_ACCOUNT_ID).r2.cloudflarestorage.com"
+            $BUCKET = $env:R2_BUCKET
+            aws s3 cp "dist-release/mpe-$VERSION-x64-setup.exe" "s3://$BUCKET/releases/v$VERSION/mpe-$VERSION-x64-setup.exe" --endpoint-url $R2_ENDPOINT
+            if (Test-Path "dist-release/mpe-$VERSION-x64-setup.exe.sig") {
+              aws s3 cp "dist-release/mpe-$VERSION-x64-setup.exe.sig" "s3://$BUCKET/releases/v$VERSION/mpe-$VERSION-x64-setup.exe.sig" --endpoint-url $R2_ENDPOINT
+            }
+          } else {
+            Write-Host "R2 credentials not provided, skipping R2 upload."
+          }
+
+      - name: Upload Windows assets
+        uses: actions/upload-artifact@v7
+        with:
+          name: windows-assets
+          path: dist-release/*
+
+  build-macos:
+    name: Build (macOS)
+    needs: check-env
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-apple-darwin, aarch64-apple-darwin
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Inject version
+        run: |
+          VERSION="${{ needs.check-env.outputs.version }}"
+          node scripts/inject-version.js "$VERSION"
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Generate i18n types
+        run: npm run typesafe-i18n
+
+      - name: Build & Sign (Tauri)
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          args: --target universal-apple-darwin --bundles dmg --config src-tauri/tauri.conf.ci.json
+
+      - name: Collect artifacts
+        run: |
+          VERSION="${{ needs.check-env.outputs.version }}"
+          mkdir -p dist-release
+          DMG=$(ls src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg | head -n 1)
+          cp "$DMG" "dist-release/mpe-$VERSION-universal.dmg"
+          if [ -f "${DMG}.sig" ]; then
+            cp "${DMG}.sig" "dist-release/mpe-$VERSION-universal.dmg.sig"
+          fi
+
+      - name: Upload to R2
+        env:
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+        run: |
+          VERSION="${{ needs.check-env.outputs.version }}"
+          if [ -n "$R2_ACCESS_KEY_ID" ] && [ -n "$R2_ACCOUNT_ID" ]; then
+            export AWS_ACCESS_KEY_ID="$R2_ACCESS_KEY_ID"
+            export AWS_SECRET_ACCESS_KEY="$R2_SECRET_ACCESS_KEY"
+            export AWS_DEFAULT_REGION="auto"
+            R2_ENDPOINT="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
+            aws s3 cp "dist-release/mpe-$VERSION-universal.dmg" \
+              "s3://${R2_BUCKET}/releases/v$VERSION/mpe-$VERSION-universal.dmg" \
+              --endpoint-url $R2_ENDPOINT
+            if [ -f "dist-release/mpe-$VERSION-universal.dmg.sig" ]; then
+              aws s3 cp "dist-release/mpe-$VERSION-universal.dmg.sig" \
+                "s3://${R2_BUCKET}/releases/v$VERSION/mpe-$VERSION-universal.dmg.sig" \
+                --endpoint-url $R2_ENDPOINT || true
+            fi
+          else
+            echo "R2 credentials not provided, skipping R2 upload."
+          fi
+
+      - name: Upload macOS assets
+        uses: actions/upload-artifact@v7
+        with:
+          name: macos-assets
+          path: dist-release/*
+
+  build-linux:
+    name: Build (Linux CLI musl static)
+    needs: check-env
+    runs-on: ubuntu-latest
+    container:
+      image: alpine:3.21
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install system dependencies
+        run: |
+          apk add --no-cache \
+            curl bash git gcc musl-dev cmake make g++ \
+            openssl-dev openssl-libs-static \
+            perl curl-dev zlib-dev zlib-static \
+            aws-cli
+
+      - uses: actions/cache@v4
+        id: cargo-cache
+        with:
+          path: |
+            /root/.cargo/bin
+            /root/.cargo/registry
+          key: musl-cargo-${{ hashFiles('src-tauri/Cargo.lock') }}
+          restore-keys: musl-cargo-
+
+      - uses: actions/cache@v4
+        with:
+          path: src-tauri/target
+          key: musl-target-${{ hashFiles('src-tauri/Cargo.lock') }}
+          restore-keys: musl-target-
+
+      - name: Install Rust
+        run: |
+          export CARGO_HOME="$HOME/.cargo"
+          export RUSTUP_HOME="$HOME/.rustup"
+          if [ ! -f "$CARGO_HOME/bin/cargo" ]; then
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | bash -s -- -y
+          fi
+          echo "$CARGO_HOME/bin" >> "$GITHUB_PATH"
+          echo "CARGO_HOME=$CARGO_HOME" >> "$GITHUB_ENV"
+          echo "RUSTUP_HOME=$RUSTUP_HOME" >> "$GITHUB_ENV"
+
+      - name: Inject version
+        run: |
+          VERSION="${{ needs.check-env.outputs.version }}"
+          sed -i "s/^version = \"[^\"]*\"/version = \"$VERSION\"/" src-tauri/Cargo.toml
+          sed -i "s/^version = \"[^\"]*\"/version = \"$VERSION\"/" src-tauri/crates/mpe-cli/Cargo.toml
+
+      - name: Build mpe-cli (musl static)
+        run: |
+          cd src-tauri && cargo build -p mpe-cli --release
+
+      - name: Package & Collect
+        run: |
+          VERSION="${{ needs.check-env.outputs.version }}"
+          mkdir -p dist-release
+          cd src-tauri/target/release
+          mv mpe-cli mpe
+          tar czf "mpe-v${VERSION}-linux-x86_64.tar.gz" mpe
+          cd -
+          cp "src-tauri/target/release/mpe-v${VERSION}-linux-x86_64.tar.gz" dist-release/
+
+      - name: Upload to R2
+        env:
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+        run: |
+          VERSION="${{ needs.check-env.outputs.version }}"
+          if [ -n "$R2_ACCESS_KEY_ID" ] && [ -n "$R2_ACCOUNT_ID" ]; then
+            export AWS_ACCESS_KEY_ID="$R2_ACCESS_KEY_ID"
+            export AWS_SECRET_ACCESS_KEY="$R2_SECRET_ACCESS_KEY"
+            export AWS_DEFAULT_REGION="auto"
+            R2_ENDPOINT="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
+            aws s3 cp "dist-release/mpe-v${VERSION}-linux-x86_64.tar.gz" \
+              "s3://${R2_BUCKET}/releases/v${VERSION}/mpe-v${VERSION}-linux-x86_64.tar.gz" \
+              --endpoint-url $R2_ENDPOINT
+          else
+            echo "R2 credentials not provided, skipping R2 upload."
+          fi
+
+      - name: Upload Linux assets
+        uses: actions/upload-artifact@v7
+        with:
+          name: linux-assets
+          path: dist-release/*
+
+  publish:
+    name: Publish Release & Manifest
+    needs: [check-env, build-windows, build-macos, build-linux]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Download all build assets
+        uses: actions/download-artifact@v7
+        with:
+          path: release-assets-tmp
+
+      - name: Flatten assets directory
+        run: |
+          mkdir -p release-assets
+          find release-assets-tmp -type f -exec cp {} release-assets/ \;
+          echo "=== Collected release assets ==="
+          ls -la release-assets/
+
+      - name: Update R2 manifest and changelog
+        env:
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+        run: |
+          VERSION="${{ needs.check-env.outputs.version }}"
+          if [ -n "$R2_ACCESS_KEY_ID" ] && [ -n "$R2_ACCOUNT_ID" ]; then
+            export AWS_ACCESS_KEY_ID="$R2_ACCESS_KEY_ID"
+            export AWS_SECRET_ACCESS_KEY="$R2_SECRET_ACCESS_KEY"
+            export AWS_DEFAULT_REGION="auto"
+            R2_ENDPOINT="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
+            R2_BUCKET_NAME="$R2_BUCKET"
+
+            echo "Updating manifest & changelog for Windows..."
+            bash .github/scripts/update-manifest.sh windows "$VERSION" "$R2_ENDPOINT" "$R2_BUCKET_NAME"
+
+            echo "Updating manifest & changelog for macOS..."
+            bash .github/scripts/update-manifest.sh macos "$VERSION" "$R2_ENDPOINT" "$R2_BUCKET_NAME"
+
+            echo "Updating manifest & changelog for Linux..."
+            bash .github/scripts/update-manifest.sh linux "$VERSION" "$R2_ENDPOINT" "$R2_BUCKET_NAME"
+          else
+            echo "R2 credentials not provided, skipping R2 manifest update."
+          fi
+
+      - name: Extract Release Notes
+        id: notes
+        run: |
+          VERSION="${{ needs.check-env.outputs.version }}"
+          node scripts/prepare-changelog.js "$VERSION" > release_notes.md || true
+          if [ ! -s release_notes.md ]; then
+            echo "Release v$VERSION" > release_notes.md
+          fi
+
+      - name: Publish to GitHub Releases
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ needs.check-env.outputs.version }}"
+          TAG="v$VERSION"
+
+          IS_PRERELEASE=false
+          if [[ "$VERSION" =~ (beta|alpha|rc) ]]; then
+            IS_PRERELEASE=true
+          fi
+
+          PRERELEASE_FLAG=""
+          if [ "$IS_PRERELEASE" = "true" ]; then
+            PRERELEASE_FLAG="--prerelease"
+          fi
+
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "GitHub Release $TAG already exists. Updating notes and assets..."
+            gh release edit "$TAG" --title "MPE Flow $TAG" --notes-file release_notes.md $PRERELEASE_FLAG
+            gh release upload "$TAG" release-assets/* --clobber
+          else
+            echo "Creating new GitHub Release $TAG..."
+            gh release create "$TAG" \
+              release-assets/* \
+              --title "MPE Flow $TAG" \
+              --notes-file release_notes.md \
+              $PRERELEASE_FLAG
+          fi
+          echo "✓ Successfully published GitHub Release $TAG"

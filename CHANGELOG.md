@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.1-beta] - 2026-10-26
+
 ### Added
 - **Declarative Flow YAML DSL & Bi-directional Lossless Conversion**: Introduced `DeclarativeFlow` and `DeclarativeNode` models in `flow-engine-core`, stripping UI coordinates, connection UUIDs, and internal port IDs into clean, human-readable semantic YAML workflows with Sugiyama topological auto-layout and deterministic UUIDv5 generation.
 - **CLI Flow Conversion & Format Detection**: Added `mpe flow convert <in.mpf> <out.yaml>` and transparent declarative DSL detection in `deserialize_flow_file` across all loaders and CLI runners.

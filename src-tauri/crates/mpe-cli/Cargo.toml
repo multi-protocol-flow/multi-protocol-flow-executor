@@ -1,6 +1,6 @@
 [package]
 name = "mpe-cli"
-version = "0.5.0-beta"
+version = "0.5.1-beta"
 description = "Multi-Protocol Executor CLI — standalone binary without GUI dependencies"
 edition = "2021"
 license.workspace = true
