@@ -14590,6 +14590,18 @@ type RootTranslation = {
 			 * 开​启​后​ ​A​I​ ​执​行​清​空​画​布​、​批​量​删​除​、​终​端​命​令​等​高​风​险​操​作​时​将​直​接​执​行​，​不​再​弹​窗​等​待​人​工​确​认​。​适​合​长​流​程​复​杂​任​务​全​自​动​推​进​。
 			 */
 			trust_mode_desc: string
+			/**
+			 * 单​次​最​大​执​行​轮​次​ ​(​M​a​x​ ​I​t​e​r​a​t​i​o​n​s​)
+			 */
+			max_iterations_label: string
+			/**
+			 * 限​制​ ​A​I​ ​单​次​任​务​内​思​考​与​调​用​工​具​的​最​大​循​环​次​数​（​默​认​ ​2​0​ ​轮​，​建​议​ ​5​~​1​0​0​ ​轮​）​，​防​止​复​杂​或​异​常​任​务​死​循​环​消​耗​过​多​ ​T​o​k​e​n​。
+			 */
+			max_iterations_desc: string
+			/**
+			 * 轮
+			 */
+			max_iterations_unit: string
 		}
 		confirm_card: {
 			/**
@@ -15155,6 +15167,11 @@ type RootTranslation = {
 			 * 完​全​信​任​模​式​生​效​中​：​高​风​险​操​作​将​自​动​执​行
 			 */
 			trust_mode_active_hint: string
+			/**
+			 * ⚠​️​ ​已​达​单​次​最​大​操​作​限​制​ ​(​{​c​o​u​n​t​}​ ​轮​)​，​已​自​动​暂​停​。​请​确​认​当​前​进​度​，​或​在​输​入​框​中​输​入​“​继​续​”​以​继​续​推​进​。
+			 * @param {number} count
+			 */
+			iteration_limit_reached: RequiredParams<'count'>
 			/**
 			 * 恢​复​人​工​确​认
 			 */
@@ -29709,6 +29726,18 @@ export type TranslationFunctions = {
 			 * 开启后 AI 执行清空画布、批量删除、终端命令等高风险操作时将直接执行，不再弹窗等待人工确认。适合长流程复杂任务全自动推进。
 			 */
 			trust_mode_desc: () => LocalizedString
+			/**
+			 * 单次最大执行轮次 (Max Iterations)
+			 */
+			max_iterations_label: () => LocalizedString
+			/**
+			 * 限制 AI 单次任务内思考与调用工具的最大循环次数（默认 20 轮，建议 5~100 轮），防止复杂或异常任务死循环消耗过多 Token。
+			 */
+			max_iterations_desc: () => LocalizedString
+			/**
+			 * 轮
+			 */
+			max_iterations_unit: () => LocalizedString
 		}
 		confirm_card: {
 			/**
@@ -30248,6 +30277,10 @@ export type TranslationFunctions = {
 			 * 完全信任模式生效中：高风险操作将自动执行
 			 */
 			trust_mode_active_hint: () => LocalizedString
+			/**
+			 * ⚠️ 已达单次最大操作限制 ({count} 轮)，已自动暂停。请确认当前进度，或在输入框中输入“继续”以继续推进。
+			 */
+			iteration_limit_reached: (arg: { count: number }) => LocalizedString
 			/**
 			 * 恢复人工确认
 			 */

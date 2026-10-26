@@ -36,6 +36,9 @@ const ai = {
     custom_system_prompt_tip: 'These instructions will be appended to the base MPE system prompt on every request.',
     trust_mode_label: 'High-Risk Action Full Trust Mode',
     trust_mode_desc: 'When enabled, AI executes high-risk actions (clearing canvas, deleting nodes, terminal commands, etc.) directly without prompting for confirmation. Recommended for large, autonomous workflows.',
+    max_iterations_label: 'Max Execution Iterations',
+    max_iterations_desc: 'Limits the maximum ReAct thought and tool execution cycles per single turn (default 20, range 5-100) to prevent infinite loops and runaway token consumption.',
+    max_iterations_unit: 'iterations',
   },
 
   confirm_card: {
@@ -181,6 +184,7 @@ const ai = {
     trust_mode: 'Full Trust',
     trust_mode_tip: 'When enabled, fully trust AI and automatically approve and execute all high-risk actions without manual confirmation',
     trust_mode_active_hint: 'Full Trust mode active: high-risk actions will execute automatically',
+    iteration_limit_reached: '⚠️ Reached maximum operation limit ({count:number} iterations) and paused. Please review current progress or reply "continue" to proceed.',
     disable_trust_mode: 'Restore confirmation',
     link_workspace: 'Link Local Project',
     link_workspace_tip: 'Link local codebase to enable project structure and API spec awareness',

@@ -36,6 +36,9 @@ const ai = {
     custom_system_prompt_tip: '此提示词将在每次向大模型发送请求时附加在 MPE 基础系统指令之后生效。',
     trust_mode_label: '高风险操作完全信任模式',
     trust_mode_desc: '开启后 AI 执行清空画布、批量删除、终端命令等高风险操作时将直接执行，不再弹窗等待人工确认。适合长流程复杂任务全自动推进。',
+    max_iterations_label: '单次最大执行轮次 (Max Iterations)',
+    max_iterations_desc: '限制 AI 单次任务内思考与调用工具的最大循环次数（默认 20 轮，建议 5~100 轮），防止复杂或异常任务死循环消耗过多 Token。',
+    max_iterations_unit: '轮',
   },
 
   confirm_card: {
@@ -181,6 +184,7 @@ const ai = {
     trust_mode: '完全信任',
     trust_mode_tip: '开启后完全信任 AI，自动批准并执行所有高风险操作（如清空画布、批量删除、终端命令等），无需每次手动确认',
     trust_mode_active_hint: '完全信任模式生效中：高风险操作将自动执行',
+    iteration_limit_reached: '⚠️ 已达单次最大操作限制 ({count:number} 轮)，已自动暂停。请确认当前进度，或在输入框中输入“继续”以继续推进。',
     disable_trust_mode: '恢复人工确认',
     link_workspace: '关联本地项目',
     link_workspace_tip: '关联本地代码工程，让 AI 感知项目结构与代码契约',
