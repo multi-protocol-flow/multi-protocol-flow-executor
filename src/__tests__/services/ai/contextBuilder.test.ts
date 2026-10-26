@@ -34,6 +34,9 @@ describe('contextBuilder', () => {
       expect(prompt).toContain('get_node_detail');
       expect(prompt).toContain('run_terminal_command');
       expect(prompt).toContain('Local Terminal & Shell Execution Protocol');
+      expect(prompt).toContain('source_node_id');
+      expect(prompt).toContain('Mandatory Workflow Execution & Verification Protocol');
+      expect(prompt).toContain('adaptive wrap layout');
     });
     it('包含 flow:sub 子流程节点分类、端口规范与配置模式', () => {
       const prompt = buildSystemPrompt();
@@ -289,6 +292,16 @@ describe('contextBuilder', () => {
       expect(res).toContain('target: ./subflows/login.json');
       expect(res).toContain('inherit_vars: true');
       expect(res).toContain('export_vars: true');
+    });
+    it('格式化 variable:extractor 节点摘要，包含 source_node 与 mappings', () => {
+      const res = formatNodeConfigSummary('variable:extractor', {
+        source_node_id: 'login-step',
+        output_mappings: [
+          { source: '$.body.token', target: 'TOKEN' },
+        ],
+      });
+      expect(res).toContain('source_node: login-step');
+      expect(res).toContain('$.body.token -> TOKEN');
     });
   });
 

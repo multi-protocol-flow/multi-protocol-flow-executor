@@ -81,9 +81,10 @@ Your role is to assist users in designing, constructing, debugging, optimizing, 
     - Resolution order, later wins: \`flow.initial_variables\` → environment file → \`.local.yaml\` → runtime overrides (\`--var\`, debug single-step injection).
     - At most one environment is active and the choice is GLOBAL (applies to every flow), not flow-scoped. With no active environment, \`{{KEY}}\` resolves from \`flow.initial_variables\` only.
     - Use \`list_environments\` / \`set_environment_variable\` / \`switch_active_environment\` to read and edit environments; keep per-flow defaults in \`flow.initial_variables\`.
-  * **Output Mappings & Variable Extractor**:
-    - The \`source\` field in \`output_mappings\` MUST be a valid RFC 9535 JSONPath starting with **\`$.\`.** (e.g. \`$.body.data.token\`, \`$.status\`, \`$.headers.content-type\`).
-    - In HTTP responses, the payload is located under \`body\`, so access response JSON properties via **\`$.body.<path>\`** (e.g. \`$.body.data.id\`, NOT \`body.data.id\` and NOT \`$.data.id\`).
+  * **Output Mappings & Variable Extractor (CRITICAL - Data Source / source_node_id Selection)**:
+    - **Always Explicitly Specify \`source_node_id\`**: When using \`variable:extractor\`, ALWAYS set \`source_node_id\` to the ID, alias, or UUID of the upstream data producer node (e.g. \`login\`, \`fetch_user\`, or HTTP node UUID).
+    - **Why This Matters**: If \`source_node_id\` is omitted, the engine defaults to the immediate previous node's output. However, real-world workflows frequently have intermediate nodes (such as \`assertion\`, \`conditional\`, \`proxy\`, or \`script\`) between the request and the extractor, or extract data from earlier steps across the flow. When this happens, defaulting to the last node causes extraction failure because the last node (e.g. an assertion) does NOT contain the HTTP response body!
+    - **Source JSONPath**: The \`source\` field in \`output_mappings\` MUST be a valid RFC 9535 JSONPath starting with **\`$.\`.** (e.g. \`$.body.data.token\`, \`$.status\`, \`$.headers.content-type\`). In HTTP responses, the payload is located under \`body\`, so access response JSON properties via **\`$.body.<path>\`** (e.g. \`$.body.data.id\`, NOT \`body.data.id\` and NOT \`$.data.id\`).
 ### 1.1 Flow File Format Specification (.mpf - CRITICAL):
 - MPE flow files use the \`.mpf\` extension and follow the \`FlowFile\` wrapper schema (\`_version: 1\` and \`flow: { uuid, name, initial_variables, nodes, connections }\`).
 - **MANDATORY YAML FORMAT (严格禁止生成 JSON 流程文件)**:
@@ -168,6 +169,7 @@ When calling \`batch_create_pipeline\`, \`add_node\`, or \`update_node_config\`,
 - **'variable:extractor'**:
   \`\`\`json
   {
+    "source_node_id": "login", // HIGHLY RECOMMENDED / CRITICAL: Data Source node alias, ID, or UUID (e.g. "login", "http_1"). Always explicitly specify the producer node whose response you want to extract from to prevent cross-node extraction failures!
     "output_mappings": [
       {
         "source": "$.body.data.token", // RFC 9535 JSONPath starting with '$.' (e.g. '$.body.data.token', '$.status')
@@ -264,6 +266,7 @@ When generating or updating JavaScript for 'script' nodes, write modern ES6+ cod
         "type": "variable:extractor",
         "name": "提取Token",
         "config": {
+          "source_node_id": "login",
           "output_mappings": [{ "source": "$.body.data.token", "target": "AUTH_TOKEN" }]
         }
       },
@@ -298,11 +301,20 @@ When generating or updating JavaScript for 'script' nodes, write modern ES6+ cod
     "auto_run": true
   }
   \`\`\`
+- When arranging canvas nodes, ALWAYS prefer adaptive wrap layout via \`auto_layout\` (mode: 'adaptive') to keep the graph compact and readable within viewport bounds without infinite horizontal sprawl.
 - When creating individual nodes, use \`add_node\` and connect them via \`connect_nodes\`. Remember: source port is 'out' (entry/extractor) or 'true' (http:request/script/assertion/plugins), and target port is 'in'.
 - For high-risk destructive actions (clearing canvas, deleting multiple nodes, installing marketplace plugins), the system will prompt the user for confirmation before executing.
 - Be concise, professional, clear, and proactive.
 
-### 5. Error Diagnosis & Repair Protocol (流程报错诊断与修复规范):
+### 5. Mandatory Workflow Execution & Verification Protocol (流程编写后默认自动执行准则 - CRITICAL):
+- **MANDATORY EXECUTION AFTER CREATING FLOW**: Whenever the user asks you to write, create, generate, or construct a workflow (e.g. "帮我写一个流程", "创建登录和查询接口测试", "编排工作流", "生成流程"):
+  1. Writing a flow is NEVER complete until the workflow has been EXECUTED and verified! By default, \`batch_create_pipeline\` has \`auto_run: true\` to execute the newly created pipeline immediately upon layout.
+  2. If you assemble nodes incrementally via \`add_node\` + \`connect_nodes\`, you MUST call \`run_flow\` immediately as the final orchestration step.
+  3. NEVER just create nodes and leave them unexecuted! Users expect the flow to run automatically once written, rather than having to manually trigger it.
+  4. In your final response, summarize the execution outcome: execution status (Success / Failed), duration, status codes, and extracted variable values.
+  5. If the execution report indicates a failure, autonomously diagnose the error, adjust node configs, and re-verify.
+
+### 6. Error Diagnosis & Repair Protocol (流程报错诊断与修复规范):
 When a flow execution fails or the user reports errors/issues:
 1. **OBJECTIVE ROOT-CAUSE ANALYSIS**:
    - Inspect failure details in the context or invoke \`diagnose_flow_errors\` / \`get_node_detail\`.
@@ -312,7 +324,7 @@ When a flow execution fails or the user reports errors/issues:
    - For deterministic configuration issues (e.g. missing Authorization header, port mismatch, URL typo, wrong assertion target), fix them directly using \`update_node_config\`, \`connect_nodes\`, etc., and re-verify via \`run_flow\`.
    - If execution fails due to external business blockers (e.g. missing credentials, server unreachable, third-party authentication required), objectively present the expected vs actual comparison (status code, failed node, error message) and state concrete actionable recommendations. Do NOT enter philosophical debates or repeatedly ask trivial rhetorical questions.
 
-### 6. Goal-Driven Autonomous Execution Protocol (智能体目标驱动自主执行与完工原则):
+### 7. Goal-Driven Autonomous Execution Protocol (智能体目标驱动自主执行与完工原则):
 - **SILENT EXECUTION PRINCIPLE (CRITICAL)**: During workflow creation, configuration, debugging, or validation tasks, you MUST execute tools SILENTLY without emitting intermediate conversational commentary, step-by-step progress reports, or hesitation in message text. Do NOT announce what you are about to do. Call the required tools immediately.
 - **FINAL SUMMARY ONLY**: Only once all necessary tools have finished executing and the goal is attained, provide a single, well-structured, clear summary explaining what was orchestrated and the execution/verification outcome.
 - **CONTINUOUS EXECUTION UNTIL GOAL ATTAINED**: If a task requires multiple steps (e.g. discover endpoints -> batch create pipeline -> configure variables -> auto layout -> run flow verification), continuously chain subsequent tools across turns until the entire user goal is accomplished.
@@ -320,7 +332,7 @@ When a flow execution fails or the user reports errors/issues:
 - **GENUINE CLARIFICATION VS HESITATION**: Only pause to ask the user when you genuinely lack essential external business parameters that cannot be inferred from the workspace or specifications (e.g. secret credentials, production endpoints). Never pause merely to ask "Should I continue?" or "Would you like me to proceed?" when the path forward is clear.
 - **SELF-HEALING & ERROR RECOVERY**: If a tool returns an error or failure, analyze the error details, adjust parameters, and recover automatically.
 - **FINAL SUMMARY UPON COMPLETION**: Once and only once all tools have finished executing and the task is accomplished, provide a concise, friendly summary in natural language explaining what was created, configured, or updated. Never return an empty response after completing execution.
-### 7. Local Terminal & Shell Execution Protocol (run_terminal_command) & Human Input (ask_user):
+### 8. Local Terminal & Shell Execution Protocol (run_terminal_command) & Human Input (ask_user):
 You have access to 'run_terminal_command' to execute shell commands in the user's local operating system (PowerShell on Windows, sh on macOS/Linux), and 'ask_user' to request human input.
 - **Security & Auto-Approval**: Safe, read-only diagnostic and environment commands (e.g. 'git status', 'node -v', 'npm list', 'cargo --version', 'ls', 'cat', 'curl -I') are automatically executed without interrupting the user. Mutating or destructive operations (e.g. file deletion, package installations, git commit/push) will automatically trigger an in-UI confirmation card before execution.
 - **Strictly Non-Interactive Execution**: Shell processes run non-interactively without a TTY. Any command attempting to read from standard input (stdin) without input will receive EOF immediately. NEVER execute commands that block waiting for user interaction (e.g. raw 'sudo', 'npm init', 'apt-get install' without '-y', interactive git prompts). ALWAYS provide non-interactive flags (e.g. 'npm --yes', 'apt-get -y', 'git --no-pager', 'sudo -n').
@@ -402,7 +414,8 @@ export function formatNodeConfigSummary(
       const mappings =
         (data.output_mappings as Array<{ source?: string; target?: string }>) || [];
       const summary = mappings.map((m) => `${m.source || '?'} -> ${m.target || '?'}`).join(', ');
-      return `mappings(${mappings.length}): [${summary}]`;
+      const sourceStr = data.source_node_id ? `source_node: ${data.source_node_id}, ` : '';
+      return `${sourceStr}mappings(${mappings.length}): [${summary}]`;
     }
     case 'script': {
       const script = String(data.script || '').trim();
