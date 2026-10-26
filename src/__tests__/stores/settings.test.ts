@@ -150,4 +150,21 @@ describe('SettingsStore', () => {
       expect(useSettingsStore.getState().error).toBeNull();
     });
   });
+  describe('setAiMaxIterations', () => {
+    it('更新 aiMaxIterations 并 clamp 在 5 到 100 范围内', async () => {
+      await useSettingsStore.getState().setAiMaxIterations(35);
+      expect(useSettingsStore.getState().aiMaxIterations).toBe(35);
+
+      // 小于 5 (含 0) 时 clamp 到 5
+      await useSettingsStore.getState().setAiMaxIterations(2);
+      expect(useSettingsStore.getState().aiMaxIterations).toBe(5);
+
+      await useSettingsStore.getState().setAiMaxIterations(0);
+      expect(useSettingsStore.getState().aiMaxIterations).toBe(5);
+
+      // 大于 100 时 clamp 到 100
+      await useSettingsStore.getState().setAiMaxIterations(150);
+      expect(useSettingsStore.getState().aiMaxIterations).toBe(100);
+    });
+  });
 });

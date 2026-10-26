@@ -58,6 +58,8 @@ export interface Settings {
   aiWindowMode?: 'dock' | 'spotlight';
   /** 自定义全局 System Prompt */
   aiCustomSystemPrompt?: string;
+  /** AI 单次请求最大执行轮次 / 迭代上限 (默认 20，范围 5~100) */
+  aiMaxIterations?: number;
   /** 启动时是否自动检查更新（默认 true） */
   autoCheckUpdate?: boolean;
   /** 是否接收预发布版本（Beta / Alpha） */
@@ -108,6 +110,8 @@ export interface SettingsState {
   aiWindowMode: 'dock' | 'spotlight';
   /** 自定义全局 System Prompt */
   aiCustomSystemPrompt?: string;
+  /** AI 单次请求最大执行轮次 / 迭代上限 */
+  aiMaxIterations: number;
   /** 启动时是否自动检查更新 */
   autoCheckUpdate?: boolean;
   /** 是否接收预发布版本 */
@@ -172,6 +176,8 @@ export interface SettingsActions {
   setAiWindowMode: (mode: 'dock' | 'spotlight') => Promise<void>;
   /** 设置自定义全局 System Prompt */
   setAiCustomSystemPrompt: (prompt: string | undefined) => Promise<void>;
+  /** 设置 AI 单次最大执行轮次 */
+  setAiMaxIterations: (max: number) => Promise<void>;
   /** 设置启动时自动检查更新 */
   setAutoCheckUpdate?: (enabled: boolean) => Promise<void>;
   /** 设置是否接收预发布版本 */

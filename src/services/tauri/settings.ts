@@ -50,6 +50,7 @@ export async function loadSettings(): Promise<Settings> {
     const aiEnabled = await store.get<boolean>('aiEnabled');
     const aiWindowMode = await store.get<'dock' | 'spotlight'>('aiWindowMode');
     const aiCustomSystemPrompt = await store.get<string>('aiCustomSystemPrompt');
+    const aiMaxIterations = await store.get<number>('aiMaxIterations');
     const autoCheckUpdate = await store.get<boolean>('autoCheckUpdate');
     const includePrerelease = await store.get<boolean>('includePrerelease');
     const ignoredVersions = await store.get<string[]>('ignoredVersions');
@@ -71,6 +72,7 @@ export async function loadSettings(): Promise<Settings> {
       aiEnabled: aiEnabled ?? true,
       aiWindowMode: aiWindowMode ?? 'dock',
       aiCustomSystemPrompt: aiCustomSystemPrompt ?? undefined,
+      aiMaxIterations: aiMaxIterations ?? 20,
       autoCheckUpdate: autoCheckUpdate ?? true,
       includePrerelease: includePrerelease ?? false,
       ignoredVersions: ignoredVersions ?? [],
@@ -140,6 +142,9 @@ export async function saveSettings(settings: Partial<Settings>): Promise<void> {
     }
     if (settings.aiCustomSystemPrompt !== undefined) {
       await store.set('aiCustomSystemPrompt', settings.aiCustomSystemPrompt);
+    }
+    if (settings.aiMaxIterations !== undefined) {
+      await store.set('aiMaxIterations', settings.aiMaxIterations);
     }
     if (settings.autoCheckUpdate !== undefined) {
       await store.set('autoCheckUpdate', settings.autoCheckUpdate);

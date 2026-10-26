@@ -38,8 +38,8 @@ describe('Settings types', () => {
       activeAiProviderId: null,
       aiEnabled: true,
       aiWindowMode: 'dock',
+      aiMaxIterations: 20,
     };
-
     expect(state.isLoading).toBe(false);
     expect(state.error).toBeNull();
     expect(state.theme).toBe('system');
@@ -58,8 +58,8 @@ describe('Settings types', () => {
       defaultIngressPort: 9527,
       aiEnabled: true,
       aiWindowMode: 'dock',
+      aiMaxIterations: 20,
     };
-
     expect(state.error).toBe('Failed to load settings');
     expect(state.theme).toBe('dark');
   });
@@ -88,8 +88,8 @@ describe('Settings types', () => {
       setAiEnabled: async () => {},
       setAiWindowMode: async () => {},
       setAiCustomSystemPrompt: async () => {},
+      setAiMaxIterations: async () => {},
     };
-
     expect(typeof actions.loadSettings).toBe('function');
     expect(typeof actions.setReportDir).toBe('function');
     expect(typeof actions.setLogDir).toBe('function');
@@ -132,12 +132,14 @@ describe('Settings types', () => {
       activeAiProviderId: null,
       aiEnabled: true,
       aiWindowMode: 'dock',
+      aiMaxIterations: 20,
       setAiProviders: async () => {},
       setActiveAiProviderId: async () => {},
       setDefaultIngressPort: async (_port: number) => {},
       setAiEnabled: async () => {},
       setAiWindowMode: async () => {},
       setAiCustomSystemPrompt: async () => {},
+      setAiMaxIterations: async () => {},
     };
 
     expect(store.reportDir).toBe('/path/to/reports');

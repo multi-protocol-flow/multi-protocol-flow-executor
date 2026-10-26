@@ -45,6 +45,7 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
   aiEnabled: true,
   aiWindowMode: 'dock',
   aiCustomSystemPrompt: undefined,
+  aiMaxIterations: 20,
   autoCheckUpdate: true,
   includePrerelease: false,
   ignoredVersions: [],
@@ -73,6 +74,7 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
         aiEnabled: settings.aiEnabled ?? true,
         aiWindowMode: settings.aiWindowMode ?? 'dock',
         aiCustomSystemPrompt: settings.aiCustomSystemPrompt,
+        aiMaxIterations: settings.aiMaxIterations ?? 20,
         autoCheckUpdate: settings.autoCheckUpdate ?? true,
         includePrerelease: settings.includePrerelease ?? false,
         ignoredVersions: settings.ignoredVersions ?? [],
@@ -296,6 +298,18 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
       set({ error: formatErrorMessage(e) });
     }
   },
+  setAiMaxIterations: async (max) => {
+    const rounded = Math.round(max);
+    const clamped = Math.max(5, Math.min(100, Number.isNaN(rounded) ? 20 : rounded));
+    try {
+      const service = await getSettingsService();
+      await service.saveSettings({ aiMaxIterations: clamped });
+      set({ aiMaxIterations: clamped });
+    } catch (e) {
+      set({ error: formatErrorMessage(e) });
+    }
+  },
+
 
   setAutoCheckUpdate: async (enabled) => {
     try {
