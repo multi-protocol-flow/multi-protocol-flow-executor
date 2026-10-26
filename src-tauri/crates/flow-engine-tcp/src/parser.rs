@@ -199,19 +199,19 @@ fn write_uint(value: u64, num_bytes: u8, byte_order: &str) -> Result<Vec<u8>, St
         "big" => match num_bytes {
             1 => {
                 if value > u8::MAX as u64 {
-                    return Err(format!("值 {} 超出 1 字节范围", value));
+                    return Err(format!("Value {} exceeds 1-byte range", value));
                 }
                 Ok(vec![value as u8])
             }
             2 => {
                 if value > u16::MAX as u64 {
-                    return Err(format!("值 {} 超出 2 字节范围", value));
+                    return Err(format!("Value {} exceeds 2-byte range", value));
                 }
                 Ok((value as u16).to_be_bytes().to_vec())
             }
             4 => {
                 if value > u32::MAX as u64 {
-                    return Err(format!("值 {} 超出 4 字节范围", value));
+                    return Err(format!("Value {} exceeds 4-byte range", value));
                 }
                 Ok((value as u32).to_be_bytes().to_vec())
             }
@@ -221,19 +221,19 @@ fn write_uint(value: u64, num_bytes: u8, byte_order: &str) -> Result<Vec<u8>, St
         "little" => match num_bytes {
             1 => {
                 if value > u8::MAX as u64 {
-                    return Err(format!("值 {} 超出 1 字节范围", value));
+                    return Err(format!("Value {} exceeds 1-byte range", value));
                 }
                 Ok(vec![value as u8])
             }
             2 => {
                 if value > u16::MAX as u64 {
-                    return Err(format!("值 {} 超出 2 字节范围", value));
+                    return Err(format!("Value {} exceeds 2-byte range", value));
                 }
                 Ok((value as u16).to_le_bytes().to_vec())
             }
             4 => {
                 if value > u32::MAX as u64 {
-                    return Err(format!("值 {} 超出 4 字节范围", value));
+                    return Err(format!("Value {} exceeds 4-byte range", value));
                 }
                 Ok((value as u32).to_le_bytes().to_vec())
             }

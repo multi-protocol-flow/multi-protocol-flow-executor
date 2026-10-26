@@ -58,8 +58,14 @@ pub async fn install_plugin(
     let asset = plugin
         .platforms
         .get(&platform)
+        .or_else(|| {
+            if platform == "macos-arm64" {
+                plugin.platforms.get("macos-x64")
+            } else {
+                None
+            }
+        })
         .ok_or_else(|| platform_unsupported(plugin))?;
-
     // 2. Target directory + AlreadyInstalled gate (checked before download).
     let target = install_dir.join(&plugin.name);
     if target.join("plugin.json").exists() && !force {

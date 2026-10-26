@@ -877,10 +877,12 @@ pub fn copy_flow_file(uuid_or_path: &str, flows_dir: &Path) -> Result<Flow, Stri
     }
 
     let base_name = &original_flow.name;
-    let mut candidate_name = format!("{}(副本)", base_name);
+    let mut candidate_name = format!("{} (copy)", base_name);
     let mut counter = 2u32;
-    while existing_names.contains(&candidate_name) {
-        candidate_name = format!("{}(副本 {})", base_name, counter);
+    while existing_names.contains(&candidate_name)
+        || existing_names.contains(&sanitize_filename(&candidate_name))
+    {
+        candidate_name = format!("{} (copy {})", base_name, counter);
         counter += 1;
     }
 
@@ -3078,8 +3080,8 @@ mod tests {
 
         // 验证名称带 "(副本)" 后缀
         assert_eq!(
-            copied.name, "原始流程(副本)",
-            "复制的流程名称应添加 (副本) 后缀"
+            copied.name, "原始流程 (copy)",
+            "复制的流程名称应添加 (copy) 后缀"
         );
 
         // 验证两个流程独立存在
@@ -3094,14 +3096,14 @@ mod tests {
         // 复制的流程也可加载（通过新 UUID）
         let copied_load = load_flow_file(&copied.uuid, flows_dir)
             .unwrap_or_else(|e| panic!("复制流程应可加载: {e}"));
-        assert_eq!(copied_load.name, "原始流程(副本)");
+        assert_eq!(copied_load.name, "原始流程 (copy)");
 
         // 再次复制同一流程 — 应生成 "(副本 2)"
         let copied2 = copy_flow_file("copy-001", flows_dir)
             .unwrap_or_else(|e| panic!("第二次复制Failed: {e}"));
         assert_eq!(
-            copied2.name, "原始流程(副本 2)",
-            "第二次复制的名称应为 (副本 2)"
+            copied2.name, "原始流程 (copy 2)",
+            "第二次复制的名称应为 (copy 2)"
         );
         assert_ne!(copied2.uuid, copied.uuid, "每次复制应有不同 UUID");
     }

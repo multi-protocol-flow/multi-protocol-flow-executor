@@ -677,31 +677,31 @@ impl VariablePool {
     /// 设置全局变量（向后兼容）
     ///
     /// 使用空字符串作为 `source_node_uuid`
-    #[deprecated(note = "请使用 set_variable 方法")]
+    #[deprecated(note = "Please use set_variable instead")]
     pub fn set_global(&mut self, key: String, value: Value) {
         self.set_variable(key, value, String::new());
     }
 
     /// 获取全局变量（向后兼容）
-    #[deprecated(note = "请使用 get_variable 方法")]
+    #[deprecated(note = "Please use get_variable instead")]
     pub fn get_global(&self, key: &str) -> Option<&Value> {
         self.get_variable(key)
     }
 
     /// 设置节点局部变量（向后兼容）
-    #[deprecated(note = "请使用 set_variable 方法")]
+    #[deprecated(note = "Please use set_variable instead")]
     pub fn set_node_variable(&mut self, node_uuid: String, key: String, value: Value) {
         self.set_variable(key, value, node_uuid);
     }
 
     /// 获取节点局部变量（向后兼容）
-    #[deprecated(note = "请使用 get_variable 方法")]
+    #[deprecated(note = "Please use get_variable instead")]
     pub fn get_node_variable(&self, _node_uuid: &str, key: &str) -> Option<&Value> {
         self.get_variable(key)
     }
 
     /// 获取节点的所有局部变量（向后兼容）
-    #[deprecated(note = "此方法在新架构中不再适用")]
+    #[deprecated(note = "This method is obsolete in the new architecture")]
     pub fn get_node_variables(&self, node_uuid: &str) -> Option<HashMap<String, Value>> {
         let node_vars: HashMap<String, Value> = self
             .variables

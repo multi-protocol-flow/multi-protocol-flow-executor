@@ -475,7 +475,7 @@ impl UdpProvider for UdpSocketManager {
             let mut sockets = self
                 .sockets
                 .lock()
-                .map_err(|e| format!("获取 Socket 锁Failed: {}", e))?;
+                .map_err(|e| format!("Failed to acquire socket lock: {}", e))?;
             sockets
                 .remove(uuid)
                 .ok_or_else(|| format!("UDP socket '{}' not found", uuid))?;
