@@ -10,6 +10,7 @@ import {
 import { executionToolHandlers } from '@/services/ai/tools/executionTools';
 import { buildSystemPrompt } from '@/services/ai/contextBuilder';
 import type { Flow, Node } from '@/types';
+import { isVariableExtractorConfig } from '@/types';
 
 describe('resolveDefaultPorts', () => {
   it('entry -> http: 应该将源端口解析为 out，目标端口解析为 in', () => {
@@ -278,7 +279,11 @@ describe('canvasToolHandlers 集成测试', () => {
     expect(allConfigs.nodes.length).toBeGreaterThan(0);
   });
 
-  it('auto_layout: 支持 horizontal 和 adaptive 两种排版模式', async () => {
+  it('auto_layout: 默认采用 adaptive 自适应折行排版模式，并支持显式传入 horizontal/adaptive', async () => {
+    const defaultRes = await canvasToolHandlers.auto_layout();
+    expect(defaultRes.success).toBe(true);
+    expect(defaultRes.mode).toBe('adaptive');
+
     const horizRes = await canvasToolHandlers.auto_layout({ mode: 'horizontal' });
     expect(horizRes.success).toBe(true);
     expect(horizRes.mode).toBe('horizontal');
@@ -467,6 +472,274 @@ describe('canvasTools - batch_create_pipeline declarative topology & auto_run', 
     expect(result.execution).toBeDefined();
     expect(result.execution?.status).toBe('failed');
     expect(result.execution?.flow_error).toContain('Engine connection timeout');
+  });
+
+  it('未指定 auto_run 时默认执行流程并返回执行结果', async () => {
+    const runFlowSpy = vi.spyOn(executionToolHandlers, 'run_flow').mockResolvedValue({
+      success: true,
+      execution_time_ms: 80,
+      status: 'success',
+      failed_nodes: [],
+      failed_node_reports: [],
+      diagnostic_summary: 'All nodes passed',
+      flow_error: undefined,
+      error: undefined,
+    });
+
+    const result = await canvasToolHandlers.batch_create_pipeline({
+      nodes: [
+        {
+          id: 'test_node',
+          type: 'http:request',
+          name: 'Default Exec Endpoint',
+        },
+      ],
+    });
+
+    expect(runFlowSpy).toHaveBeenCalledTimes(1);
+    expect(result.execution).toBeDefined();
+    expect(result.execution?.status).toBe('success');
+  });
+
+  it('显式指定 auto_run: false 时不触发流程执行', async () => {
+    const runFlowSpy = vi.spyOn(executionToolHandlers, 'run_flow').mockResolvedValue({
+      success: true,
+      execution_time_ms: 50,
+      status: 'success',
+      failed_nodes: [],
+      failed_node_reports: [],
+      diagnostic_summary: '',
+      flow_error: undefined,
+      error: undefined,
+    });
+
+    const result = await canvasToolHandlers.batch_create_pipeline({
+      nodes: [
+        {
+          id: 'no_run_node',
+          type: 'http:request',
+          name: 'No Run Endpoint',
+        },
+      ],
+      auto_run: false,
+    });
+
+    expect(runFlowSpy).not.toHaveBeenCalled();
+    expect(result.execution).toBeUndefined();
+  });
+
+  it('当 variable:extractor 漏配 source_node_id 时，自动跨越中间的 assertion 节点查找到正确的上游数据生产节点', async () => {
+    vi.spyOn(executionToolHandlers, 'run_flow').mockResolvedValue({
+      success: true,
+      status: 'success',
+      failed_nodes: [],
+      failed_node_reports: [],
+      execution_time_ms: 10,
+      diagnostic_summary: '',
+      flow_error: undefined,
+      error: undefined,
+    });
+
+    const result = await canvasToolHandlers.batch_create_pipeline({
+      nodes: [
+        {
+          id: 'login',
+          type: 'http:request',
+          name: '用户登录',
+          config: { url: 'https://api.test/login', method: 'post' },
+        },
+        {
+          id: 'assert_status',
+          type: 'assertion',
+          name: '断言200',
+          config: {
+            assertions: [{ target: 'status_code', operator: 'equal', expected: 200 }],
+          },
+        },
+        {
+          id: 'extract_token',
+          type: 'variable:extractor',
+          name: '提取Token',
+          config: {
+            // 模拟 AI 漏掉了 source_node_id
+            output_mappings: [{ source: '$.body.token', target: 'AUTH_TOKEN' }],
+          },
+        },
+      ],
+      edges: [
+        { source: 'login', target: 'assert_status', source_port: 'true' },
+        { source: 'assert_status', target: 'extract_token', source_port: 'true' },
+      ],
+      auto_run: false,
+    });
+
+    expect(result.success).toBe(true);
+
+    const flow = useFlowStore.getState().flow;
+    const loginNode = flow?.nodes.find((n) => n.name === '用户登录');
+    const extractorNode = flow?.nodes.find((n) => n.name === '提取Token');
+
+    expect(loginNode).toBeDefined();
+    expect(extractorNode).toBeDefined();
+
+    expect(isVariableExtractorConfig(extractorNode!.data)).toBe(true);
+    if (isVariableExtractorConfig(extractorNode!.data)) {
+      expect(extractorNode!.data.source_node_id).toBe(loginNode?.uuid);
+    }
+  });
+
+  it('当 variable:extractor 传入别名 id 时，正确解析为目标节点的实际 UUID', async () => {
+    const result = await canvasToolHandlers.batch_create_pipeline({
+      nodes: [
+        {
+          id: 'fetch_data',
+          type: 'http:request',
+          name: '获取数据',
+        },
+        {
+          id: 'extractor_node',
+          type: 'variable:extractor',
+          name: '提取数据',
+          config: {
+            source_node_id: 'fetch_data', // 传入了别名
+            output_mappings: [{ source: '$.body.data.id', target: 'DATA_ID' }],
+          },
+        },
+      ],
+      auto_run: false,
+    });
+
+    expect(result.success).toBe(true);
+    const flow = useFlowStore.getState().flow;
+    const fetchNode = flow?.nodes.find((n) => n.name === '获取数据');
+    const extractorNode = flow?.nodes.find((n) => n.name === '提取数据');
+
+    expect(isVariableExtractorConfig(extractorNode!.data)).toBe(true);
+    if (isVariableExtractorConfig(extractorNode!.data)) {
+      expect(extractorNode!.data.source_node_id).toBe(fetchNode?.uuid);
+    }
+  });
+
+  it('add_node 与 update_node_config: 自动推导或解析 variable:extractor 的 source_node_id', async () => {
+    // 1. 添加一个 http producer
+    const httpNodeRes = await canvasToolHandlers.add_node({
+      type: 'http:request',
+      name: 'Producer HTTP',
+    });
+
+    // 2. 添加 variable:extractor 且未指定 source_node_id -> 自动关联到最近 producer
+    const extRes1 = await canvasToolHandlers.add_node({
+      type: 'variable:extractor',
+      name: 'Auto Extractor',
+      config: {
+        output_mappings: [{ source: '$.id', target: 'ID' }],
+      },
+    });
+
+    let flow = useFlowStore.getState().flow;
+    let extNode1 = flow?.nodes.find((n) => n.uuid === extRes1.node_uuid);
+    expect(isVariableExtractorConfig(extNode1!.data)).toBe(true);
+    if (isVariableExtractorConfig(extNode1!.data)) {
+      expect(extNode1!.data.source_node_id).toBe(httpNodeRes.node_uuid);
+    }
+
+    // 3. update_node_config 使用节点名称指定 source_node_id -> 自动解析为 UUID
+    await canvasToolHandlers.update_node_config({
+      node_uuid: extRes1.node_uuid,
+      config: {
+        source_node_id: 'Producer HTTP',
+      },
+    });
+
+    flow = useFlowStore.getState().flow;
+    extNode1 = flow?.nodes.find((n) => n.uuid === extRes1.node_uuid);
+    expect(isVariableExtractorConfig(extNode1!.data)).toBe(true);
+    if (isVariableExtractorConfig(extNode1!.data)) {
+      expect(extNode1!.data.source_node_id).toBe(httpNodeRes.node_uuid);
+    }
+  });
+
+  it('当 variable:extractor 既无 name 也无 id 时，通过 list fallback 准确绑定到前驱 producer 节点', async () => {
+    const result = await canvasToolHandlers.batch_create_pipeline({
+      nodes: [
+        {
+          type: 'http:request',
+        },
+        {
+          type: 'variable:extractor',
+          config: {
+            output_mappings: [{ source: '$.token', target: 'ANON_TOKEN' }],
+          },
+        },
+      ],
+      auto_run: false,
+    });
+
+    expect(result.success).toBe(true);
+    const flow = useFlowStore.getState().flow;
+    const httpNode = flow?.nodes.find((n) => n.type === 'http:request');
+    const extractorNode = flow?.nodes.find((n) => n.type === 'variable:extractor');
+
+    expect(httpNode).toBeDefined();
+    expect(extractorNode).toBeDefined();
+    expect(isVariableExtractorConfig(extractorNode!.data)).toBe(true);
+    if (isVariableExtractorConfig(extractorNode!.data)) {
+      expect(extractorNode!.data.source_node_id).toBe(httpNode?.uuid);
+    }
+  });
+
+  it('单流程包含多个提取节点时，各提取节点只向回搜索前驱节点，不污染绑定下游节点', async () => {
+    const result = await canvasToolHandlers.batch_create_pipeline({
+      nodes: [
+        {
+          id: 'step1_http',
+          type: 'http:request',
+          name: 'Step 1 HTTP',
+        },
+        {
+          id: 'step1_ext',
+          type: 'variable:extractor',
+          name: 'Step 1 Extractor',
+          config: {
+            output_mappings: [{ source: '$.token1', target: 'T1' }],
+          },
+        },
+        {
+          id: 'step2_http',
+          type: 'http:request',
+          name: 'Step 2 HTTP',
+        },
+        {
+          id: 'step2_ext',
+          type: 'variable:extractor',
+          name: 'Step 2 Extractor',
+          config: {
+            output_mappings: [{ source: '$.token2', target: 'T2' }],
+          },
+        },
+      ],
+      auto_run: false,
+    });
+
+    expect(result.success).toBe(true);
+    const flow = useFlowStore.getState().flow;
+    const step1Http = flow?.nodes.find((n) => n.name === 'Step 1 HTTP');
+    const step1Ext = flow?.nodes.find((n) => n.name === 'Step 1 Extractor');
+    const step2Http = flow?.nodes.find((n) => n.name === 'Step 2 HTTP');
+    const step2Ext = flow?.nodes.find((n) => n.name === 'Step 2 Extractor');
+
+    expect(step1Http).toBeDefined();
+    expect(step1Ext).toBeDefined();
+    expect(step2Http).toBeDefined();
+    expect(step2Ext).toBeDefined();
+
+    if (isVariableExtractorConfig(step1Ext!.data)) {
+      // step1Ext 必须绑定 step1Http，绝不能错误绑定下游的 step2Http
+      expect(step1Ext!.data.source_node_id).toBe(step1Http?.uuid);
+    }
+    if (isVariableExtractorConfig(step2Ext!.data)) {
+      expect(step2Ext!.data.source_node_id).toBe(step2Http?.uuid);
+    }
   });
 });
 

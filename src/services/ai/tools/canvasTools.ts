@@ -70,6 +70,23 @@ export function normalizeJsonPath(path: string): string {
   return `$.${trimmed}`;
 }
 
+/**
+ * 判断节点类型是否为数据生产者（即执行后会输出网络响应、数据查询或脚本返回的节点）
+ * 用于 variable:extractor 智能数据源推导与回溯
+ */
+const NON_PRODUCER_NODE_TYPES: Record<string, true> = {
+  entry: true,
+  end: true,
+  'variable:extractor': true,
+  assertion: true,
+  conditional: true,
+  proxy: true,
+};
+
+export function isProducerNode(type: string): boolean {
+  return !NON_PRODUCER_NODE_TYPES[type];
+}
+
 export function buildDefaultNodeData(type: string, config?: Record<string, unknown>): NodeData {
   const defaults = createDefaultNodeData(type as AnyNodeType);
   const rawConfig: Record<string, unknown> = {
@@ -203,11 +220,17 @@ export function buildDefaultNodeData(type: string, config?: Record<string, unkno
         description: item.description ? String(item.description) : undefined,
       }));
 
+      const sourceNodeId = rawConfig.source_node_id
+        ? String(rawConfig.source_node_id).trim()
+        : (rawConfig.source_node
+            ? String(rawConfig.source_node).trim()
+            : (rawConfig.data_source ? String(rawConfig.data_source).trim() : undefined));
+
       return {
         ...rawConfig,
         type: 'variable:extractor',
         output_mappings: outputMappings,
-        source_node_id: rawConfig.source_node_id ? String(rawConfig.source_node_id) : undefined,
+        source_node_id: sourceNodeId || undefined,
       } as unknown as NodeData;
     }
 
@@ -286,7 +309,7 @@ export const canvasToolDefinitions: AIToolDefinition[] = [
                 config: {
                   type: 'object',
                   description:
-                    "Configuration specific to the node type (e.g. for http:request: {method: 'get', url: '...'}, for assertion: {assertions: [...]}, for extractor: {output_mappings: [...]}).",
+                    "Configuration specific to the node type. For 'variable:extractor', ALWAYS specify 'source_node_id' to point to the upstream data producer node (e.g. {source_node_id: 'login', output_mappings: [...]}) to prevent extraction failure from intermediate nodes.",
                 },
                 on_error: {
                   type: 'string',
@@ -328,7 +351,7 @@ export const canvasToolDefinitions: AIToolDefinition[] = [
           auto_run: {
             type: 'boolean',
             description:
-              'Whether to immediately execute and verify the workflow after creation and layout. Returns the execution report in the result.',
+              'Whether to immediately execute and verify the workflow after creation and layout. Defaults to true. When user asks to write or create a workflow, it automatically executes to verify live results. Set to false only if explicitly requested not to run.',
           },
           connect_from_node_uuid: {
             type: 'string',
@@ -473,7 +496,7 @@ export const canvasToolDefinitions: AIToolDefinition[] = [
     type: 'function',
     function: {
       name: 'auto_layout',
-      description: 'Automatically organize and arrange all nodes and connections on the canvas into a clean DAG layout.',
+      description: 'Automatically organize and arrange all nodes and connections on the canvas into an adaptive wrap layout (or horizontal DAG layout).',
       parameters: {
         type: 'object',
         properties: {
@@ -484,8 +507,8 @@ export const canvasToolDefinitions: AIToolDefinition[] = [
           },
           mode: {
             type: 'string',
-            enum: ['horizontal', 'adaptive'],
-            description: 'Layout mode: "horizontal" (single line LR) or "adaptive" (wrap lines based on viewport width to prevent infinite horizontal scrolling). Defaults to horizontal.',
+            enum: ['adaptive', 'horizontal'],
+            description: 'Layout mode: "adaptive" (adaptive wrap layout based on viewport width to prevent infinite horizontal scrolling, default and recommended) or "horizontal" (single line LR). Defaults to adaptive.',
           },
           viewport_width: {
             type: 'number',
@@ -728,6 +751,11 @@ export const BUILTIN_SCHEMAS: Record<string, unknown> = {
       output: ['out'],
     },
     fields: {
+      source_node_id: {
+        type: 'string',
+        required: false,
+        description: 'UUID, alias ID, or name of the upstream data producer node whose output will be extracted. Highly recommended to set explicitly to prevent extraction failures across intermediate nodes.',
+      },
       output_mappings: {
         type: 'array',
         items: {
@@ -739,6 +767,7 @@ export const BUILTIN_SCHEMAS: Record<string, unknown> = {
       },
     },
     example: {
+      source_node_id: 'login',
       output_mappings: [
         { source: '$.body.data.token', target: 'auth_token', description: 'User session token' },
       ],
@@ -1136,13 +1165,111 @@ export const canvasToolHandlers = {
         });
       }
     }
-    // 自动重排布局
-    const refreshedFlow = useFlowStore.getState().flow;
-    if (refreshedFlow && refreshedFlow.nodes.length > 0) {
-      const positions = getLayoutedPositions(refreshedFlow.nodes, refreshedFlow.connections, 'LR');
-      flowState.batchUpdateNodePositions(positions);
+    // 自动解析与补全 variable:extractor 的 source_node_id（数据源）
+    const flowBeforeLayout = useFlowStore.getState().flow;
+    const currentNodes = flowBeforeLayout?.nodes || [];
+    const currentConnections = flowBeforeLayout?.connections || [];
+
+    for (const createdNode of createdNodes) {
+      if (createdNode.type !== 'variable:extractor') continue;
+
+      const flowNode = currentNodes.find((n) => n.uuid === createdNode.uuid);
+      if (!flowNode) continue;
+
+      const extractorConfig = flowNode.data as unknown as { source_node_id?: string };
+      let resolvedSourceUuid: string | undefined;
+
+      // 1. 如果指定了 source_node_id，先解析别名/名称/UUID
+      if (extractorConfig.source_node_id) {
+        const rawSource = extractorConfig.source_node_id.trim();
+        const match =
+          nodeIdMap.get(rawSource)?.uuid ||
+          currentNodes.find((n) => n.uuid === rawSource || n.name === rawSource)?.uuid;
+        if (match) {
+          resolvedSourceUuid = match;
+        }
+      }
+
+      // 2. 如果未指定或未能解析，智能回溯查找最近的数据生产者节点
+      if (!resolvedSourceUuid) {
+        // 2a. 沿连线拓扑向上回溯 (BFS 查找最近的上游 producer)
+        const queue: string[] = [];
+        const visited = new Set<string>([createdNode.uuid]);
+
+        for (const conn of currentConnections) {
+          if (conn.target_node_uuid === createdNode.uuid) {
+            queue.push(conn.source_node_uuid);
+          }
+        }
+
+        while (queue.length > 0) {
+          const currId = queue.shift()!;
+          if (visited.has(currId)) continue;
+          visited.add(currId);
+
+          const srcNode = currentNodes.find((n) => n.uuid === currId);
+          if (!srcNode) continue;
+
+          if (isProducerNode(srcNode.type)) {
+            resolvedSourceUuid = srcNode.uuid;
+            break;
+          }
+
+          for (const conn of currentConnections) {
+            if (conn.target_node_uuid === currId && !visited.has(conn.source_node_uuid)) {
+              queue.push(conn.source_node_uuid);
+            }
+          }
+        }
+
+        // 2b. 若拓扑回溯未命中，按 args.nodes 顺序向前查找最近的 producer
+        if (!resolvedSourceUuid) {
+          const nodeIdx = createdNodes.findIndex((n) => n.uuid === createdNode.uuid);
+          if (nodeIdx > 0) {
+            for (let j = nodeIdx - 1; j >= 0; j--) {
+              if (isProducerNode(args.nodes[j].type)) {
+                const prevCreated = createdNodes[j];
+                if (prevCreated) {
+                  resolvedSourceUuid = prevCreated.uuid;
+                  break;
+                }
+              }
+            }
+          }
+        }
+
+        // 2c. 若仍未命中，从已有画布节点从前驱向前找最近的 producer
+        if (!resolvedSourceUuid) {
+          const currentIdx = currentNodes.findIndex((n) => n.uuid === createdNode.uuid);
+          if (currentIdx > 0) {
+            for (let j = currentIdx - 1; j >= 0; j--) {
+              if (isProducerNode(currentNodes[j].type)) {
+                resolvedSourceUuid = currentNodes[j].uuid;
+                break;
+              }
+            }
+          }
+        }
+      }
+
+      if (resolvedSourceUuid && extractorConfig.source_node_id !== resolvedSourceUuid) {
+        flowState.updateNode(createdNode.uuid, {
+          data: {
+            ...flowNode.data,
+            source_node_id: resolvedSourceUuid,
+          } as unknown as NodeData,
+        });
+      }
     }
 
+    // 自动重排布局：采用自适应折行布局 (adaptive wrap layout)
+    const refreshedFlow = useFlowStore.getState().flow;
+    if (refreshedFlow && refreshedFlow.nodes.length > 0) {
+      const positions = getAdaptiveLayoutedPositions(refreshedFlow.nodes, refreshedFlow.connections, {
+        viewportWidth: 1200,
+      });
+      flowState.batchUpdateNodePositions(positions);
+    }
     if (createdNodes.length > 0) {
       flowState.selectNode(createdNodes[0].uuid);
       flowState.centerOnNode(createdNodes[0].uuid);
@@ -1158,7 +1285,8 @@ export const canvasToolHandlers = {
       error?: string;
     } | undefined;
 
-    if (args.auto_run) {
+    const shouldAutoRun = args.auto_run !== false; // 默认执行：用户要求写流程默认写完执行
+    if (shouldAutoRun) {
       try {
         const runRes = await executionToolHandlers.run_flow();
         const execReport = useExecutionStore.getState().report;
@@ -1224,6 +1352,21 @@ export const canvasToolHandlers = {
     }
 
     const data = buildDefaultNodeData(args.type, args.config);
+    if (args.type === 'variable:extractor') {
+      const extData = data as unknown as { source_node_id?: string };
+      if (extData.source_node_id) {
+        const rawSource = extData.source_node_id.trim();
+        const match = currentFlow.nodes.find((n) => n.uuid === rawSource || n.name === rawSource);
+        if (match) {
+          extData.source_node_id = match.uuid;
+        }
+      } else {
+        const producer = [...currentFlow.nodes].reverse().find((n) => isProducerNode(n.type));
+        if (producer) {
+          extData.source_node_id = producer.uuid;
+        }
+      }
+    }
 
     const newNode: Node = {
       uuid,
@@ -1272,12 +1415,20 @@ export const canvasToolHandlers = {
       updates.on_error = args.on_error;
     }
     if (args.config !== undefined) {
-      updates.data = buildDefaultNodeData(node.type, {
-        ...node.data,
-        ...args.config,
-      });
+      const mergedConfig = { ...(node.data as unknown as Record<string, unknown>), ...args.config };
+      const defaultData = buildDefaultNodeData(node.type, mergedConfig);
+      if (node.type === 'variable:extractor') {
+        const extData = defaultData as unknown as { source_node_id?: string };
+        if (extData.source_node_id) {
+          const rawSource = extData.source_node_id.trim();
+          const match = currentFlow.nodes.find((n) => n.uuid === rawSource || n.name === rawSource);
+          if (match) {
+            extData.source_node_id = match.uuid;
+          }
+        }
+      }
+      updates.data = defaultData;
     }
-
     flowState.updateNode(args.node_uuid, updates);
 
     return {
@@ -1373,7 +1524,7 @@ export const canvasToolHandlers = {
       return { success: true, node_count: 0 };
     }
 
-    const mode = args?.mode || 'horizontal';
+    const mode = args?.mode || 'adaptive';
     const direction = args?.direction || 'LR';
 
     let positions: Map<string, { x: number; y: number }>;
