@@ -127,6 +127,7 @@ async-trait = "0.1"
 tokio = { workspace = true, features = ["signal", "process"] }
 reqwest = { workspace = true }
 futures-util = { workspace = true }
+base64 = { workspace = true }
 
 # CLI 日志
 fern = { version = "0.7", default-features = false }
@@ -135,6 +136,7 @@ chrono = "0.4"
 # CLI 框架 + 配置解析
 clap = { version = "4", features = ["derive"] }
 toml = "0.8"
+minisign-verify = "0.3"
 workspace-hack = { version = "0.1", path = "crates/workspace-hack" }
 
 # 协议特性开关（每个协议对应一个 feature，通过 flow-engine 转发）

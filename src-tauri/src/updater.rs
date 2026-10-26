@@ -13,6 +13,42 @@ pub const CHANGELOG_URL: &str = "https://download.mpe.run/changelog.json";
 
 /// 默认请求 User-Agent
 pub const DEFAULT_USER_AGENT: &str = concat!("mpe-app/", env!("CARGO_PKG_VERSION"));
+/// MPE 自动更新 Minisign 公钥 (Base64)
+pub const MPE_UPDATER_PUBKEY: &str =
+    "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDk4QzdEQTE2M0ZBREYxRTkKUldUcDhhMC9GdHJIbUtMVjFPZWtHSmJFRDB2N2VzcWZHcDhlYTJ3U2k3ZWp1Sm9iWTM1WFJQd1MK";
+
+fn parse_minisign_pubkey(pubkey_str: &str) -> Result<minisign_verify::PublicKey, String> {
+    use base64::Engine;
+    if let Ok(pk) = minisign_verify::PublicKey::from_base64(pubkey_str.trim()) {
+        return Ok(pk);
+    }
+    if let Ok(pk) = minisign_verify::PublicKey::decode(pubkey_str.trim()) {
+        return Ok(pk);
+    }
+    if let Ok(decoded_bytes) = base64::engine::general_purpose::STANDARD.decode(pubkey_str.trim().as_bytes()) {
+        if let Ok(decoded_str) = std::str::from_utf8(&decoded_bytes) {
+            if let Ok(pk) = minisign_verify::PublicKey::decode(decoded_str.trim()) {
+                return Ok(pk);
+            }
+            if let Ok(pk) = minisign_verify::PublicKey::from_base64(decoded_str.trim()) {
+                return Ok(pk);
+            }
+        }
+    }
+    Err("Invalid embedded public key: unable to parse Minisign key".to_string())
+}
+
+/// 使用 Minisign 公钥校验安装包字节的密码学签名
+pub fn verify_package_signature(file_bytes: &[u8], signature_str: &str) -> Result<(), String> {
+    let pubkey = parse_minisign_pubkey(MPE_UPDATER_PUBKEY)
+        .map_err(|e| format!("Invalid embedded public key: {e}"))?;
+    let sig = minisign_verify::Signature::decode(signature_str.trim())
+        .map_err(|e| format!("Invalid signature format: {e}"))?;
+    pubkey
+        .verify(file_bytes, &sig, false)
+        .map_err(|e| format!("Cryptographic signature verification failed: {e}"))?;
+    Ok(())
+}
 
 /// 官方 changelog.json 中单条版本记录结构
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -34,6 +70,9 @@ pub struct ChangelogEntry {
     /// 各平台直链：key 为 "windows" | "macos" | "linux"
     #[serde(default)]
     pub downloads: HashMap<String, String>,
+    /// 各平台签名：key 为 "windows" | "macos" | "linux"
+    #[serde(default)]
+    pub signatures: HashMap<String, String>,
 }
 
 /// 检查更新返回的结果
@@ -383,6 +422,38 @@ where
         .await
         .map_err(|e| format!("Failed flushing downloaded file: {e}"))?;
     drop(file);
+
+    // 校验安装包密码学签名 (.sig)
+    let sig_url = format!("{url}.sig");
+    match client.get(&sig_url).send().await {
+        Ok(sig_res) if sig_res.status().is_success() => {
+            let sig_text = sig_res
+                .text()
+                .await
+                .map_err(|e| format!("Failed to read signature from {sig_url}: {e}"))?;
+            let file_bytes = tokio::fs::read(&part_path)
+                .await
+                .map_err(|e| format!("Failed to read downloaded package for signature verification: {e}"))?;
+            if let Err(e) = verify_package_signature(&file_bytes, &sig_text) {
+                let _ = tokio::fs::remove_file(&part_path).await;
+                return Err(format!("Package signature verification failed: {e}"));
+            }
+            log::info!("[Updater] Cryptographic package signature verified successfully");
+        }
+        _ => {
+            #[cfg(not(debug_assertions))]
+            {
+                let _ = tokio::fs::remove_file(&part_path).await;
+                return Err("Missing required signature file (.sig) from update server".to_string());
+            }
+            #[cfg(debug_assertions)]
+            {
+                log::warn!(
+                    "[Updater] Signature file (.sig) not found or unreachable for {url} in debug build; skipping verification"
+                );
+            }
+        }
+    }
 
     // 重命名 .part 文件为目标文件
     tokio::fs::rename(&part_path, &final_path)
@@ -788,6 +859,7 @@ mod tests {
             notes: Some("Test release notes".to_string()),
             prerelease: Some(prerelease),
             downloads,
+            signatures: HashMap::new(),
         }
     }
 
@@ -862,6 +934,7 @@ mod tests {
             notes: Some("Notes".to_string()),
             prerelease: Some(false),
             downloads,
+            signatures: HashMap::new(),
         };
 
         let result =
@@ -991,5 +1064,33 @@ mod tests {
         if let Some(dir) = staged.parent() {
             let _ = std::fs::remove_dir_all(dir);
         }
+    }
+
+    #[test]
+    fn test_embedded_minisign_pubkey_valid() {
+        let pubkey = parse_minisign_pubkey(MPE_UPDATER_PUBKEY);
+        assert!(pubkey.is_ok(), "Embedded public key must parse successfully: {:?}", pubkey.err());
+    }
+
+    #[test]
+    fn test_verify_package_signature_invalid_sig_format() {
+        let res = verify_package_signature(b"dummy package content", "not-a-valid-minisign-signature");
+        assert!(res.is_err());
+        let err = res.err().unwrap_or_default();
+        assert!(err.contains("Invalid signature format") || err.contains("signature"));
+    }
+
+    #[test]
+    fn test_verify_package_signature_tampered_payload_or_key() {
+        let valid_format_sig = concat!(
+            "untrusted comment: signature from minisign secret key\n",
+            "RWQf6LRCGA9i59SLOFxz6NxvASXDJeRtuZykwQepbDEGt87ig1BNpWaVWuNrm73YiIiJbq71Wi+dP9eKL8OC351vwIasSSbXxwA=\n",
+            "trusted comment: timestamp:1555779966\tfile:test\n",
+            "QtKMXWyYcwdpZAlPF7tE2ENJkRd1ujvKjlj1m9RtHTBnZPa5WKU5uWRs5GoP5M/VqE81QFuMKI5k/SfNQUaOAA==\n"
+        );
+        let res = verify_package_signature(b"test", valid_format_sig);
+        assert!(res.is_err(), "Signature from a different key or tampered bytes must fail");
+        let err = res.err().unwrap_or_default();
+        assert!(err.contains("Cryptographic signature verification failed") || err.contains("verification failed"));
     }
 }
