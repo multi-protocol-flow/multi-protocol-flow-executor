@@ -1,22 +1,19 @@
 name: i18n Check — Frontend
 
-# ADVISORY: the UI still contains ~1k lines of hardcoded Chinese (canvas,
-# viewers, ui). This check reports them but does not fail the build, so it does
-# not block every PR touching `src/**`. Flip the final step to fail once the
-# backlog is cleared.
-
 on:
   push:
-    branches: [master]
+    branches: [master, dev]
     paths:
-      - 'src/**/*.ts'
-      - 'src/**/*.tsx'
+      - 'src/components/**/*.ts'
+      - 'src/components/**/*.tsx'
+      - 'scripts/ci/check-frontend-i18n.py'
       - '.github/workflows/i18n-check-frontend.yml'
   pull_request:
     branches: [master]
     paths:
-      - 'src/**/*.ts'
-      - 'src/**/*.tsx'
+      - 'src/components/**/*.ts'
+      - 'src/components/**/*.tsx'
+      - 'scripts/ci/check-frontend-i18n.py'
       - '.github/workflows/i18n-check-frontend.yml'
 
 permissions:
@@ -33,40 +30,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
-      - name: Install ripgrep
-        run: sudo apt-get update && sudo apt-get install -y ripgrep
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
 
-      # `-g` is the ripgrep glob flag; `--include` is grep's and aborts with
-      # "unexpected argument", which previously left RESULTS empty and made
-      # every run report a false success.
-      - name: Scan components for hardcoded Chinese text
-        run: |
-          scan() {
-            rg -g '*.{ts,tsx}' -n -H --no-heading '[\u4e00-\u9fff]' "$1" \
-              | rg -v 'getLL\(' || true
-          }
-          {
-            echo "## i18n Check — Frontend"
-            echo ""
-            echo "| Directory | Lines with CJK outside getLL() |"
-            echo "|---|---|"
-          } > /tmp/summary.md
-
-          total=0
-          for dir in src/components/execution/viewers src/components/ui src/components/canvas; do
-            scan "$dir" > "/tmp/$(basename "$dir").txt"
-            n=$(wc -l < "/tmp/$(basename "$dir").txt")
-            total=$((total + n))
-            echo "| \`$dir\` | $n |" >> /tmp/summary.md
-          done
-
-          echo "" >> /tmp/summary.md
-          if [ "$total" -eq 0 ]; then
-            echo "✅ No hardcoded Chinese text found." >> /tmp/summary.md
-          else
-            echo "⚠️ ${total} line(s) found. Advisory only — see the job log for detail." >> /tmp/summary.md
-            echo "::warning title=Frontend i18n::${total} line(s) with hardcoded Chinese text"
-            cat /tmp/*.txt | head -100
-          fi
-
-          cat /tmp/summary.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Run Frontend i18n Hard Gate Check
+        run: python3 scripts/ci/check-frontend-i18n.py
