@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **AI Maximum Execution Iterations Configuration**: Added `aiMaxIterations` setting (default `20`, clamped to range 5–100) with Tauri store persistence and a dedicated card in AI Settings, featuring numeric input, explanatory tooltips, and quick presets (`10`, `20`, `40`, `60` rounds).
+- **ReAct Loop Execution Limits & Graceful Pause Notification**: The ReAct agent loop in `useAIStore` now dynamically queries `aiMaxIterations`. When an agent reaches the maximum iteration limit without completing naturally, it halts gracefully and appends a localized assistant message informing the user that the iteration limit was reached and guiding next steps.
+- **Variable Extractor Upstream Backtracking & Name Resolution**: `VariableExtractorExecutor` now automatically backtracks through incoming connections (skipping non-data-producer nodes like `assertion` or `conditional`) using breadth-first traversal to extract data from the nearest upstream producer node when `source_node_id` is omitted. When `source_node_id` is specified, it supports resolution by node UUID, alias ID, or custom node name (`node.name`).
+- **Linux GUI Release Packages (.deb & .AppImage)**: Added `build-linux-gui` workflow job in `release.yml` running on Ubuntu 22.04 to produce native `.deb` and `.AppImage` packages, integrated all platform artifacts into the unified release job, and updated `update-manifest.sh` with `linux_deb` and `linux_appimage` download targets.
+
+### Changed
+- **Canvas Pipeline Auto-Execution by Default**: In `canvasTools`, `batch_create_pipeline` now defaults `auto_run` to `true`, automatically executing and verifying newly assembled workflows via `run_flow` and returning the execution report.
+- **Adaptive Wrap Auto-Layout by Default**: Changed `auto_layout`'s default mode from `horizontal` to `adaptive`, organizing nodes into wrapped rows bounded by viewport width to prevent excessive horizontal scrolling on wide workflows.
+- **AI Variable Extractor Source Node Inference**: `batch_create_pipeline` in `canvasTools` now inspects upstream DAG connections and automatically infers and binds `source_node_id` for `variable:extractor` nodes if omitted, supporting `source_node` and `data_source` field aliases.
+- **AI Prompt Protocols for Execution & Variable Extraction**: Enhanced AI system prompts in `contextBuilder` to require mandatory execution and verification after workflow creation, enforce explicit `source_node_id` specification for `variable:extractor` nodes to avoid intermediate node decoupling, and prioritize adaptive wrap layout.
+- **CI Workflow Matrix Pruning on Dev**: Optimized `.github/workflows/build.yml` to skip the full cross-platform build matrix on `dev` branch pushes (running unit and integration tests only), and skipped Build and DCO checks for Dependabot PRs.
+
+### Fixed
+- **Variable Extraction Broken by Intermediate Control Nodes**: Fixed variable extraction failures when assertion or conditional nodes were placed between a data producer (e.g. HTTP request) and a variable extractor, ensuring the extractor skips intermediate non-producer nodes to read the upstream response payload.
+- **AI Tool Wire Protocol Compliance & `ask_user` Unhandled Session Freeze**: Resolved HTTP 400 Bad Request errors across LLM providers ("invalid tool call arguments", "tool calls and tool results do not match", and function response part count mismatches). Added `sanitizeChatMessages` and `safeJsonArguments` in `openaiClient` to guarantee valid JSON arguments, heal out-of-order steer messages, synthesize cancellation responses for aborted calls, and allow empty submission or chat-based responses to cleanly fulfill pending `ask_user` interactions.
+
 ## [0.5.1-beta] - 2026-10-26
 
 ### Added
