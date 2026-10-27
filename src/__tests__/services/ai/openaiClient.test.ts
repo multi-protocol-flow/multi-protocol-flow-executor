@@ -5,6 +5,8 @@ import {
   testConnection,
   fetchModels,
   SseStreamParser,
+  safeJsonArguments,
+  sanitizeChatMessages,
 } from '@/services/ai/openaiClient';
 import type { AIProviderConfig, AIMessage } from '@/types/ai';
 
@@ -311,6 +313,136 @@ describe('openaiClient', () => {
 
       const models = await fetchModels(mockConfig);
       expect(models).toEqual(['deepseek-chat', 'deepseek-coder']);
+    });
+  });
+
+  describe('safeJsonArguments', () => {
+    it('将空值、空字符串或仅包含空格的字符串安全回退为 "{}"', () => {
+      expect(safeJsonArguments('')).toBe('{}');
+      expect(safeJsonArguments('   ')).toBe('{}');
+      expect(safeJsonArguments(null)).toBe('{}');
+      expect(safeJsonArguments(undefined)).toBe('{}');
+    });
+
+    it('将残缺或非法的 JSON 字符串回退为 "{}"，防止 OpenAI 报 invalid tool call arguments', () => {
+      expect(safeJsonArguments('{"question":')).toBe('{}');
+      expect(safeJsonArguments('not a json')).toBe('{}');
+    });
+
+    it('保留合法的 JSON 字符串', () => {
+      expect(safeJsonArguments('{"question":"dev"}')).toBe('{"question":"dev"}');
+      expect(safeJsonArguments('{}')).toBe('{}');
+    });
+  });
+
+  describe('sanitizeChatMessages', () => {
+    it('剔除 status 为 error 的 UI 报错卡片消息，避免污染上下文', () => {
+      const messages: AIMessage[] = [
+        { id: '1', role: 'user', content: 'hello', timestamp: 1 },
+        {
+          id: '2',
+          role: 'assistant',
+          status: 'error',
+          content: 'HTTP 400 Bad Request',
+          error: 'HTTP 400',
+          timestamp: 2,
+        },
+      ];
+      const sanitized = sanitizeChatMessages(messages);
+      expect(sanitized).toHaveLength(1);
+      expect(sanitized[0].id).toBe('1');
+    });
+
+    it('自动修复被 user 纠偏消息错误插队的 tool 结果顺序 (Assistant -> Tool -> User)', () => {
+      const messages: AIMessage[] = [
+        { id: 'u1', role: 'user', content: '创建工作流', timestamp: 1 },
+        {
+          id: 'a1',
+          role: 'assistant',
+          content: '',
+          tool_calls: [
+            {
+              id: 'call_1',
+              type: 'function',
+              function: { name: 'ask_user', arguments: '{"question":"环境?"}' },
+            },
+          ],
+          timestamp: 2,
+        },
+        // 错误插在 tool 前面的 user 消息
+        { id: 'u2', role: 'user', content: '我用 dev 环境', isCorrection: true, timestamp: 3 },
+        // 稍后完成的 tool 消息
+        {
+          id: 't1',
+          role: 'tool',
+          tool_call_id: 'call_1',
+          name: 'ask_user',
+          content: '{"success":true,"answer":"dev"}',
+          timestamp: 4,
+        },
+      ];
+
+      const sanitized = sanitizeChatMessages(messages);
+      expect(sanitized).toHaveLength(4);
+      expect(sanitized[0].id).toBe('u1');
+      expect(sanitized[1].id).toBe('a1');
+      // Tool 结果被正确前置紧跟 Assistant
+      expect(sanitized[2].id).toBe('t1');
+      expect(sanitized[2].role).toBe('tool');
+      // User 消息紧随 Tool 之后
+      expect(sanitized[3].id).toBe('u2');
+      expect(sanitized[3].role).toBe('user');
+    });
+
+    it('为未完成或中断的 tool_call 自动补齐 cancelled 的 tool 响应 (避免 Gemini 与 WorkBuddy 400)', () => {
+      const messages: AIMessage[] = [
+        { id: 'u1', role: 'user', content: '执行测试', timestamp: 1 },
+        {
+          id: 'a1',
+          role: 'assistant',
+          content: '',
+          tool_calls: [
+            {
+              id: 'call_unfulfilled',
+              type: 'function',
+              function: { name: 'ask_user', arguments: '' },
+            },
+          ],
+          timestamp: 2,
+        },
+        { id: 'u2', role: 'user', content: '算了不用了', timestamp: 3 },
+      ];
+
+      const sanitized = sanitizeChatMessages(messages);
+      // 应包含: u1, a1, synth_tool, u2
+      expect(sanitized).toHaveLength(4);
+      expect(sanitized[1].id).toBe('a1');
+      // a1 的 arguments 已被修正为 "{}"
+      expect(sanitized[1].tool_calls?.[0].function.arguments).toBe('{}');
+      // 自动补齐的 tool 响应
+      expect(sanitized[2].role).toBe('tool');
+      expect(sanitized[2].tool_call_id).toBe('call_unfulfilled');
+      expect(JSON.parse(sanitized[2].content)).toEqual(
+        expect.objectContaining({ cancelled: true }),
+      );
+      // user 紧随其后
+      expect(sanitized[3].id).toBe('u2');
+    });
+
+    it('丢弃没有对应 assistant.tool_calls 的孤立 tool 消息', () => {
+      const messages: AIMessage[] = [
+        {
+          id: 'orphan_tool',
+          role: 'tool',
+          tool_call_id: 'non_existent',
+          content: '{"data":1}',
+          timestamp: 1,
+        },
+        { id: 'u1', role: 'user', content: 'hello', timestamp: 2 },
+      ];
+      const sanitized = sanitizeChatMessages(messages);
+      expect(sanitized).toHaveLength(1);
+      expect(sanitized[0].id).toBe('u1');
     });
   });
 });
