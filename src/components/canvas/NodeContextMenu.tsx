@@ -84,7 +84,7 @@ export function NodeContextMenu({
   // 单例入口节点（entry / http:ingress）仅在当前阶段存在其他可用入口时允许删除，避免删至 0 个入口
   const canDeleteNode = !isEntryType || hasAlternativeEntry;
   const targetNode = stageNodes.find((n) => n.uuid === nodeId);
-  const isNodeDisabled = targetNode?.disabled === true;
+  const isNodeDisabled = Boolean(targetNode?.disabled || targetNode?.on_error === 'bypass');
 
 
   // 构建菜单项
@@ -153,7 +153,13 @@ export function NodeContextMenu({
             label: isNodeDisabled ? LL.flow.enable_node() : LL.flow.bypass_node(),
             icon: isNodeDisabled ? <CheckCircle className="w-4 h-4 text-emerald-500" /> : <Ban className="w-4 h-4 text-amber-500" />,
             action: () => {
-              useFlowStore.getState().updateNode(nodeId, { disabled: !isNodeDisabled });
+              const willDisable = !isNodeDisabled;
+              useFlowStore.getState().updateNode(nodeId, {
+                disabled: willDisable,
+                on_error: willDisable
+                  ? 'bypass'
+                  : (targetNode?.on_error === 'bypass' ? 'route_to_false' : targetNode?.on_error),
+              });
               onClose();
             },
           },

@@ -195,4 +195,82 @@ describe('NodeContextMenu', () => {
     expect(screen.queryByText('创建副本')).toBeNull();
     expect(screen.queryByText('复制节点')).toBeNull();
   });
+
+  it('当节点未禁用时展示“禁用节点 (Bypass)”，点击后同时设置 disabled: true 与 on_error: bypass', async () => {
+    const onClose = vi.fn();
+    render(
+      <ReactFlowProvider>
+        <NodeContextMenu
+          x={100}
+          y={100}
+          nodeId="node-1"
+          nodeType="http:request"
+          nodeName="HTTP 1"
+          onClose={onClose}
+          onCopy={vi.fn()}
+          onDelete={vi.fn()}
+          onRename={vi.fn()}
+          onCopyConfig={vi.fn()}
+          onPasteConfig={vi.fn()}
+          hasClipboardConfig={false}
+        />
+      </ReactFlowProvider>
+    );
+
+    const disableBtn = screen.getByText(/禁用节点/);
+    expect(disableBtn).toBeInTheDocument();
+    fireEvent.click(disableBtn);
+
+    const updatedNode = useFlowStore.getState().flow?.nodes.find((n) => n.uuid === 'node-1');
+    expect(updatedNode?.disabled).toBe(true);
+    expect(updatedNode?.on_error).toBe('bypass');
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it('当节点通过 on_error: bypass 处于禁用状态时展示“启用节点”，点击后同时清除 disabled 与 bypass', async () => {
+    useFlowStore.setState({
+      flow: {
+        ...sampleFlow,
+        nodes: [
+          {
+            uuid: 'node-1',
+            type: 'http:request',
+            name: 'HTTP 1',
+            position: { x: 0, y: 0 },
+            data: { type: 'http:request', url: 'https://example.com' },
+            on_error: 'bypass',
+          },
+        ],
+      },
+    });
+
+    const onClose = vi.fn();
+    render(
+      <ReactFlowProvider>
+        <NodeContextMenu
+          x={100}
+          y={100}
+          nodeId="node-1"
+          nodeType="http:request"
+          nodeName="HTTP 1"
+          onClose={onClose}
+          onCopy={vi.fn()}
+          onDelete={vi.fn()}
+          onRename={vi.fn()}
+          onCopyConfig={vi.fn()}
+          onPasteConfig={vi.fn()}
+          hasClipboardConfig={false}
+        />
+      </ReactFlowProvider>
+    );
+
+    const enableBtn = screen.getByText(/启用节点/);
+    expect(enableBtn).toBeInTheDocument();
+    fireEvent.click(enableBtn);
+
+    const updatedNode = useFlowStore.getState().flow?.nodes.find((n) => n.uuid === 'node-1');
+    expect(updatedNode?.disabled).toBe(false);
+    expect(updatedNode?.on_error).toBe('route_to_false');
+    expect(onClose).toHaveBeenCalled();
+  });
 });

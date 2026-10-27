@@ -375,9 +375,14 @@ export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeCo
             >
               {selectedNode.name}
             </CardTitle>
-            {selectedNode?.disabled && (
+            {(selectedNode?.disabled === true || selectedNode?.on_error === 'bypass') && (
               <span
-                onClick={() => useFlowStore.getState().updateNode(selectedNode.uuid, { disabled: false })}
+                onClick={() =>
+                  useFlowStore.getState().updateNode(selectedNode.uuid, {
+                    disabled: false,
+                    on_error: selectedNode.on_error === 'bypass' ? 'route_to_false' : selectedNode.on_error,
+                  })
+                }
                 className="ml-2 inline-flex items-center gap-1 rounded-md border border-amber-300 dark:border-amber-700 bg-amber-100/70 dark:bg-amber-950/60 px-2 py-0.5 text-xs font-medium text-amber-800 dark:text-amber-200 cursor-pointer hover:bg-amber-200/70 shrink-0"
                 title={getLL().flow.enable_node()}
               >
@@ -517,9 +522,16 @@ export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeCo
             {hasFalsePort && (
               <div className="mt-4">
                 <OnErrorSection
-                  value={selectedNode.on_error}
+                  value={
+                    selectedNode.on_error === 'bypass'
+                      ? 'route_to_false'
+                      : selectedNode.on_error
+                  }
                   onChange={(v) => {
-                    useFlowStore.getState().updateNode(selectedNode.uuid, { on_error: v });
+                    useFlowStore.getState().updateNode(selectedNode.uuid, {
+                      on_error: v,
+                      disabled: false,
+                    });
                   }}
                 />
               </div>

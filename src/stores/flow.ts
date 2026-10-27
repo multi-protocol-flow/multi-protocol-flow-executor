@@ -121,6 +121,23 @@ export function getNodeStage(flow: Flow, uuid: string): FlowStage | null {
   return null;
 }
 
+/** 规范化流程中的节点状态（对齐 disabled 与 on_error: 'bypass'） */
+export function normalizeFlowNodes(flow: Flow): Flow {
+  const normalizeNode = (n: Node): Node => {
+    const isBypassed = Boolean(n.disabled || n.on_error === 'bypass');
+    if (isBypassed && (!n.disabled || n.on_error !== 'bypass')) {
+      return { ...n, disabled: true, on_error: 'bypass' };
+    }
+    return n;
+  };
+  return {
+    ...flow,
+    nodes: flow.nodes.map(normalizeNode),
+    setup: flow.setup ? { ...flow.setup, nodes: flow.setup.nodes.map(normalizeNode) } : flow.setup,
+    teardown: flow.teardown ? { ...flow.teardown, nodes: flow.teardown.nodes.map(normalizeNode) } : flow.teardown,
+  };
+}
+
 /** 对指定阶段的子图施加变更，其余阶段引用保持原样 */
 function mapStageGraph(flow: Flow, stage: FlowStage, fn: (graph: FlowSubGraph) => FlowSubGraph): Flow {
   return withStageGraph(flow, stage, fn(getStageGraph(flow, stage)));
@@ -411,7 +428,8 @@ export const useFlowStore = create<FlowState>((set, get) => {
         };
       }),
 
-    openTab: (flow, filePath, options) => {
+    openTab: (rawFlow, filePath, options) => {
+      const flow = normalizeFlowNodes(rawFlow);
       const state = get();
       if (!options?.force) {
         const conflict = checkFlowConflict(flow, filePath, state.tabs, state.tabSessions);

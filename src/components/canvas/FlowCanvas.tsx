@@ -175,19 +175,24 @@ const CANVAS_STYLE_STRING = `
     font-size: inherit !important;
     text-align: inherit !important;
   }
-  /* 被旁路禁用的节点视觉指示（半透明弱化显示；严禁任何 :hover 样式与过渡动画，避免在非整数变换视口中触发图层重绘导致全画布节点抖动） */
+  /* 被旁路禁用的节点视觉指示（半透明弱化、灰度、虚线边框；严禁任何 :hover 样式与过渡动画，避免在非整数变换视口中触发图层重绘导致全画布节点抖动） */
   .react-flow__node.node-bypassed {
-    opacity: 0.52 !important;
+    opacity: 0.45 !important;
+    filter: grayscale(85%) !important;
     transition: none !important;
   }
   .react-flow__node.node-bypassed * {
     transition: none !important;
   }
+  .react-flow__node.node-bypassed > div {
+    border-style: dashed !important;
+    border-color: rgba(148, 163, 184, 0.6) !important;
+  }
   .react-flow__node.node-bypassed .react-flow__handle:hover {
     transform: none !important;
   }
   .react-flow__node.node-bypassed:hover {
-    opacity: 0.52 !important;
+    opacity: 0.45 !important;
   }
 `;
 
