@@ -306,29 +306,32 @@ describe('MainLayout - 右侧面板拖拽功能', () => {
     });
   });
 
-  describe('折叠按钮位置', () => {
-    it('折叠按钮位置根据面板宽度动态调整', () => {
-      const { container } = render(<MainLayout />);
+  describe('面板布局切换功能', () => {
+    it('顶部工具栏渲染布局控制按钮并响应点击', () => {
+      const { getByTestId, container } = render(<MainLayout />);
       
-      // 查找折叠按钮
-      const foldButton = container.querySelector('button[class*="rounded-r-none"]') as HTMLElement;
-      expect(foldButton).toBeDefined();
-      
-      // 验证按钮位置（right 应该是 configPanelWidth = 320，紧贴面板）
-      expect(foldButton.style.right).toBe('320px');
-    });
+      // 旧浮动耳片不再渲染，画布边缘彻底清爽
+      expect(container.querySelector('button[class*="rounded-r-none"]')).toBeNull();
+      expect(container.querySelector('button[class*="rounded-l-none"]')).toBeNull();
 
-    it('面板收起时折叠按钮在右边缘', () => {
-      (useUIStore as unknown as ReturnType<typeof vi.fn>).mockImplementation((selector?: (state: unknown) => unknown) => {
-        const state = { ...defaultUIState, isConfigPanelOpen: false };
-        return selector ? selector(state) : state;
-      });
+      // 顶部布局按钮存在
+      const leftToggle = getByTestId('toggle-left-sidebar');
+      const bottomToggle = getByTestId('toggle-bottom-panel');
+      const rightToggle = getByTestId('toggle-right-config');
 
-      const { container } = render(<MainLayout />);
-      
-      const foldButton = container.querySelector('button[class*="rounded-r-none"]') as HTMLElement;
-      expect(foldButton).toBeDefined();
-      expect(foldButton.style.right).toBe('0px');
+      expect(leftToggle).toBeDefined();
+      expect(bottomToggle).toBeDefined();
+      expect(rightToggle).toBeDefined();
+
+      // 点击触发相应的 store action
+      fireEvent.click(leftToggle);
+      expect(defaultUIState.toggleFlowListPanel).toHaveBeenCalled();
+
+      fireEvent.click(bottomToggle);
+      expect(defaultUIState.toggleBottomPanel).toHaveBeenCalled();
+
+      fireEvent.click(rightToggle);
+      expect(defaultUIState.toggleConfigPanel).toHaveBeenCalled();
     });
   });
 
