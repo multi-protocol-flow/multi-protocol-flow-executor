@@ -331,6 +331,75 @@ describe('aiStore', () => {
     expect(steerMsg?.role).toBe('user');
     expect(steerMsg?.isCorrection).toBe(true);
   });
+
+  it('当 ask_user 挂起等待时在主输入框调用 sendMessage 直接作为用户答案解析', async () => {
+    const resolveSpy = vi.spyOn(useAIStore.getState(), 'resolvePendingAction').mockResolvedValue();
+
+    useAIStore.setState({
+      agentStatus: 'waiting_confirmation',
+      pendingActions: [
+        {
+          id: 'action-ask-1',
+          toolCallId: 'tc-ask-1',
+          toolName: 'ask_user',
+          args: { question: '请输入端口号' },
+          description: '请输入端口号',
+          status: 'pending',
+          createdAt: Date.now(),
+          isUserInput: true,
+        },
+      ],
+    });
+
+    await useAIStore.getState().sendMessage('8080');
+
+    expect(resolveSpy).toHaveBeenCalledWith('action-ask-1', true, false, '8080');
+    resolveSpy.mockRestore();
+  });
+
+  it('stopGeneration 时自动为未响应的 assistant.tool_calls 补齐 cancelled 响应', () => {
+    useAIStore.setState({
+      agentStatus: 'waiting_confirmation',
+      messages: [
+        { id: 'u1', role: 'user', content: '测试', timestamp: 1 },
+        {
+          id: 'a1',
+          role: 'assistant',
+          content: '',
+          tool_calls: [
+            {
+              id: 'tc-dangling',
+              type: 'function',
+              function: { name: 'ask_user', arguments: '{"question":"?"}' },
+            },
+          ],
+          timestamp: 2,
+        },
+      ],
+      pendingActions: [
+        {
+          id: 'act-1',
+          toolCallId: 'tc-dangling',
+          toolName: 'ask_user',
+          args: { question: '?' },
+          description: '?',
+          status: 'pending',
+          createdAt: 2,
+          isUserInput: true,
+        },
+      ],
+    });
+
+    useAIStore.getState().stopGeneration();
+
+    const state = useAIStore.getState();
+    expect(state.agentStatus).toBe('idle');
+    expect(state.pendingActions[0].status).toBe('rejected');
+    // 验证 messages 中已补齐对应的 tool 响应
+    const toolMsg = state.messages.find((m) => m.role === 'tool' && m.tool_call_id === 'tc-dangling');
+    expect(toolMsg).toBeDefined();
+    expect(JSON.parse(toolMsg!.content)).toEqual(expect.objectContaining({ cancelled: true }));
+  });
   it('retryLastMessage 移除错误消息并重新触发最后一条用户消息发送', async () => {
     const sendSpy = vi.spyOn(useAIStore.getState(), 'sendMessage').mockResolvedValue();
 

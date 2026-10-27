@@ -15,7 +15,11 @@ import { getLL } from '@/i18n/i18n-lazy';
 import { toast } from 'sonner';
 import { useSettingsStore } from './settings';
 import { aiSessionStorage } from '@/services/storage/aiSessionStorage';
-import { streamChatCompletion, type ChatCompletionResult } from '@/services/ai/openaiClient';
+import {
+  streamChatCompletion,
+  sanitizeChatMessages,
+  type ChatCompletionResult,
+} from '@/services/ai/openaiClient';
 import {
   buildSystemPrompt,
   buildActiveStateSummary,
@@ -656,11 +660,8 @@ export const useAIStore = create<AIStore>((set, get) => ({
     }
     pendingResolvers.clear();
 
-    set((s) => ({
-      agentStatus: 'idle',
-      activeStreamingMessageId: null,
-      activeExecutingToolCallId: null,
-      messages: s.messages.filter(
+    set((s) => {
+      let updatedMessages = s.messages.filter(
         (m) =>
           !(
             m.status === 'streaming' &&
@@ -668,8 +669,50 @@ export const useAIStore = create<AIStore>((set, get) => ({
             !m.thought?.trim() &&
             (!m.tool_calls || m.tool_calls.length === 0)
           ),
-      ),
-    }));
+      );
+
+      updatedMessages = updatedMessages.map((m) =>
+        m.status === 'streaming' ? { ...m, status: 'done' as const } : m,
+      );
+
+      const existingToolResultIds = new Set(
+        updatedMessages
+          .filter((m) => m.role === 'tool' && m.tool_call_id)
+          .map((m) => m.tool_call_id),
+      );
+
+      for (const msg of updatedMessages) {
+        if (msg.role === 'assistant' && msg.tool_calls && msg.tool_calls.length > 0) {
+          for (const tc of msg.tool_calls) {
+            if (!existingToolResultIds.has(tc.id)) {
+              existingToolResultIds.add(tc.id);
+              updatedMessages.push({
+                id: `msg_${Date.now()}_stopped_${tc.id}`,
+                role: 'tool',
+                tool_call_id: tc.id,
+                name: tc.function.name,
+                content: JSON.stringify({
+                  success: false,
+                  cancelled: true,
+                  message: 'Generation stopped by user.',
+                }),
+                timestamp: Date.now(),
+              });
+            }
+          }
+        }
+      }
+
+      return {
+        agentStatus: 'idle',
+        activeStreamingMessageId: null,
+        activeExecutingToolCallId: null,
+        pendingActions: s.pendingActions.map((act) =>
+          act.status === 'pending' ? { ...act, status: 'rejected' as const } : act,
+        ),
+        messages: updatedMessages,
+      };
+    });
   },
 
   steerGeneration: async (prompt: string, images?: string[]) => {
@@ -799,6 +842,16 @@ export const useAIStore = create<AIStore>((set, get) => ({
       get().agentStatus === 'waiting_confirmation';
     // 若当前 Agent 正在生成中，直接转入中途插话纠偏逻辑，不重置对话与上下文！
     if (isGenerating && (!sessionAbortController || !sessionAbortController.signal.aborted)) {
+      // 特别检查：如果当前正处于人工交互 (ask_user) 等待状态，
+      // 用户在底部主输入框中输入内容往往是直接回复该问题，优先作为交互回答提交，避免产生多余纠偏消息与状态不匹配！
+      const pendingUserInput = get().pendingActions.find(
+        (act) => act.status === 'pending' && (act.isUserInput || act.toolName === 'ask_user'),
+      );
+      if (pendingUserInput) {
+        await get().resolvePendingAction(pendingUserInput.id, true, false, trimmedPrompt);
+        return;
+      }
+
       await get().steerGeneration(prompt, images);
       return;
     }
@@ -923,7 +976,7 @@ export const useAIStore = create<AIStore>((set, get) => ({
           currentHistory,
           steerPrefix,
         );
-        const messagesToSend: AIMessage[] = [systemMessage, ...formattedHistory];
+        const messagesToSend: AIMessage[] = sanitizeChatMessages([systemMessage, ...formattedHistory]);
 
         // 占位 Assistant 消息
         const assistantMsgId = `msg_${Date.now()}_assistant_${iteration}`;
@@ -1040,7 +1093,9 @@ export const useAIStore = create<AIStore>((set, get) => ({
             }
             return {
               messages: s.messages.map((m) =>
-                m.id === assistantMsgId ? { ...m, status: 'done' as const } : m,
+                m.id === assistantMsgId
+                  ? { ...m, tool_calls: undefined, status: 'done' as const }
+                  : m,
               ),
               activeStreamingMessageId: null,
             };
@@ -1086,18 +1141,41 @@ export const useAIStore = create<AIStore>((set, get) => ({
         // 存在 Tool Calls，开始执行工具
         set({ agentStatus: 'executing_tools' });
 
-        for (const tc of result.tool_calls) {
-          if (sessionSignal.aborted) break;
+        for (let tcIdx = 0; tcIdx < result.tool_calls.length; tcIdx++) {
+          const tc = result.tool_calls[tcIdx];
+          if (sessionSignal.aborted) {
+            for (let remIdx = tcIdx; remIdx < result.tool_calls.length; remIdx++) {
+              const remTc = result.tool_calls[remIdx];
+              const cancelledToolMessage: AIMessage = {
+                id: `msg_${Date.now()}_tool_${remTc.id}`,
+                role: 'tool',
+                tool_call_id: remTc.id,
+                name: remTc.function.name,
+                content: JSON.stringify({
+                  success: false,
+                  cancelled: true,
+                  message: 'Execution aborted by user.',
+                }),
+                timestamp: Date.now(),
+              };
+              set((s) => ({
+                messages: [...s.messages, cancelledToolMessage],
+              }));
+            }
+            break;
+          }
           set({ activeExecutingToolCallId: tc.id });
+          tc.type = 'function';
+          if (!tc.function.arguments || !tc.function.arguments.trim()) {
+            tc.function.arguments = '{}';
+          }
           let parsedArgs: Record<string, unknown> = {};
           try {
-            parsedArgs = tc.function.arguments
-              ? JSON.parse(tc.function.arguments)
-              : {};
+            parsedArgs = JSON.parse(tc.function.arguments);
           } catch {
+            tc.function.arguments = '{}';
             parsedArgs = {};
           }
-
           let toolOutputStr = '';
 
           if (tc.function.name === 'ask_user') {
@@ -1121,7 +1199,9 @@ export const useAIStore = create<AIStore>((set, get) => ({
             const resolution = await new Promise<PendingResolution>((resolve) => {
               pendingResolvers.set(pendingAction.id, resolve);
             });
-            set({ agentStatus: 'executing_tools' });
+            if (!sessionSignal.aborted) {
+              set({ agentStatus: 'executing_tools' });
+            }
 
             if (resolution.approved) {
               toolOutputStr = JSON.stringify({
@@ -1154,7 +1234,9 @@ export const useAIStore = create<AIStore>((set, get) => ({
               });
 
               if (resolution.approved) {
+              if (!sessionSignal.aborted) {
                 set({ agentStatus: 'executing_tools' });
+              }
                 try {
                   const toolResult = await dispatchToolCall(
                     tc.function.name,
@@ -1210,10 +1292,25 @@ export const useAIStore = create<AIStore>((set, get) => ({
             timestamp: Date.now(),
           };
 
-          set((s) => ({
-            activeExecutingToolCallId: null,
-            messages: [
-              ...s.messages.map((m) =>
+          set((s) => {
+            const msgs = [...s.messages];
+            const trailingUserIndices: number[] = [];
+            for (let idx = msgs.length - 1; idx >= 0; idx--) {
+              if (msgs[idx].role === 'user' && msgs[idx].isCorrection) {
+                trailingUserIndices.push(idx);
+              } else {
+                break;
+              }
+            }
+            if (trailingUserIndices.length > 0) {
+              const insertIdx = trailingUserIndices[trailingUserIndices.length - 1];
+              msgs.splice(insertIdx, 0, toolResultMessage);
+            } else {
+              msgs.push(toolResultMessage);
+            }
+            return {
+              activeExecutingToolCallId: null,
+              messages: msgs.map((m) =>
                 m.id === assistantMsgId && m.tool_calls
                   ? {
                       ...m,
@@ -1223,9 +1320,8 @@ export const useAIStore = create<AIStore>((set, get) => ({
                     }
                   : m,
               ),
-              toolResultMessage,
-            ],
-          }));
+            };
+          });
 
           await persistCurrentSession();
         }
