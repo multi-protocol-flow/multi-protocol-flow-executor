@@ -36,7 +36,7 @@ import { useSettingsStore } from '@/stores/settings';
 import { useConsoleStore } from '@/stores/console';
 import { useZoomStore } from '@/stores/zoom';
 import { useUpdateStore } from '@/stores/update';
-import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Trash2, Settings, Puzzle, GripVertical, GripHorizontal, ZoomIn, ZoomOut, Keyboard, Sparkles, Copy, HelpCircle, BookOpen } from 'lucide-react';
+import { PanelLeft, PanelRight, PanelBottom, ChevronUp, ChevronDown, Trash2, Settings, Puzzle, GripVertical, GripHorizontal, ZoomIn, ZoomOut, Keyboard, Sparkles, Copy, HelpCircle, BookOpen } from 'lucide-react';
 import * as Popover from '@radix-ui/react-popover';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -316,10 +316,8 @@ export function MainLayout() {
   const maxBottomHeight = typeof window !== 'undefined' ? Math.max(700, window.innerHeight - 80) : 1600;
   // 面板实时 DOM 引用（用于拖拽时直接更新 DOM 样式，绕过 React 状态调度）
   const leftAsideRef = useRef<HTMLElement>(null);
-  const leftButtonRef = useRef<HTMLButtonElement>(null);
   const leftInnerRef = useRef<HTMLDivElement>(null);
   const rightAsideRef = useRef<HTMLElement>(null);
-  const rightButtonRef = useRef<HTMLButtonElement>(null);
   const rightInnerRef = useRef<HTMLDivElement>(null);
   const bottomContentRef = useRef<HTMLDivElement>(null);
 
@@ -341,7 +339,6 @@ export function MainLayout() {
     onLiveResize: (w) => {
       if (rightAsideRef.current) rightAsideRef.current.style.width = `${w}px`;
       if (rightInnerRef.current) rightInnerRef.current.style.width = `${w}px`;
-      if (rightButtonRef.current) rightButtonRef.current.style.right = `${w}px`;
     },
   });
 
@@ -352,7 +349,6 @@ export function MainLayout() {
     onLiveResize: (w) => {
       if (leftAsideRef.current) leftAsideRef.current.style.width = `${w}px`;
       if (leftInnerRef.current) leftInnerRef.current.style.width = `${w}px`;
-      if (leftButtonRef.current) leftButtonRef.current.style.left = `${w}px`;
     },
   });
   const isDraggingAny = leftDrag.isDragging || rightDrag.isDragging || bottomDrag.isDragging;
@@ -447,6 +443,57 @@ export function MainLayout() {
             </Button>
           </div>
           )}
+          {/* 面板布局切换控件 */}
+          {currentPage === 'canvas' && (
+            <div className="flex items-center gap-0.5 border border-border rounded-md px-1 py-0.5 bg-muted/20">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleFlowListPanel}
+                className={cn(
+                  'h-7 w-7 rounded-sm transition-colors cursor-pointer',
+                  isFlowListPanelOpen
+                    ? 'text-foreground bg-accent'
+                    : 'text-muted-foreground hover:text-foreground'
+                )}
+                title={`${isFlowListPanelOpen ? getLL().common.toggle_sidebar_collapse() : getLL().common.toggle_sidebar_expand()} (Ctrl+B)`}
+                data-testid="toggle-left-sidebar"
+              >
+                <PanelLeft className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleBottomPanel}
+                className={cn(
+                  'h-7 w-7 rounded-sm transition-colors cursor-pointer',
+                  isBottomPanelExpanded
+                    ? 'text-foreground bg-accent'
+                    : 'text-muted-foreground hover:text-foreground'
+                )}
+                title={`${isBottomPanelExpanded ? getLL().flow.collapse_panel() : getLL().flow.expand_bottom_panel()} (Ctrl+H)`}
+                data-testid="toggle-bottom-panel"
+              >
+                <PanelBottom className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleConfigPanel}
+                className={cn(
+                  'h-7 w-7 rounded-sm transition-colors cursor-pointer',
+                  isConfigPanelOpen
+                    ? 'text-foreground bg-accent'
+                    : 'text-muted-foreground hover:text-foreground'
+                )}
+                title={`${isConfigPanelOpen ? getLL().common.toggle_config_collapse() : getLL().common.toggle_config_expand()} (Ctrl+J)`}
+                data-testid="toggle-right-config"
+              >
+                <PanelRight className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+
 
           {/* 帮助与手册下拉菜单 */}
           <Popover.Root>
@@ -596,6 +643,7 @@ export function MainLayout() {
                 leftDrag.isDragging && 'bg-input'
               )}
               title={getLL().common.drag_resize_width()}
+              data-testid="sidebar-resize-handle"
             >
               <GripVertical className="w-2.5 h-6 text-muted-foreground" />
             </div>
@@ -604,28 +652,6 @@ export function MainLayout() {
             <LeftSidebarPanel />
           </div>
         </aside>
-
-        {/* 左侧折叠按钮 */}
-        <Button
-          ref={leftButtonRef}
-          variant="ghost"
-          size="icon"
-          onClick={toggleFlowListPanel}
-          className={cn(
-            'absolute z-20 h-12 w-5 rounded-l-none rounded-r-md top-1/2 -translate-y-1/2 p-0',
-            'bg-background/90 hover:bg-accent border border-l-0 border-border shadow-xs',
-            'text-muted-foreground/70 hover:text-foreground cursor-pointer',
-            leftDrag.isDragging ? '!transition-none' : 'transition-[left] duration-200 ease-out will-change-[left]'
-          )}
-          style={{ left: isFlowListPanelOpen ? sidebarWidth : 0 }}
-          title={isFlowListPanelOpen ? getLL().common.toggle_sidebar_collapse() : getLL().common.toggle_sidebar_expand()}
-        >
-          {isFlowListPanelOpen ? (
-            <ChevronLeft className="w-3.5 h-3.5" />
-          ) : (
-            <ChevronRight className="w-3.5 h-3.5" />
-          )}
-        </Button>
 
         {/* ===== 中间画布区 ===== */}
         <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
@@ -832,6 +858,7 @@ export function MainLayout() {
                 rightDrag.isDragging && 'bg-input'
               )}
               title={getLL().common.drag_resize_width()}
+              data-testid="config-resize-handle"
             >
               <GripVertical className="w-2.5 h-6 text-muted-foreground" />
             </div>
@@ -840,28 +867,6 @@ export function MainLayout() {
             <MemoizedNodeConfigPanel readOnly={isRightPanelReadOnly} />
           </div>
         </aside>
-
-        {/* 右侧折叠按钮 */}
-        <Button
-          ref={rightButtonRef}
-          variant="ghost"
-          size="icon"
-          onClick={toggleConfigPanel}
-          className={cn(
-            'absolute z-20 h-12 w-5 rounded-r-none rounded-l-md top-1/2 -translate-y-1/2 p-0',
-            'bg-background/90 hover:bg-accent border border-r-0 border-border shadow-xs',
-            'text-muted-foreground/70 hover:text-foreground cursor-pointer',
-            rightDrag.isDragging ? '!transition-none' : 'transition-[right] duration-200 ease-out will-change-[right]'
-          )}
-          style={{ right: isConfigPanelOpen ? configPanelWidth : 0 }}
-          title={isConfigPanelOpen ? getLL().common.toggle_config_collapse() : getLL().common.toggle_config_expand()}
-        >
-          {isConfigPanelOpen ? (
-            <ChevronRight className="w-3.5 h-3.5" />
-          ) : (
-            <ChevronLeft className="w-3.5 h-3.5" />
-          )}
-        </Button>
 
       </div>
       )}
