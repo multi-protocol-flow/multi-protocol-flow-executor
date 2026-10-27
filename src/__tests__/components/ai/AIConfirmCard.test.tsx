@@ -153,4 +153,31 @@ describe('AIConfirmCard', () => {
     expect(spy).toHaveBeenCalledWith('ask-user-2', true, false, 'secret123');
     spy.mockRestore();
   });
+
+  it('8. ask_user 卡片未输入内容时点击提交回复正常提交空文本，不阻塞用户操作', async () => {
+    const ll = getLL();
+    const askUserAction: AIPendingAction = {
+      id: 'ask-user-empty',
+      toolCallId: 'tc-ask-empty',
+      toolName: 'ask_user',
+      isUserInput: true,
+      args: {
+        question: '可选输入项',
+      },
+      description: '可选输入项',
+      status: 'pending',
+      createdAt: Date.now(),
+    };
+
+    const spy = vi.spyOn(useAIStore.getState(), 'resolvePendingAction').mockResolvedValue();
+    render(<AIConfirmCard action={askUserAction} />);
+
+    const submitBtn = screen.getByText(ll.ai.confirm_card.ask_user_submit());
+    await act(async () => {
+      fireEvent.click(submitBtn);
+    });
+
+    expect(spy).toHaveBeenCalledWith('ask-user-empty', true, false, '');
+    spy.mockRestore();
+  });
 });

@@ -22,7 +22,6 @@ export const AIConfirmCard = memo(function AIConfirmCard({ action }: AIConfirmCa
   const isUserInput = Boolean(action.isUserInput || action.toolName === 'ask_user');
 
   const handleTextSubmit = async () => {
-    if (!userInputText.trim()) return;
     setIsProcessing(true);
     try {
       await resolvePendingAction(action.id, true, false, userInputText.trim());
@@ -140,7 +139,7 @@ export const AIConfirmCard = memo(function AIConfirmCard({ action }: AIConfirmCa
                 value={userInputText}
                 onChange={(e) => setUserInputText(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey && userInputText.trim()) {
+                  if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
                     handleTextSubmit();
                   }
@@ -168,7 +167,7 @@ export const AIConfirmCard = memo(function AIConfirmCard({ action }: AIConfirmCa
                 size="sm"
                 className="h-7 text-xs bg-indigo-600 hover:bg-indigo-700 text-white font-medium shrink-0"
                 onClick={handleTextSubmit}
-                disabled={isProcessing || !userInputText.trim()}
+                disabled={isProcessing}
               >
                 <Check className="mr-1 h-3 w-3" />
                 {ll.ai.confirm_card.ask_user_submit()}
