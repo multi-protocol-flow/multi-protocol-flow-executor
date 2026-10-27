@@ -631,23 +631,28 @@ impl DebuggableFlowExecutor {
                         &child_frame.context,
                     )
                     .await;
+                    let child_failed =
+                        child_report.status == flow_engine_core::report::ExecutionStatus::Failed;
 
                     if let Some(entry_idx) = child_frame.subflow_entry_index {
                         if entry_idx < debug_state.execution_stack.len() {
                             let now = flow_engine_core::utils::unix_timestamp_ms();
                             debug_state.execution_stack[entry_idx].ended_at = Some(now);
-                            debug_state.execution_stack[entry_idx].success = true;
+                            debug_state.execution_stack[entry_idx].success = !child_failed;
                             debug_state.execution_stack[entry_idx].sub_flow_report =
                                 Some(Box::new(child_report));
                         }
                     }
 
-                    // 3. 推进父帧游标到该 flow:sub 节点的后继节点
-                    let parent_next = parent_frame
-                        .connection_map
-                        .get(&parent_frame.current_node_id)
-                        .and_then(|targets| targets.first().cloned());
-
+                    // 3. 推进父帧游标到该 flow:sub 节点的后继节点（子流程失败则终止父分支）
+                    let parent_next = if child_failed {
+                        None
+                    } else {
+                        parent_frame
+                            .connection_map
+                            .get(&parent_frame.current_node_id)
+                            .and_then(|targets| targets.first().cloned())
+                    };
                     if let Some(next_id) = parent_next {
                         parent_frame.current_node_id = next_id;
                         if step_out_active || debug_state.is_stepping {
@@ -1508,190 +1513,9 @@ impl DebuggableFlowExecutor {
                                 continue;
                             }
                         }
-
-                        // 无 false 端口连线或 AbortFlow：未捕获异常
-                        // 调试模式下暂停在当前节点以供原地修改配置/变量并重试
-                        debug_state.status = DebugStatus::Paused;
-                        let pause_reason = PauseReason::Error {
-                            message: err_msg.unwrap_or_else(|| "Node execution failed".to_string()),
-                        };
-                        debug_state.pause_reason = Some(pause_reason.clone());
-                        debug_state.variables =
-                            active_frame.context.variables.get_merged_variables();
-                        debug_state.call_frames = build_call_frames(&call_frames);
-                        update_shared_state(debug_state);
-
-                        let _ = event_sender.send(DebugEvent::Error {
-                            message: match &pause_reason {
-                                PauseReason::Error { message } => message.clone(),
-                                _ => "Node execution failed".to_string(),
-                            },
-                        });
-                        let _ = event_sender.send(DebugEvent::PausedAtNode {
-                            node_uuid: current_node_id.clone(),
-                            reason: pause_reason,
-                            variables: debug_state.variables.clone(),
-                            execution_stack: debug_state.execution_stack.clone(),
-                            call_frames: debug_state.call_frames.clone(),
-                        });
-
-                        let active_frame = &mut call_frames[active_idx];
-                        let node_refs: HashMap<String, &Node> = active_frame
-                            .node_map
-                            .iter()
-                            .map(|(k, v)| (k.clone(), v))
-                            .collect();
-                        let flow_clone = active_frame.flow.clone();
-
-                        let command_result = self
-                            .wait_for_command(
-                                debug_state,
-                                &node,
-                                &mut active_frame.context,
-                                &node_refs,
-                                &flow_clone.connections,
-                                &event_sender,
-                                &mut command_receiver,
-                                &flow_clone,
-                            )
-                            .await;
-
-                        match command_result {
-                            Ok(StepCommandResult::RetryCurrentNode) => {
-                                let active_frame = &mut call_frames[active_idx];
-                                if let Some(snapshot) = active_frame.snapshots.get(&current_node_id)
-                                {
-                                    active_frame.context.variables = snapshot.variables.clone();
-                                    debug_state.execution_stack.truncate(snapshot.stack_len);
-                                    active_frame.visited.remove(&current_node_id);
-                                    debug_state.status = DebugStatus::Running;
-                                    debug_state.pause_reason = None;
-                                    debug_state.variables =
-                                        active_frame.context.variables.get_merged_variables();
-                                    update_shared_state(debug_state);
-                                    continue;
-                                } else {
-                                    active_frame.visited.remove(&current_node_id);
-                                    debug_state.status = DebugStatus::Running;
-                                    update_shared_state(debug_state);
-                                    continue;
-                                }
-                            }
-                            Ok(
-                                cmd @ (StepCommandResult::Continue
-                                | StepCommandResult::StepOver
-                                | StepCommandResult::StepInto
-                                | StepCommandResult::StepOut
-                                | StepCommandResult::RunToEnd),
-                            ) => {
-                                let active_frame = &mut call_frames[active_idx];
-                                match cmd {
-                                    StepCommandResult::StepOver | StepCommandResult::StepInto => {
-                                        debug_state.is_stepping = true;
-                                    }
-                                    StepCommandResult::RunToEnd => {
-                                        debug_state.skip_breakpoints = true;
-                                    }
-                                    _ => {}
-                                }
-                                debug_state.status = DebugStatus::Running;
-                                debug_state.pause_reason = None;
-                                update_shared_state(debug_state);
-
-                                let false_port_next_node = active_frame
-                                    .flow
-                                    .connections
-                                    .iter()
-                                    .find(|conn| {
-                                        conn.source_node_uuid == node.uuid
-                                            && conn.source_port_id == "false"
-                                    })
-                                    .map(|conn| conn.target_node_uuid.clone());
-
-                                if let Some(next_node_uuid) = false_port_next_node {
-                                    active_frame.current_node_id = next_node_uuid;
-                                } else {
-                                    active_frame.current_node_id = String::new();
-                                }
-                                continue;
-                            }
-                            Ok(StepCommandResult::RunFromSnapshot(target_node_uuid)) => {
-                                let active_frame = &mut call_frames[active_idx];
-                                if let Some(snapshot) =
-                                    active_frame.snapshots.get(&target_node_uuid).cloned()
-                                {
-                                    active_frame.context.variables = snapshot.variables.clone();
-                                    debug_state.execution_stack.truncate(snapshot.stack_len);
-                                    active_frame.visited = snapshot.visited.clone();
-                                    active_frame.visited.remove(&target_node_uuid);
-                                    active_frame.current_node_id = target_node_uuid.clone();
-                                    debug_state.current_node_uuid = Some(target_node_uuid.clone());
-                                    debug_state.is_stepping = true;
-                                    debug_state.status = DebugStatus::Paused;
-                                    let pause_reason = PauseReason::StepComplete {
-                                        node_uuid: target_node_uuid.clone(),
-                                    };
-                                    debug_state.pause_reason = Some(pause_reason.clone());
-                                    debug_state.variables =
-                                        active_frame.context.variables.get_merged_variables();
-                                    debug_state.call_frames = build_call_frames(&call_frames);
-                                    update_shared_state(debug_state);
-
-                                    let _ = event_sender.send(DebugEvent::SnapshotRestored {
-                                        node_uuid: target_node_uuid.clone(),
-                                        restored_variables: debug_state.variables.clone(),
-                                        stack_len: snapshot.stack_len,
-                                    });
-                                    let _ = event_sender.send(DebugEvent::PausedAtNode {
-                                        node_uuid: target_node_uuid,
-                                        reason: pause_reason,
-                                        variables: debug_state.variables.clone(),
-                                        execution_stack: debug_state.execution_stack.clone(),
-                                        call_frames: debug_state.call_frames.clone(),
-                                    });
-                                    continue;
-                                } else {
-                                    let _ = event_sender.send(DebugEvent::Error {
-                                        message: format!(
-                                            "Snapshot not found for node {}",
-                                            target_node_uuid
-                                        ),
-                                    });
-                                    continue;
-                                }
-                            }
-                            Ok(StepCommandResult::SkipNode(next_node_uuid_opt, _)) => {
-                                if let Some(next_node_uuid) = next_node_uuid_opt {
-                                    debug_state.status = DebugStatus::Running;
-                                    update_shared_state(debug_state);
-                                    call_frames[active_idx].current_node_id = next_node_uuid;
-                                    continue;
-                                } else {
-                                    call_frames[active_idx].current_node_id = String::new();
-                                    continue;
-                                }
-                            }
-                            Err(abort) if abort == "User aborted debugging" => {
-                                return debug_state.clone();
-                            }
-                            Err(error) => {
-                                debug_state.status = DebugStatus::Ended;
-                                update_shared_state(debug_state);
-                                let report = Self::generate_debug_report(
-                                    debug_state,
-                                    root_flow,
-                                    debug_state.start_time_ms,
-                                    &call_frames[active_idx].context,
-                                )
-                                .await;
-                                let _ = event_sender.send(DebugEvent::SessionEnded {
-                                    reason: EndReason::Error { message: error },
-                                    report: Some(report),
-                                    execution_stack: debug_state.execution_stack.clone(),
-                                });
-                                return debug_state.clone();
-                            }
-                        }
+                        // 无 false 端口连线或 AbortFlow：未捕获异常，流程分支终止，与正常执行保持一致
+                        active_frame.current_node_id = String::new();
+                        continue;
                     }
 
                     let next_node_id = if !next_node_ids.is_empty() {
@@ -1812,187 +1636,9 @@ impl DebuggableFlowExecutor {
                         active_frame.current_node_id = String::new();
                         continue;
                     }
-
-                    // 调试模式下发生未被错误策略捕获的异常时，暂停在当前节点以供原地修改配置/变量并重试
-                    debug_state.status = DebugStatus::Paused;
-                    let pause_reason = PauseReason::Error {
-                        message: error.message.clone(),
-                    };
-                    debug_state.pause_reason = Some(pause_reason.clone());
-                    debug_state.variables = active_frame.context.variables.get_merged_variables();
-                    debug_state.call_frames = build_call_frames(&call_frames);
-                    update_shared_state(debug_state);
-
-                    let _ = event_sender.send(DebugEvent::Error {
-                        message: error.message.clone(),
-                    });
-                    let _ = event_sender.send(DebugEvent::PausedAtNode {
-                        node_uuid: current_node_id.clone(),
-                        reason: pause_reason,
-                        variables: debug_state.variables.clone(),
-                        execution_stack: debug_state.execution_stack.clone(),
-                        call_frames: debug_state.call_frames.clone(),
-                    });
-
-                    let active_frame = &mut call_frames[active_idx];
-                    let node_refs: HashMap<String, &Node> = active_frame
-                        .node_map
-                        .iter()
-                        .map(|(k, v)| (k.clone(), v))
-                        .collect();
-                    let flow_clone = active_frame.flow.clone();
-
-                    let command_result = self
-                        .wait_for_command(
-                            debug_state,
-                            &node,
-                            &mut active_frame.context,
-                            &node_refs,
-                            &flow_clone.connections,
-                            &event_sender,
-                            &mut command_receiver,
-                            &flow_clone,
-                        )
-                        .await;
-
-                    match command_result {
-                        Ok(StepCommandResult::RetryCurrentNode) => {
-                            let active_frame = &mut call_frames[active_idx];
-                            if let Some(snapshot) = active_frame.snapshots.get(&current_node_id) {
-                                active_frame.context.variables = snapshot.variables.clone();
-                                debug_state.execution_stack.truncate(snapshot.stack_len);
-                                active_frame.visited.remove(&current_node_id);
-                                debug_state.status = DebugStatus::Running;
-                                debug_state.pause_reason = None;
-                                debug_state.variables =
-                                    active_frame.context.variables.get_merged_variables();
-                                update_shared_state(debug_state);
-                                continue;
-                            } else {
-                                active_frame.visited.remove(&current_node_id);
-                                debug_state.status = DebugStatus::Running;
-                                update_shared_state(debug_state);
-                                continue;
-                            }
-                        }
-                        Ok(
-                            cmd @ (StepCommandResult::Continue
-                            | StepCommandResult::StepOver
-                            | StepCommandResult::StepInto
-                            | StepCommandResult::StepOut
-                            | StepCommandResult::RunToEnd),
-                        ) => {
-                            let active_frame = &mut call_frames[active_idx];
-                            match cmd {
-                                StepCommandResult::StepOver | StepCommandResult::StepInto => {
-                                    debug_state.is_stepping = true;
-                                }
-                                StepCommandResult::RunToEnd => {
-                                    debug_state.skip_breakpoints = true;
-                                }
-                                _ => {}
-                            }
-                            debug_state.status = DebugStatus::Running;
-                            debug_state.pause_reason = None;
-                            update_shared_state(debug_state);
-
-                            let false_port_next_node = active_frame
-                                .flow
-                                .connections
-                                .iter()
-                                .find(|conn| {
-                                    conn.source_node_uuid == node.uuid
-                                        && conn.source_port_id == "false"
-                                })
-                                .map(|conn| conn.target_node_uuid.clone());
-
-                            if let Some(next_node_uuid) = false_port_next_node {
-                                active_frame.current_node_id = next_node_uuid;
-                            } else {
-                                active_frame.current_node_id = String::new();
-                            }
-                            continue;
-                        }
-                        Ok(StepCommandResult::RunFromSnapshot(target_node_uuid)) => {
-                            let active_frame = &mut call_frames[active_idx];
-                            if let Some(snapshot) =
-                                active_frame.snapshots.get(&target_node_uuid).cloned()
-                            {
-                                active_frame.context.variables = snapshot.variables.clone();
-                                debug_state.execution_stack.truncate(snapshot.stack_len);
-                                active_frame.visited = snapshot.visited.clone();
-                                active_frame.visited.remove(&target_node_uuid);
-                                active_frame.current_node_id = target_node_uuid.clone();
-                                debug_state.current_node_uuid = Some(target_node_uuid.clone());
-                                debug_state.is_stepping = true;
-                                debug_state.status = DebugStatus::Paused;
-                                let pause_reason = PauseReason::StepComplete {
-                                    node_uuid: target_node_uuid.clone(),
-                                };
-                                debug_state.pause_reason = Some(pause_reason.clone());
-                                debug_state.variables =
-                                    active_frame.context.variables.get_merged_variables();
-                                debug_state.call_frames = build_call_frames(&call_frames);
-                                update_shared_state(debug_state);
-
-                                let _ = event_sender.send(DebugEvent::SnapshotRestored {
-                                    node_uuid: target_node_uuid.clone(),
-                                    restored_variables: debug_state.variables.clone(),
-                                    stack_len: snapshot.stack_len,
-                                });
-                                let _ = event_sender.send(DebugEvent::PausedAtNode {
-                                    node_uuid: target_node_uuid,
-                                    reason: pause_reason,
-                                    variables: debug_state.variables.clone(),
-                                    execution_stack: debug_state.execution_stack.clone(),
-                                    call_frames: debug_state.call_frames.clone(),
-                                });
-                                continue;
-                            } else {
-                                // 快照缺失（可能已被 32 条上限淘汰）：保持暂停并提示，不能顺势结束会话
-                                let _ = event_sender.send(DebugEvent::Error {
-                                    message: format!(
-                                        "Snapshot not found for node {}",
-                                        target_node_uuid
-                                    ),
-                                });
-                                continue;
-                            }
-                        }
-                        Ok(StepCommandResult::SkipNode(next_node_uuid_opt, _)) => {
-                            if let Some(next_node_uuid) = next_node_uuid_opt {
-                                debug_state.status = DebugStatus::Running;
-                                update_shared_state(debug_state);
-                                call_frames[active_idx].current_node_id = next_node_uuid;
-                                continue;
-                            } else {
-                                call_frames[active_idx].current_node_id = String::new();
-                                continue;
-                            }
-                        }
-                        Err(abort) if abort == "User aborted debugging" => {
-                            // EndDebug 已在 wait_for_command 内发出 SessionEnded(UserAbort) 并落盘报告，
-                            // 此处直接返回，避免重复生成报告并把结束原因改写成 Error。
-                            return debug_state.clone();
-                        }
-                        Err(error) => {
-                            debug_state.status = DebugStatus::Ended;
-                            update_shared_state(debug_state);
-                            let report = Self::generate_debug_report(
-                                debug_state,
-                                root_flow,
-                                debug_state.start_time_ms,
-                                &call_frames[active_idx].context,
-                            )
-                            .await;
-                            let _ = event_sender.send(DebugEvent::SessionEnded {
-                                reason: EndReason::Error { message: error },
-                                report: Some(report),
-                                execution_stack: debug_state.execution_stack.clone(),
-                            });
-                            return debug_state.clone();
-                        }
-                    }
+                    // 调试模式下发生未被错误策略捕获的异常时，流程分支终止，与正常执行保持一致
+                    active_frame.current_node_id = String::new();
+                    continue;
                 }
             }
         }
@@ -4258,10 +3904,31 @@ mod tests {
             has_breakpoint: None,
             on_error: None,
         };
+        let next_node = Node {
+            uuid: "next".to_string(),
+            node_type: "script".to_string(),
+            name: "后继".to_string(),
+            position: NodePosition::default(),
+            data: NodeData::Script(flow_engine_core::node_config::ScriptNodeConfig {
+                script: "fn.variables.set('done', true);".to_string(),
+                timeout_ms: 5000,
+                ..Default::default()
+            }),
+            ports: None,
+            has_breakpoint: None,
+            on_error: None,
+        };
         let conn = Connection {
             id: "conn-1".to_string(),
             source_node_uuid: "start".to_string(),
             target_node_uuid: "script-fail".to_string(),
+            source_port_id: "output".to_string(),
+            target_port_id: "input".to_string(),
+        };
+        let conn2 = Connection {
+            id: "conn-2".to_string(),
+            source_node_uuid: "script-fail".to_string(),
+            target_node_uuid: "next".to_string(),
             source_port_id: "output".to_string(),
             target_port_id: "input".to_string(),
         };
@@ -4270,8 +3937,8 @@ mod tests {
             uuid: flow_id,
             name: "测试快照原地重试".to_string(),
             description: None,
-            nodes: vec![start_node, script_node],
-            connections: vec![conn],
+            nodes: vec![start_node, script_node, next_node],
+            connections: vec![conn, conn2],
             initial_variables: None,
             setup: None,
             teardown: None,
@@ -4287,7 +3954,7 @@ mod tests {
                 .start_debug(
                     &flow_clone,
                     None,
-                    vec![],
+                    vec!["script-fail".to_string()],
                     None,
                     event_sender,
                     command_receiver,
@@ -4303,12 +3970,12 @@ mod tests {
                 Some(event) = event_receiver.recv() => {
                     match event {
                         DebugEvent::PausedAtNode { node_uuid, reason, .. } => {
-                            if let PauseReason::Error { message } = reason {
+                            if matches!(reason, PauseReason::Breakpoint { .. }) && !retried {
                                 assert_eq!(node_uuid, "script-fail");
-                                assert!(!message.is_empty());
                                 got_error_pause = true;
+                                retried = true;
 
-                                // 修改节点配置为正确脚本并原地重试
+                                // 修改节点配置为正确脚本并移除断点后原地重试
                                 let _ = command_sender.send(DebugCommand::ModifyNodeConfig {
                                     node_uuid: "script-fail".to_string(),
                                     config: serde_json::to_value(NodeData::Script(
@@ -4321,8 +3988,11 @@ mod tests {
                                     ))
                                     .unwrap(),
                                 });
+                                let _ = command_sender.send(DebugCommand::SetBreakpoint {
+                                    node_uuid: "script-fail".to_string(),
+                                    enabled: false,
+                                });
                                 let _ = command_sender.send(DebugCommand::RetryCurrentNode);
-                                retried = true;
                             }
                         }
                         DebugEvent::SessionEnded { report, .. } => {
@@ -4609,30 +4279,53 @@ mod tests {
             has_breakpoint: None,
             on_error: None,
         };
+        let next_node = Node {
+            uuid: "next".to_string(),
+            node_type: "script".to_string(),
+            name: "后继".to_string(),
+            position: NodePosition::default(),
+            data: NodeData::Script(flow_engine_core::node_config::ScriptNodeConfig {
+                script: "fn.variables.set('done', true);".to_string(),
+                timeout_ms: 5000,
+                ..Default::default()
+            }),
+            ports: None,
+            has_breakpoint: None,
+            on_error: None,
+        };
         Flow {
             uuid: Uuid::new_v4().to_string(),
             name: "错误暂停回归流程".to_string(),
             description: None,
-            nodes: vec![start_node, script_node],
-            connections: vec![Connection {
-                id: "c1".to_string(),
-                source_node_uuid: "start".to_string(),
-                target_node_uuid: "script-fail".to_string(),
-                source_port_id: "output".to_string(),
-                target_port_id: "input".to_string(),
-            }],
+            nodes: vec![start_node, script_node, next_node],
+            connections: vec![
+                Connection {
+                    id: "c1".to_string(),
+                    source_node_uuid: "start".to_string(),
+                    target_node_uuid: "script-fail".to_string(),
+                    source_port_id: "output".to_string(),
+                    target_port_id: "input".to_string(),
+                },
+                Connection {
+                    id: "c2".to_string(),
+                    source_node_uuid: "script-fail".to_string(),
+                    target_node_uuid: "next".to_string(),
+                    source_port_id: "output".to_string(),
+                    target_port_id: "input".to_string(),
+                },
+            ],
             initial_variables: None,
             setup: None,
             teardown: None,
         }
     }
 
-    /// 错误暂停时按“结束调试”必须只结束一次会话，且原因保持 UserAbort
+    /// 未捕获执行错误且无 false 分支时，流程直接终止并上报失败报告，无需额外指令推进
     #[tokio::test]
     async fn test_error_pause_end_debug_ends_session_once() {
         let flow = fatal_error_flow();
         let (event_sender, mut event_receiver) = mpsc::unbounded_channel();
-        let (command_sender, command_receiver) = mpsc::unbounded_channel();
+        let (_command_sender, command_receiver) = mpsc::unbounded_channel();
 
         let executor = DebuggableFlowExecutor::new();
         let flow_clone = flow.clone();
@@ -4650,23 +4343,16 @@ mod tests {
         });
 
         let mut session_ended_reasons: Vec<EndReason> = Vec::new();
-        let mut sent_end = false;
+        let mut final_report = None;
 
         loop {
             tokio::select! {
                 Some(event) = event_receiver.recv() => {
                     match event {
-                        DebugEvent::PausedAtNode { reason, .. } => {
-                            if matches!(reason, PauseReason::Error { .. }) && !sent_end {
-                                sent_end = true;
-                                let _ = command_sender.send(DebugCommand::EndDebug);
-                            }
-                        }
-                        DebugEvent::SessionEnded { reason, .. } => {
+                        DebugEvent::SessionEnded { reason, report, .. } => {
                             session_ended_reasons.push(reason);
-                            if session_ended_reasons.len() > 1 {
-                                break;
-                            }
+                            final_report = report;
+                            break;
                         }
                         _ => {}
                     }
@@ -4682,14 +4368,11 @@ mod tests {
         assert_eq!(
             session_ended_reasons.len(),
             1,
-            "错误暂停下结束调试必须只发出一次 SessionEnded，实际: {:?}",
+            "执行失败直接结束会话且必须只发出一次 SessionEnded，实际: {:?}",
             session_ended_reasons
         );
-        assert_eq!(
-            session_ended_reasons[0],
-            EndReason::UserAbort,
-            "结束原因必须保持 UserAbort，不能被改写成 Error"
-        );
+        let rep = final_report.expect("必须生成最终报告");
+        assert_eq!(rep.status, ExecutionStatus::Failed);
         let _ = handle.await;
     }
 
@@ -4707,7 +4390,7 @@ mod tests {
                 .start_debug(
                     &flow_clone,
                     None,
-                    vec![],
+                    vec!["start".to_string()],
                     None,
                     event_sender,
                     command_receiver,
@@ -4723,8 +4406,8 @@ mod tests {
             tokio::select! {
                 Some(event) = event_receiver.recv() => {
                     match event {
-                        DebugEvent::PausedAtNode { reason, .. } => {
-                            if matches!(reason, PauseReason::Error { .. }) && !sent_restore {
+                        DebugEvent::PausedAtNode { .. } => {
+                            if !sent_restore {
                                 sent_restore = true;
                                 let _ = command_sender.send(DebugCommand::RunFromSnapshot {
                                     node_uuid: "does-not-exist".to_string(),
@@ -5044,7 +4727,7 @@ mod tests {
         let (event_sender, mut event_receiver) = mpsc::unbounded_channel();
         let executor = DebuggableFlowExecutor::new();
 
-        let debug_state = executor
+        let _debug_state = executor
             .start_debug(&flow, None, vec![], None, event_sender, command_receiver)
             .await;
 
@@ -5098,5 +4781,290 @@ mod tests {
                 .any(|c| c.key == "computed" && c.new_value == json!("result_ok")),
             "variable_changes 必须记录 computed 变量变更"
         );
+    }
+
+    /// 测试端点节点执行失败时，流程立即结束并生成报告，无需多点击一次执行
+    #[tokio::test]
+    async fn test_debug_endpoint_node_failure_ends_session_immediately() {
+        let flow_id = Uuid::new_v4().to_string();
+        let start_node = Node {
+            uuid: "start".to_string(),
+            node_type: "entry".to_string(),
+            name: "开始".to_string(),
+            position: NodePosition::default(),
+            data: NodeData::entry(),
+            ports: None,
+            has_breakpoint: None,
+            on_error: None,
+        };
+
+        let fail_endpoint_node = Node {
+            uuid: "http-endpoint-fail".to_string(),
+            node_type: "script".to_string(),
+            name: "端点节点".to_string(),
+            position: NodePosition::default(),
+            data: NodeData::Script(flow_engine_core::node_config::ScriptNodeConfig {
+                script: "throw new Error('Endpoint failure');".to_string(),
+                timeout_ms: 5000,
+                on_error: flow_engine_core::node_config::ScriptErrorStrategy::Fatal,
+                ..Default::default()
+            }),
+            ports: None,
+            has_breakpoint: None,
+            on_error: None,
+        };
+
+        let conn = Connection {
+            id: "conn-1".to_string(),
+            source_node_uuid: "start".to_string(),
+            target_node_uuid: "http-endpoint-fail".to_string(),
+            source_port_id: "output".to_string(),
+            target_port_id: "input".to_string(),
+        };
+
+        let flow = Flow {
+            uuid: flow_id,
+            name: "测试端点节点失败立即结束".to_string(),
+            description: None,
+            nodes: vec![start_node, fail_endpoint_node],
+            connections: vec![conn],
+            initial_variables: None,
+            setup: None,
+            teardown: None,
+        };
+
+        let (event_sender, mut event_receiver) = mpsc::unbounded_channel();
+        let (command_sender, command_receiver) = mpsc::unbounded_channel();
+
+        let executor = DebuggableFlowExecutor::new();
+        let flow_clone = flow.clone();
+        let handle = tokio::spawn(async move {
+            executor
+                .start_debug(
+                    &flow_clone,
+                    None,
+                    vec!["http-endpoint-fail".to_string()],
+                    None,
+                    event_sender,
+                    command_receiver,
+                )
+                .await
+        });
+
+        let mut got_error_pause = false;
+        let final_report;
+
+        loop {
+            tokio::select! {
+                Some(event) = event_receiver.recv() => {
+                    match event {
+                        DebugEvent::PausedAtNode { reason, .. } => {
+                            if matches!(reason, PauseReason::Breakpoint { .. }) {
+                                // 在端点节点断点暂停，点击单步执行该端点节点
+                                let _ = command_sender.send(DebugCommand::StepOver);
+                            } else if matches!(reason, PauseReason::Error { .. }) {
+                                // 端点节点失败不应再次暂停
+                                got_error_pause = true;
+                            }
+                        }
+                        DebugEvent::SessionEnded { report, .. } => {
+                            final_report = report;
+                            break;
+                        }
+                        _ => {}
+                    }
+                }
+                _ = tokio::time::sleep(std::time::Duration::from_secs(5)) => {
+                    panic!("test_debug_endpoint_node_failure_ends_session_immediately timed out");
+                }
+            }
+        }
+
+        assert!(!got_error_pause, "端点节点失败不得再次错误暂停触发二次点击");
+        let rep = final_report.expect("必须生成最终报告且调试会话立即结束");
+        assert_eq!(rep.status, ExecutionStatus::Failed);
+        let _ = handle.await;
+    }
+
+    /// 测试步入子流程后子流程节点失败，父级 flow:sub 节点被标记为失败且父流程分支终止
+    #[tokio::test]
+    async fn test_debug_subflow_failure_terminates_parent_branch() {
+        use tempfile::tempdir;
+
+        let dir = tempdir().expect("create tempdir");
+        let child_path = dir.path().join("child-fail.mpf");
+
+        let child_flow = Flow {
+            uuid: "child-fail-flow".to_string(),
+            name: "Child Fail Flow".to_string(),
+            description: None,
+            initial_variables: None,
+            setup: None,
+            teardown: None,
+            nodes: vec![
+                Node {
+                    uuid: "c-start".to_string(),
+                    node_type: "entry".to_string(),
+                    name: "Child Start".to_string(),
+                    position: NodePosition::default(),
+                    data: NodeData::entry(),
+                    ports: None,
+                    has_breakpoint: None,
+                    on_error: None,
+                },
+                Node {
+                    uuid: "c-script-fail".to_string(),
+                    node_type: "script".to_string(),
+                    name: "Child Script Fail".to_string(),
+                    position: NodePosition::default(),
+                    data: NodeData::Script(flow_engine_core::node_config::ScriptNodeConfig {
+                        script: "throw new Error('child failed');".to_string(),
+                        timeout_ms: 5000,
+                        on_error: flow_engine_core::node_config::ScriptErrorStrategy::Fatal,
+                        ..Default::default()
+                    }),
+                    ports: None,
+                    has_breakpoint: None,
+                    on_error: None,
+                },
+            ],
+            connections: vec![Connection {
+                id: "c-conn-1".to_string(),
+                source_node_uuid: "c-start".to_string(),
+                target_node_uuid: "c-script-fail".to_string(),
+                source_port_id: "out".to_string(),
+                target_port_id: "in".to_string(),
+            }],
+        };
+
+        let child_file = crate::storage::FlowFile {
+            _version: 1,
+            flow: child_flow.clone(),
+            _meta: None,
+        };
+        std::fs::write(
+            &child_path,
+            serde_json::to_string_pretty(&child_file).unwrap(),
+        )
+        .unwrap();
+
+        let parent_flow = Flow {
+            uuid: "parent-flow-test".to_string(),
+            name: "Parent Flow".to_string(),
+            description: None,
+            initial_variables: None,
+            setup: None,
+            teardown: None,
+            nodes: vec![
+                Node {
+                    uuid: "p-start".to_string(),
+                    node_type: "entry".to_string(),
+                    name: "Parent Start".to_string(),
+                    position: NodePosition::default(),
+                    data: NodeData::entry(),
+                    ports: None,
+                    has_breakpoint: None,
+                    on_error: None,
+                },
+                Node {
+                    uuid: "p-subflow".to_string(),
+                    node_type: "flow:sub".to_string(),
+                    name: "Parent SubFlow".to_string(),
+                    position: NodePosition::default(),
+                    data: NodeData::sub_flow(flow_engine_core::node_config::SubFlowConfig {
+                        target_flow_id: None,
+                        target_flow_path: Some(child_path.to_string_lossy().to_string()),
+                        inherit_all_variables: true,
+                        variable_mappings: vec![],
+                        export_all_variables: true,
+                        output_mappings: vec![],
+                    }),
+                    ports: None,
+                    has_breakpoint: None,
+                    on_error: None,
+                },
+                Node {
+                    uuid: "p-end".to_string(),
+                    node_type: "end".to_string(),
+                    name: "Parent End".to_string(),
+                    position: NodePosition::default(),
+                    data: NodeData::end(),
+                    ports: None,
+                    has_breakpoint: None,
+                    on_error: None,
+                },
+            ],
+            connections: vec![
+                Connection {
+                    id: "p-conn-1".to_string(),
+                    source_node_uuid: "p-start".to_string(),
+                    target_node_uuid: "p-subflow".to_string(),
+                    source_port_id: "out".to_string(),
+                    target_port_id: "in".to_string(),
+                },
+                Connection {
+                    id: "p-conn-2".to_string(),
+                    source_node_uuid: "p-subflow".to_string(),
+                    target_node_uuid: "p-end".to_string(),
+                    source_port_id: "out".to_string(),
+                    target_port_id: "in".to_string(),
+                },
+            ],
+        };
+
+        let (event_sender, mut event_receiver) = mpsc::unbounded_channel();
+        let (command_sender, command_receiver) = mpsc::unbounded_channel();
+
+        let executor = DebuggableFlowExecutor::new();
+        let parent_clone = parent_flow.clone();
+        let handle = tokio::spawn(async move {
+            executor
+                .start_debug(
+                    &parent_clone,
+                    None,
+                    vec!["p-subflow".to_string()],
+                    None,
+                    event_sender,
+                    command_receiver,
+                )
+                .await
+        });
+
+        let mut stepped_into = false;
+        let mut final_report = None;
+
+        loop {
+            tokio::select! {
+                Some(event) = event_receiver.recv() => {
+                    match event {
+                        DebugEvent::PausedAtNode { node_uuid, .. } => {
+                            if node_uuid == "p-subflow" && !stepped_into {
+                                stepped_into = true;
+                                let _ = command_sender.send(DebugCommand::StepInto);
+                            } else {
+                                let _ = command_sender.send(DebugCommand::Continue);
+                            }
+                        }
+                        DebugEvent::SessionEnded { report, .. } => {
+                            final_report = report;
+                            break;
+                        }
+                        _ => {}
+                    }
+                }
+                _ = tokio::time::sleep(std::time::Duration::from_secs(5)) => {
+                    panic!("test_debug_subflow_failure_terminates_parent_branch timeout");
+                }
+            }
+        }
+
+        assert!(stepped_into, "必须成功步入子流程");
+        let rep = final_report.expect("必须生成最终报告");
+        assert_eq!(
+            rep.status,
+            ExecutionStatus::Failed,
+            "子流程失败时顶层报告状态必须为 Failed"
+        );
+        let _ = handle.await;
     }
 }
