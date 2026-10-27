@@ -3,7 +3,7 @@
  * 管理 VSCode 风格的面板布局：顶部固定 + 底部可折叠面板区
  */
 import { useState, useCallback, useRef, useEffect, memo } from 'react';
-import { Plus, FolderPlus, LocateFixed } from 'lucide-react';
+import { Plus, FolderPlus, LocateFixed, PanelLeftClose } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { CollapsiblePanel } from '@/components/ui/CollapsiblePanel';
 import { FlowListPanel } from '@/components/sidebar';
@@ -233,6 +233,19 @@ export const LeftSidebarPanel = memo(function LeftSidebarPanel() {
               title={isDebugging ? LL.flow.debug_no_new_flow() : LL.flow.new_flow()}
             >
               <Plus className="w-3.5 h-3.5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={(e) => {
+                e.stopPropagation();
+                useUIStore.getState().toggleFlowListPanel();
+              }}
+              className="h-6 w-6 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground cursor-pointer"
+              title={`${LL.common.toggle_sidebar_collapse()} (Ctrl+B)`}
+              data-testid="close-left-sidebar"
+            >
+              <PanelLeftClose className="w-3.5 h-3.5" />
             </Button>
           </div>
         }

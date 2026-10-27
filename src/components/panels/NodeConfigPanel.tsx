@@ -81,7 +81,7 @@ function mergeNodeDataReplace<T extends Record<string, unknown>>(original: T, up
   }
   return merged;
 }
-import { useFlowStore, useDebugStore, selectHistoryVersion, selectNodes } from '@/stores';
+import { useFlowStore, useDebugStore, useUIStore, selectHistoryVersion, selectNodes } from '@/stores';
 import { DebugNodeConfigDialog } from '@/components/dialogs/DebugNodeConfigDialog';
 import { FlowConfigPanel } from './FlowConfigPanel';
 import { getPanelLoader, isSchemaDriven } from '@/lib/configPanelRegistry';
@@ -90,7 +90,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import type { NodeData, Node, NodeType } from '@/types';
-import { MousePointerClick, PencilLine, CircleHelp, Play, Loader2, Ban } from 'lucide-react';
+import { MousePointerClick, PencilLine, CircleHelp, Play, Loader2, Ban, PanelRightClose } from 'lucide-react';
 import { startInteractiveSliceExecution } from '@/services/tauri';
 import { useExecutionStore, selectIsExecuting } from '@/stores/execution';
 import { HelpDrawer } from './HelpDrawer';
@@ -268,7 +268,17 @@ export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeCo
   if (!selectedNode) {
     if (readOnly) {
       return (
-        <div className="flex h-full flex-col items-center justify-center p-6 text-center">
+        <div className="flex h-full flex-col items-center justify-center p-6 text-center relative">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute top-3 right-3 h-6 w-6 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground cursor-pointer"
+            onClick={() => useUIStore.getState().toggleConfigPanel()}
+            title={`${getLL().common.toggle_config_collapse()} (Ctrl+J)`}
+            data-testid="close-right-config"
+          >
+            <PanelRightClose className="h-4 w-4" />
+          </Button>
           <div className="rounded-full bg-muted p-4 mb-4">
             <MousePointerClick className="h-8 w-8 text-muted-foreground" />
           </div>
@@ -440,6 +450,16 @@ export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeCo
                 )}
               </>
             )}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground cursor-pointer"
+              onClick={() => useUIStore.getState().toggleConfigPanel()}
+              title={`${getLL().common.toggle_config_collapse()} (Ctrl+J)`}
+              data-testid="close-right-config"
+            >
+              <PanelRightClose className="h-4 w-4" />
+            </Button>
           </div>
         </div>
       </CardHeader>

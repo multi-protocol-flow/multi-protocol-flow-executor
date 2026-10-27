@@ -13,6 +13,7 @@ import {
   Layers,
   Network,
   Variable as VariableIcon,
+  PanelRightClose,
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -108,6 +109,16 @@ export function FlowConfigPanel({ readOnly = false }: FlowConfigPanelProps) {
                 {getLL().panels.nodeConfig.readOnly()}
               </span>
             )}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground cursor-pointer"
+              onClick={() => useUIStore.getState().toggleConfigPanel()}
+              title={`${getLL().common.toggle_config_collapse()} (Ctrl+J)`}
+              data-testid="close-flow-config"
+            >
+              <PanelRightClose className="h-4 w-4" />
+            </Button>
           </div>
         </div>
       </CardHeader>
