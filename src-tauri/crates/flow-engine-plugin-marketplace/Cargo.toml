@@ -20,7 +20,7 @@ thiserror = { workspace = true }
 tokio = { workspace = true }
 log = { workspace = true }
 tempfile = { workspace = true }
-zip = "2"
+zip = "9"
 workspace-hack = { version = "0.1", path = "../workspace-hack" }
 
 [dev-dependencies]
