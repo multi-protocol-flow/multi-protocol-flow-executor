@@ -7,7 +7,7 @@ import { createPortal } from 'react-dom';
 import {
   Plus, FileJson, MoreVertical, Copy, Trash2, Pencil, Bug, RefreshCw,
   FolderPlus, Folder, FolderOpen, ChevronDown, ChevronRight, Move,
-  Search, ArrowUpDown, Check, ClipboardCopy, FileDown, LocateFixed,
+  Search, ArrowUpDown, Check, ClipboardCopy, FileDown, LocateFixed, Bot,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { copyToClipboard } from '@/lib/clipboard';
@@ -95,6 +95,7 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
   const renameFolderInputRef = useRef<HTMLInputElement>(null);
 
   const openExportFlowDialog = useUIStore((s) => s.openExportFlowDialog);
+  const openExportMcpDialog = useUIStore((s) => s.openExportMcpDialog);
 
   // 拖拽流程标识，避免拖拽释放时误触发流程切换
   const isDraggingFlowRef = useRef(false);
@@ -1158,6 +1159,18 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
               >
                 <FileDown className="w-3.5 h-3.5" />
                 {getLL().flow.export_flow_menu()}
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setOpenMenuUuid(null);
+                  openExportMcpDialog(flowMeta);
+                }}
+                className="flex w-full items-center gap-2 py-1.5 px-2.5 text-xs hover:bg-accent transition-colors text-amber-500 font-medium"
+              >
+                <Bot className="w-3.5 h-3.5" />
+                {getLL().flow.publish_as_mcp_server()}
               </button>
               <button
                 type="button"

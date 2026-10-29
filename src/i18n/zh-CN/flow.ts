@@ -60,6 +60,7 @@ const zh_CN_flow: BaseTranslation = {
   entry_node_exists_badge: '已存在',
   move_to: '移动到...',
   export_flow_menu: '导出流程 (.mpf)...',
+  publish_as_mcp_server: '发布为 MCP Server',
   environment_section_title: '环境管理',
   duplicate_env: '复制环境副本',
   delete_env: '删除环境',

@@ -19,6 +19,7 @@ import {
   LocateFixed,
   ClipboardCopy,
   FolderOpen,
+  Bot,
 } from 'lucide-react';
 import * as Popover from '@radix-ui/react-popover';
 import { toast } from 'sonner';
@@ -70,6 +71,7 @@ export const FlowTabBar = memo(function FlowTabBar() {
   const selectNode = useFlowStore((s) => s.selectNode);
 
   const openNewFlowDialog = useUIStore((s) => s.openNewFlowDialog);
+  const openExportMcpDialog = useUIStore((s) => s.openExportMcpDialog);
   const setConfigPanelOpen = useUIStore((s) => s.setConfigPanelOpen);
   const showConfirm = useUIStore((s) => s.showConfirm);
 
@@ -459,6 +461,22 @@ export const FlowTabBar = memo(function FlowTabBar() {
     }
   }, []);
 
+  const handlePublishMcpServer = useCallback((tab: FlowTab) => {
+    const session = tabSessions[tab.uuid];
+    const target = (currentFlow?.uuid === tab.uuid ? currentFlow : null) || session?.flow;
+    if (target) {
+      openExportMcpDialog(target);
+    } else {
+      openExportMcpDialog({
+        uuid: tab.uuid,
+        name: tab.name,
+        updated_at: Date.now(),
+        folder_path: '',
+        file_path: tab.filePath,
+      });
+    }
+  }, [tabSessions, currentFlow, openExportMcpDialog]);
+
   // 滚轮横向滚动（仅单行滚动模式下生效）
   const handleWheel = (e: React.WheelEvent) => {
     if (flowTabDisplayMode === 'scroll' && e.deltaY !== 0 && tabsContainerRef.current) {
@@ -847,6 +865,19 @@ export const FlowTabBar = memo(function FlowTabBar() {
                 >
                   <Sliders className="w-3.5 h-3.5 text-muted-foreground" />
                   {LL.flow.flow_properties()}
+                </button>
+                {/* 发布为 MCP Server */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const tab = contextMenu.tab!;
+                    setContextMenu(null);
+                    handlePublishMcpServer(tab);
+                  }}
+                  className="flex items-center gap-2.5 w-full px-3 py-1.5 text-xs text-amber-500 hover:bg-accent transition-colors cursor-pointer outline-none font-medium"
+                >
+                  <Bot className="w-3.5 h-3.5 text-amber-500" />
+                  {LL.flow.publish_as_mcp_server()}
                 </button>
               </div>
             </>

@@ -22,6 +22,7 @@ import { FlowConflictDialog } from '@/components/dialogs/FlowConflictDialog';
 import { SearchOverlay } from '@/components/dialogs/SearchOverlay';
 import { EnvironmentManagerDialog } from '@/components/panels/EnvironmentManager';
 import { ExportFlowDialog } from '@/components/dialogs/ExportFlowDialog';
+import { ExportMcpDialog } from '@/components/dialogs/ExportMcpDialog';
 import {
   DatasetReportList,
   DatasetReportDetail,
@@ -157,6 +158,7 @@ const GlobalDialogs = memo(function GlobalDialogs() {
       <SearchOverlayHandler />
       {showEnvironmentManagerDialog && <EnvironmentManagerDialog />}
       <ExportFlowDialog />
+      <ExportMcpDialog />
     </>
   );
 });

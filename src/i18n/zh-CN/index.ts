@@ -14,6 +14,7 @@ import viewer from './viewer';
 import errors from './errors';
 import stages from './stages';
 import ai from './ai';
+import mcp from './mcp';
 
 const zh_CN = {
   common,
@@ -31,6 +32,7 @@ const zh_CN = {
   errors,
   stages,
   ai,
+  mcp,
 } as BaseTranslation;
 
 export default zh_CN;

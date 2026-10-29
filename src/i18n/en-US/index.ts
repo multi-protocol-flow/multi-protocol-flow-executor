@@ -14,6 +14,7 @@ import viewer from './viewer';
 import errors from './errors';
 import stages from './stages';
 import ai from './ai';
+import mcp from './mcp';
 
 const en_US: Translation = {
   common,
@@ -31,6 +32,7 @@ const en_US: Translation = {
   errors,
   stages,
   ai,
+  mcp,
 } as Translation;
 
 export default en_US;

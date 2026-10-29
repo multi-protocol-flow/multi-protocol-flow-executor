@@ -7781,6 +7781,14 @@ type RootTranslation = {
 		 */
 		tab_network: string
 		/**
+		 * M​C​P​ ​服​务​治​理
+		 */
+		tab_mcp: string
+		/**
+		 * 管​理​由​宿​主​监​管​的​ ​M​C​P​ ​服​务​实​例​，​监​控​运​行​状​态​、​端​口​探​针​与​热​重​载​。
+		 */
+		mcp_desc: string
+		/**
 		 * 管​理​ ​H​T​T​P​ ​I​n​g​r​e​s​s​ ​本​地​ ​M​o​c​k​ ​服​务​全​局​网​关​端​口​、​路​径​隔​离​与​网​络​路​由​策​略
 		 */
 		network_desc: string
@@ -7828,6 +7836,42 @@ type RootTranslation = {
 		 * 恢​复​默​认​ ​(​9​5​2​7​)
 		 */
 		ingress_reset_default: string
+		/**
+		 * 全​局​ ​M​C​P​ ​共​享​网​关​端​口
+		 */
+		mcp_gateway_port: string
+		/**
+		 * 本​地​ ​M​C​P​ ​S​e​r​v​e​r​ ​共​享​网​关​默​认​端​口​。​多​个​流​程​发​布​为​ ​M​C​P​ ​S​e​r​v​e​r​ ​时​共​用​该​端​口​，​并​通​过​流​程​ ​S​l​u​g​ ​路​径​隔​离​（​形​如​ ​/​流​程​S​l​u​g​/​m​c​p​）​自​动​路​由​。
+		 */
+		mcp_gateway_port_desc: string
+		/**
+		 * 端​口​必​须​为​ ​1​0​2​4​ ​到​ ​6​5​5​3​5​ ​之​间​的​有​效​整​数
+		 */
+		mcp_port_invalid: string
+		/**
+		 * 恢​复​默​认​ ​(​9​5​2​8​)
+		 */
+		mcp_reset_default: string
+		/**
+		 * M​C​P​ ​访​问​端​点​预​览
+		 */
+		mcp_url_preview: string
+		/**
+		 * 共​享​网​关​模​式
+		 */
+		mcp_shared_mode_title: string
+		/**
+		 * 未​自​定​义​端​口​时​，​流​程​加​入​共​享​网​关​，​客​户​端​通​过​ ​h​t​t​p​:​/​/​1​2​7​.​0​.​0​.​1​:​9​5​2​8​/​流​程​S​l​u​g​/​m​c​p​ ​访​问​，​多​个​流​程​互​不​冲​突​。
+		 */
+		mcp_shared_mode_desc: string
+		/**
+		 * 专​属​独​立​端​口​模​式
+		 */
+		mcp_dedicated_mode_title: string
+		/**
+		 * 显​式​指​定​其​他​端​口​时​，​为​单​个​流​程​启​动​专​属​进​程​，​客​户​端​直​接​以​根​路​径​ ​/​m​c​p​ ​访​问​。
+		 */
+		mcp_dedicated_mode_desc: string
 		/**
 		 * 快​捷​键​与​手​册
 		 */
@@ -8776,6 +8820,10 @@ type RootTranslation = {
 		 * 导​出​流​程​ ​(​.​m​p​f​)​.​.​.
 		 */
 		export_flow_menu: string
+		/**
+		 * 发​布​为​ ​M​C​P​ ​S​e​r​v​e​r
+		 */
+		publish_as_mcp_server: string
 		/**
 		 * 环​境​管​理
 		 */
@@ -15410,6 +15458,335 @@ type RootTranslation = {
 			 */
 			esc_to_close: string
 		}
+	}
+	mcp: {
+		/**
+		 * 发​布​流​程​为​ ​M​C​P​ ​S​e​r​v​e​r
+		 */
+		dialog_title: string
+		/**
+		 * 基​于​宿​主​内​置​引​擎​将​流​程​导​出​为​标​准​ ​M​o​d​e​l​ ​C​o​n​t​e​x​t​ ​P​r​o​t​o​c​o​l​ ​工​具
+		 */
+		dialog_desc: string
+		/**
+		 * M​C​P​ ​客​户​端​节​点​插​件​未​安​装
+		 */
+		plugin_required_title: string
+		/**
+		 * 宿​主​已​内​置​ ​M​C​P​ ​S​e​r​v​e​r​ ​引​擎​，​发​布​流​程​无​需​任​何​插​件​；​安​装​ ​m​p​e​-​p​l​u​g​i​n​-​m​c​p​ ​仅​用​于​在​画​布​中​使​用​ ​M​C​P​ ​客​户​端​节​点​（​m​c​p​:​c​o​n​n​e​c​t​ ​/​ ​m​c​p​:​c​a​l​l​_​t​o​o​l​）​。
+		 */
+		plugin_required_desc: string
+		/**
+		 * 一​键​从​市​场​安​装
+		 */
+		install_plugin: string
+		/**
+		 * 正​在​安​装​.​.​.
+		 */
+		installing: string
+		/**
+		 * C​L​I​:​ ​m​p​e​ ​p​l​u​g​i​n​ ​i​n​s​t​a​l​l​ ​m​c​p
+		 */
+		cli_hint: string
+		/**
+		 * 目​标​流​程
+		 */
+		target_flow: string
+		/**
+		 * 当​前​流​程
+		 */
+		current_flow: string
+		/**
+		 * M​C​P​ ​工​具​名
+		 */
+		tool_name: string
+		/**
+		 * S​t​d​i​o​ ​模​式​ ​(​C​l​a​u​d​e​ ​D​e​s​k​t​o​p​ ​/​ ​C​u​r​s​o​r​ ​直​连​)
+		 */
+		tab_stdio: string
+		/**
+		 * S​t​r​e​a​m​a​b​l​e​ ​H​T​T​P​ ​模​式​ ​(​宿​主​监​管​多​服​务​)
+		 */
+		tab_streamable: string
+		/**
+		 * C​l​a​u​d​e​ ​D​e​s​k​t​o​p
+		 */
+		tab_claude: string
+		/**
+		 * C​u​r​s​o​r
+		 */
+		tab_cursor: string
+		/**
+		 * 复​制​配​置​ ​J​S​O​N
+		 */
+		copy_config_json: string
+		/**
+		 * 已​复​制
+		 */
+		copied: string
+		/**
+		 * 配​置​已​复​制​到​剪​贴​板
+		 */
+		copy_success: string
+		/**
+		 * 复​制​失​败​，​请​手​动​选​取​复​制
+		 */
+		copy_failed: string
+		/**
+		 * 将​上​方​代​码​块​合​并​至​客​户​端​配​置​文​件​即​可​直​连​：​客​户​端​以​ ​s​t​d​i​o​ ​拉​起​宿​主​二​进​制​，​通​过​标​准​输​入​输​出​通​信​，​不​占​用​任​何​端​口​。​宿​主​内​置​执​行​引​擎​，​无​需​保​持​ ​M​P​E​ ​G​U​I​ ​启​动​。
+		 */
+		stdio_hint: string
+		/**
+		 * 加​入​共​享​网​关​（​默​认​端​口​ ​+​ ​唯​一​路​径​）
+		 */
+		shared_port_mode: string
+		/**
+		 * 多​个​流​程​共​用​全​局​ ​M​C​P​ ​网​关​端​口​：​客​户​端​只​需​配​置​一​次​即​可​发​现​全​部​已​发​布​流​程​的​工​具​，​新​增​流​程​自​动​出​现​，​无​需​逐​个​配​置​。
+		 */
+		shared_port_hint: string
+		/**
+		 * 使​用​专​属​端​口​（​独​占​进​程​）
+		 */
+		dedicated_port_mode: string
+		/**
+		 * 访​问​端​点​（​一​次​配​置​即​可​发​现​全​部​工​具​）
+		 */
+		endpoint_label: string
+		/**
+		 * 按​流​程​隔​离​端​点​（​可​选​）
+		 */
+		scoped_endpoint_label: string
+		/**
+		 * 监​听​主​机​ ​(​H​o​s​t​)
+		 */
+		host_label: string
+		/**
+		 * 端​口​号​ ​(​P​o​r​t​)
+		 */
+		port_label: string
+		/**
+		 * 调​用​超​时​ ​(​m​s​)
+		 */
+		timeout_label: string
+		/**
+		 * 服​务​正​在​运​行​中
+		 */
+		service_running: string
+		/**
+		 * 复​制​ ​U​R​L
+		 */
+		copy_url: string
+		/**
+		 * 本​地​一​键​启​动​ ​S​t​r​e​a​m​a​b​l​e​ ​H​T​T​P​ ​服​务
+		 */
+		start_streamable: string
+		/**
+		 * 正​在​启​动​.​.​.
+		 */
+		starting: string
+		/**
+		 * 推​导​的​工​具​入​参​ ​(​I​n​p​u​t​ ​P​a​r​a​m​e​t​e​r​s​)
+		 */
+		input_params: string
+		/**
+		 * {​c​o​u​n​t​}​ ​个​变​量
+		 * @param {number} count
+		 */
+		var_count: RequiredParams<'count'>
+		/**
+		 * 变​量​名
+		 */
+		var_name: string
+		/**
+		 * 类​型
+		 */
+		var_type: string
+		/**
+		 * 默​认​值
+		 */
+		var_default: string
+		/**
+		 * 该​流​程​无​需​外​部​入​参​即​可​执​行
+		 */
+		no_input_params: string
+		/**
+		 * 支​持​热​重​载​ ​n​o​t​i​f​i​c​a​t​i​o​n​s​/​t​o​o​l​s​/​l​i​s​t​_​c​h​a​n​g​e​d
+		 */
+		list_changed_hint: string
+		/**
+		 * 关​闭
+		 */
+		close: string
+		/**
+		 * M​C​P​ ​插​件​运​行​状​态
+		 */
+		status_title: string
+		/**
+		 * S​i​d​e​c​a​r​ ​插​件​进​程​与​宿​主​通​信​状​态
+		 */
+		status_desc: string
+		/**
+		 * 已​安​装​就​绪​ ​(​v​{​v​e​r​s​i​o​n​}​)
+		 * @param {string} version
+		 */
+		status_ready: RequiredParams<'version'>
+		/**
+		 * 未​安​装​插​件
+		 */
+		status_not_installed: string
+		/**
+		 * 刷​新
+		 */
+		refresh: string
+		/**
+		 * 未​检​测​到​ ​M​C​P​ ​客​户​端​插​件​。​发​布​ ​M​C​P​ ​S​e​r​v​e​r​ ​无​需​该​插​件​；​若​需​在​流​程​中​使​用​ ​M​C​P​ ​客​户​端​节​点​（​m​c​p​:​c​o​n​n​e​c​t​）​请​安​装​。
+		 */
+		plugin_missing_tip: string
+		/**
+		 * 安​装​ ​M​C​P​ ​插​件
+		 */
+		install_plugin_btn: string
+		/**
+		 * 二​进​制​路​径
+		 */
+		binary_path: string
+		/**
+		 * 已​发​布​ ​M​C​P​ ​服​务​ ​(​{​c​o​u​n​t​}​)
+		 * @param {number} count
+		 */
+		active_instances: RequiredParams<'count'>
+		/**
+		 * 发​布​记​录​持​久​化​保​存​，​应​用​重​启​后​自​动​恢​复
+		 */
+		zombie_clean_hint: string
+		/**
+		 * 实​例​名​称
+		 */
+		col_name: string
+		/**
+		 * 传​输​方​式
+		 */
+		col_transport: string
+		/**
+		 * 进​程​ ​P​I​D
+		 */
+		col_pid: string
+		/**
+		 * 端​点​ ​/​ ​目​标
+		 */
+		col_endpoint: string
+		/**
+		 * 工​具​数
+		 */
+		col_tools: string
+		/**
+		 * 状​态
+		 */
+		col_status: string
+		/**
+		 * 操​作
+		 */
+		col_actions: string
+		/**
+		 * M​C​P​ ​工​具​名
+		 */
+		col_tool_name: string
+		/**
+		 * 共​享​网​关​端​点
+		 */
+		group_shared: string
+		/**
+		 * 专​属​端​口
+		 */
+		group_dedicated: string
+		/**
+		 * {​c​o​u​n​t​}​ ​个​工​具
+		 * @param {number} count
+		 */
+		group_tools: RequiredParams<'count'>
+		/**
+		 * {​c​o​u​n​t​}​ ​个​流​程
+		 * @param {number} count
+		 */
+		group_flows: RequiredParams<'count'>
+		/**
+		 * 恢​复​服​务​（​重​新​拉​起​）
+		 */
+		action_restore: string
+		/**
+		 * 全​部​恢​复
+		 */
+		restore_all: string
+		/**
+		 * 应​用​或​系​统​重​启​后​，​已​发​布​的​服​务​会​自​动​拉​起​。​停​止​会​保​留​发​布​记​录​（​可​随​时​恢​复​）​，​删​除​才​会​取​消​发​布​。
+		 */
+		restore_hint: string
+		/**
+		 * 查​看​客​户​端​配​置
+		 */
+		action_snippets: string
+		/**
+		 * 重​载​流​程​与​工​具
+		 */
+		action_reload: string
+		/**
+		 * 重​启​服​务
+		 */
+		action_restart: string
+		/**
+		 * 停​止​服​务​（​保​留​发​布​记​录​，​可​随​时​恢​复​）
+		 */
+		action_stop: string
+		/**
+		 * 取​消​发​布​（​删​除​发​布​记​录​）
+		 */
+		action_remove: string
+		/**
+		 * 在​画​布​中​打​开​该​流​程
+		 */
+		action_open_flow: string
+		/**
+		 * 暂​无​活​跃​的​ ​M​C​P​ ​服​务
+		 */
+		empty_instances: string
+		/**
+		 * 在​画​布​顶​部​点​击​「​发​布​为​ ​M​C​P​ ​S​e​r​v​e​r​」​或​通​过​命​令​行​执​行​ ​m​p​e​ ​m​c​p​ ​s​t​a​r​t​ ​-​-​f​l​o​w​ ​<​p​a​t​h​>​ ​启​动​服​务​。
+		 */
+		empty_instances_hint: string
+		/**
+		 * 客​户​端​连​接​配​置​:​ ​{​n​a​m​e​}
+		 * @param {string} name
+		 */
+		client_config_title: RequiredParams<'name'>
+		/**
+		 * 复​制​配​置​以​连​接​ ​C​l​a​u​d​e​ ​D​e​s​k​t​o​p​ ​或​ ​C​u​r​s​o​r
+		 */
+		client_config_desc: string
+		/**
+		 * 复​制​ ​J​S​O​N
+		 */
+		copy_json_btn: string
+		/**
+		 * 未​找​到​目​标​流​程​文​件​路​径
+		 */
+		no_flow_path: string
+		/**
+		 * M​C​P​ ​服​务​ ​'​{​n​a​m​e​}​'​ ​已​成​功​启​动
+		 * @param {string} name
+		 */
+		server_started: RequiredParams<'name'>
+		/**
+		 * M​C​P​ ​服​务​已​停​止
+		 */
+		server_stopped: string
+		/**
+		 * M​C​P​ ​服​务​已​重​载
+		 */
+		server_reloaded: string
+		/**
+		 * M​C​P​ ​插​件​安​装​成​功
+		 */
+		plugin_installed: string
 	}
 }
 
@@ -23087,6 +23464,14 @@ export type TranslationFunctions = {
 		 */
 		tab_network: () => LocalizedString
 		/**
+		 * MCP 服务治理
+		 */
+		tab_mcp: () => LocalizedString
+		/**
+		 * 管理由宿主监管的 MCP 服务实例，监控运行状态、端口探针与热重载。
+		 */
+		mcp_desc: () => LocalizedString
+		/**
 		 * 管理 HTTP Ingress 本地 Mock 服务全局网关端口、路径隔离与网络路由策略
 		 */
 		network_desc: () => LocalizedString
@@ -23134,6 +23519,42 @@ export type TranslationFunctions = {
 		 * 恢复默认 (9527)
 		 */
 		ingress_reset_default: () => LocalizedString
+		/**
+		 * 全局 MCP 共享网关端口
+		 */
+		mcp_gateway_port: () => LocalizedString
+		/**
+		 * 本地 MCP Server 共享网关默认端口。多个流程发布为 MCP Server 时共用该端口，并通过流程 Slug 路径隔离（形如 /流程Slug/mcp）自动路由。
+		 */
+		mcp_gateway_port_desc: () => LocalizedString
+		/**
+		 * 端口必须为 1024 到 65535 之间的有效整数
+		 */
+		mcp_port_invalid: () => LocalizedString
+		/**
+		 * 恢复默认 (9528)
+		 */
+		mcp_reset_default: () => LocalizedString
+		/**
+		 * MCP 访问端点预览
+		 */
+		mcp_url_preview: () => LocalizedString
+		/**
+		 * 共享网关模式
+		 */
+		mcp_shared_mode_title: () => LocalizedString
+		/**
+		 * 未自定义端口时，流程加入共享网关，客户端通过 http://127.0.0.1:9528/流程Slug/mcp 访问，多个流程互不冲突。
+		 */
+		mcp_shared_mode_desc: () => LocalizedString
+		/**
+		 * 专属独立端口模式
+		 */
+		mcp_dedicated_mode_title: () => LocalizedString
+		/**
+		 * 显式指定其他端口时，为单个流程启动专属进程，客户端直接以根路径 /mcp 访问。
+		 */
+		mcp_dedicated_mode_desc: () => LocalizedString
 		/**
 		 * 快捷键与手册
 		 */
@@ -24076,6 +24497,10 @@ export type TranslationFunctions = {
 		 * 导出流程 (.mpf)...
 		 */
 		export_flow_menu: () => LocalizedString
+		/**
+		 * 发布为 MCP Server
+		 */
+		publish_as_mcp_server: () => LocalizedString
 		/**
 		 * 环境管理
 		 */
@@ -30515,6 +30940,328 @@ export type TranslationFunctions = {
 			 */
 			esc_to_close: () => LocalizedString
 		}
+	}
+	mcp: {
+		/**
+		 * 发布流程为 MCP Server
+		 */
+		dialog_title: () => LocalizedString
+		/**
+		 * 基于宿主内置引擎将流程导出为标准 Model Context Protocol 工具
+		 */
+		dialog_desc: () => LocalizedString
+		/**
+		 * MCP 客户端节点插件未安装
+		 */
+		plugin_required_title: () => LocalizedString
+		/**
+		 * 宿主已内置 MCP Server 引擎，发布流程无需任何插件；安装 mpe-plugin-mcp 仅用于在画布中使用 MCP 客户端节点（mcp:connect / mcp:call_tool）。
+		 */
+		plugin_required_desc: () => LocalizedString
+		/**
+		 * 一键从市场安装
+		 */
+		install_plugin: () => LocalizedString
+		/**
+		 * 正在安装...
+		 */
+		installing: () => LocalizedString
+		/**
+		 * CLI: mpe plugin install mcp
+		 */
+		cli_hint: () => LocalizedString
+		/**
+		 * 目标流程
+		 */
+		target_flow: () => LocalizedString
+		/**
+		 * 当前流程
+		 */
+		current_flow: () => LocalizedString
+		/**
+		 * MCP 工具名
+		 */
+		tool_name: () => LocalizedString
+		/**
+		 * Stdio 模式 (Claude Desktop / Cursor 直连)
+		 */
+		tab_stdio: () => LocalizedString
+		/**
+		 * Streamable HTTP 模式 (宿主监管多服务)
+		 */
+		tab_streamable: () => LocalizedString
+		/**
+		 * Claude Desktop
+		 */
+		tab_claude: () => LocalizedString
+		/**
+		 * Cursor
+		 */
+		tab_cursor: () => LocalizedString
+		/**
+		 * 复制配置 JSON
+		 */
+		copy_config_json: () => LocalizedString
+		/**
+		 * 已复制
+		 */
+		copied: () => LocalizedString
+		/**
+		 * 配置已复制到剪贴板
+		 */
+		copy_success: () => LocalizedString
+		/**
+		 * 复制失败，请手动选取复制
+		 */
+		copy_failed: () => LocalizedString
+		/**
+		 * 将上方代码块合并至客户端配置文件即可直连：客户端以 stdio 拉起宿主二进制，通过标准输入输出通信，不占用任何端口。宿主内置执行引擎，无需保持 MPE GUI 启动。
+		 */
+		stdio_hint: () => LocalizedString
+		/**
+		 * 加入共享网关（默认端口 + 唯一路径）
+		 */
+		shared_port_mode: () => LocalizedString
+		/**
+		 * 多个流程共用全局 MCP 网关端口：客户端只需配置一次即可发现全部已发布流程的工具，新增流程自动出现，无需逐个配置。
+		 */
+		shared_port_hint: () => LocalizedString
+		/**
+		 * 使用专属端口（独占进程）
+		 */
+		dedicated_port_mode: () => LocalizedString
+		/**
+		 * 访问端点（一次配置即可发现全部工具）
+		 */
+		endpoint_label: () => LocalizedString
+		/**
+		 * 按流程隔离端点（可选）
+		 */
+		scoped_endpoint_label: () => LocalizedString
+		/**
+		 * 监听主机 (Host)
+		 */
+		host_label: () => LocalizedString
+		/**
+		 * 端口号 (Port)
+		 */
+		port_label: () => LocalizedString
+		/**
+		 * 调用超时 (ms)
+		 */
+		timeout_label: () => LocalizedString
+		/**
+		 * 服务正在运行中
+		 */
+		service_running: () => LocalizedString
+		/**
+		 * 复制 URL
+		 */
+		copy_url: () => LocalizedString
+		/**
+		 * 本地一键启动 Streamable HTTP 服务
+		 */
+		start_streamable: () => LocalizedString
+		/**
+		 * 正在启动...
+		 */
+		starting: () => LocalizedString
+		/**
+		 * 推导的工具入参 (Input Parameters)
+		 */
+		input_params: () => LocalizedString
+		/**
+		 * {count} 个变量
+		 */
+		var_count: (arg: { count: number }) => LocalizedString
+		/**
+		 * 变量名
+		 */
+		var_name: () => LocalizedString
+		/**
+		 * 类型
+		 */
+		var_type: () => LocalizedString
+		/**
+		 * 默认值
+		 */
+		var_default: () => LocalizedString
+		/**
+		 * 该流程无需外部入参即可执行
+		 */
+		no_input_params: () => LocalizedString
+		/**
+		 * 支持热重载 notifications/tools/list_changed
+		 */
+		list_changed_hint: () => LocalizedString
+		/**
+		 * 关闭
+		 */
+		close: () => LocalizedString
+		/**
+		 * MCP 插件运行状态
+		 */
+		status_title: () => LocalizedString
+		/**
+		 * Sidecar 插件进程与宿主通信状态
+		 */
+		status_desc: () => LocalizedString
+		/**
+		 * 已安装就绪 (v{version})
+		 */
+		status_ready: (arg: { version: string }) => LocalizedString
+		/**
+		 * 未安装插件
+		 */
+		status_not_installed: () => LocalizedString
+		/**
+		 * 刷新
+		 */
+		refresh: () => LocalizedString
+		/**
+		 * 未检测到 MCP 客户端插件。发布 MCP Server 无需该插件；若需在流程中使用 MCP 客户端节点（mcp:connect）请安装。
+		 */
+		plugin_missing_tip: () => LocalizedString
+		/**
+		 * 安装 MCP 插件
+		 */
+		install_plugin_btn: () => LocalizedString
+		/**
+		 * 二进制路径
+		 */
+		binary_path: () => LocalizedString
+		/**
+		 * 已发布 MCP 服务 ({count})
+		 */
+		active_instances: (arg: { count: number }) => LocalizedString
+		/**
+		 * 发布记录持久化保存，应用重启后自动恢复
+		 */
+		zombie_clean_hint: () => LocalizedString
+		/**
+		 * 实例名称
+		 */
+		col_name: () => LocalizedString
+		/**
+		 * 传输方式
+		 */
+		col_transport: () => LocalizedString
+		/**
+		 * 进程 PID
+		 */
+		col_pid: () => LocalizedString
+		/**
+		 * 端点 / 目标
+		 */
+		col_endpoint: () => LocalizedString
+		/**
+		 * 工具数
+		 */
+		col_tools: () => LocalizedString
+		/**
+		 * 状态
+		 */
+		col_status: () => LocalizedString
+		/**
+		 * 操作
+		 */
+		col_actions: () => LocalizedString
+		/**
+		 * MCP 工具名
+		 */
+		col_tool_name: () => LocalizedString
+		/**
+		 * 共享网关端点
+		 */
+		group_shared: () => LocalizedString
+		/**
+		 * 专属端口
+		 */
+		group_dedicated: () => LocalizedString
+		/**
+		 * {count} 个工具
+		 */
+		group_tools: (arg: { count: number }) => LocalizedString
+		/**
+		 * {count} 个流程
+		 */
+		group_flows: (arg: { count: number }) => LocalizedString
+		/**
+		 * 恢复服务（重新拉起）
+		 */
+		action_restore: () => LocalizedString
+		/**
+		 * 全部恢复
+		 */
+		restore_all: () => LocalizedString
+		/**
+		 * 应用或系统重启后，已发布的服务会自动拉起。停止会保留发布记录（可随时恢复），删除才会取消发布。
+		 */
+		restore_hint: () => LocalizedString
+		/**
+		 * 查看客户端配置
+		 */
+		action_snippets: () => LocalizedString
+		/**
+		 * 重载流程与工具
+		 */
+		action_reload: () => LocalizedString
+		/**
+		 * 重启服务
+		 */
+		action_restart: () => LocalizedString
+		/**
+		 * 停止服务（保留发布记录，可随时恢复）
+		 */
+		action_stop: () => LocalizedString
+		/**
+		 * 取消发布（删除发布记录）
+		 */
+		action_remove: () => LocalizedString
+		/**
+		 * 在画布中打开该流程
+		 */
+		action_open_flow: () => LocalizedString
+		/**
+		 * 暂无活跃的 MCP 服务
+		 */
+		empty_instances: () => LocalizedString
+		/**
+		 * 在画布顶部点击「发布为 MCP Server」或通过命令行执行 mpe mcp start --flow <path> 启动服务。
+		 */
+		empty_instances_hint: () => LocalizedString
+		/**
+		 * 客户端连接配置: {name}
+		 */
+		client_config_title: (arg: { name: string }) => LocalizedString
+		/**
+		 * 复制配置以连接 Claude Desktop 或 Cursor
+		 */
+		client_config_desc: () => LocalizedString
+		/**
+		 * 复制 JSON
+		 */
+		copy_json_btn: () => LocalizedString
+		/**
+		 * 未找到目标流程文件路径
+		 */
+		no_flow_path: () => LocalizedString
+		/**
+		 * MCP 服务 '{name}' 已成功启动
+		 */
+		server_started: (arg: { name: string }) => LocalizedString
+		/**
+		 * MCP 服务已停止
+		 */
+		server_stopped: () => LocalizedString
+		/**
+		 * MCP 服务已重载
+		 */
+		server_reloaded: () => LocalizedString
+		/**
+		 * MCP 插件安装成功
+		 */
+		plugin_installed: () => LocalizedString
 	}
 }
 

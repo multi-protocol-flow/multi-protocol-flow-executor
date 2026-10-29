@@ -59,6 +59,7 @@ const en_US_flow = {
   entry_node_exists_badge: 'Already exists',
   move_to: 'Move to...',
   export_flow_menu: 'Export Flow (.mpf)...',
+  publish_as_mcp_server: 'Publish as MCP Server',
   environment_section_title: 'Environments',
   duplicate_env: 'Duplicate Environment',
   delete_env: 'Delete Environment',
