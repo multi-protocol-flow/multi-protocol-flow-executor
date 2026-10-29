@@ -251,6 +251,13 @@ async fn run_server_loop(app: tauri::AppHandle) -> Result<(), String> {
                         let _ = socket.write_all(resp).await;
                     }
                 }
+                ("POST", "/telemetry") => {
+                    if let Ok(event_json) = serde_json::from_slice::<serde_json::Value>(&body) {
+                        let _ = app_handle.emit("mpe://mcp-telemetry", event_json);
+                    }
+                    let resp = b"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 15\r\nConnection: close\r\n\r\n{\"status\":\"ok\"}";
+                    let _ = socket.write_all(resp).await;
+                }
                 _ => {
                     let resp = b"HTTP/1.1 404 Not Found\r\nContent-Length: 9\r\nConnection: close\r\n\r\nNot Found";
                     let _ = socket.write_all(resp).await;

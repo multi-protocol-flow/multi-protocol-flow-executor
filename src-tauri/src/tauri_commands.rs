@@ -2713,6 +2713,91 @@ pub async fn get_active_ingress_ports(
 }
 
 // ============================================================================
+// MCP Server 流程导出与服务治理命令
+// ============================================================================
+
+/// 检查 MCP 插件安装状态
+#[tauri::command]
+pub async fn mcp_check_plugin_status(
+    app: tauri::AppHandle,
+) -> Result<flow_engine::mcp_supervisor::McpPluginStatus, String> {
+    let plugins_dir = crate::resolve_plugin_dir(&app).0;
+    Ok(flow_engine::mcp_supervisor::check_plugin_status(&plugins_dir))
+}
+
+/// 列出所有由宿主管理的 MCP 服务实例（自动执行僵尸进程自愈）
+#[tauri::command]
+pub async fn mcp_list_servers() -> Result<Vec<flow_engine::mcp_supervisor::McpServerInstance>, String> {
+    Ok(flow_engine::mcp_supervisor::list_servers(true).await)
+}
+
+/// 启动一个新的 MCP Server 实例
+#[tauri::command]
+pub async fn mcp_start_server(
+    app: tauri::AppHandle,
+    config: flow_engine::mcp_supervisor::McpStartConfig,
+) -> Result<flow_engine::mcp_supervisor::McpServerInstance, String> {
+    let plugins_dir = crate::resolve_plugin_dir(&app).0;
+    flow_engine::mcp_supervisor::start_server(config, &plugins_dir).await
+}
+
+/// 停止指定的 MCP Server 实例（保留发布记录，可随后恢复）
+#[tauri::command]
+pub async fn mcp_stop_server(id: String) -> Result<bool, String> {
+    flow_engine::mcp_supervisor::stop_server(&id).await
+}
+
+/// 取消发布指定的 MCP Server 实例（停止并删除发布记录）
+#[tauri::command]
+pub async fn mcp_remove_server(id: String) -> Result<bool, String> {
+    flow_engine::mcp_supervisor::remove_server(&id).await
+}
+
+/// 恢复所有已发布但已停止的 MCP 服务实例（应用重启后重新拉起）
+#[tauri::command]
+pub async fn mcp_restore_servers(
+    ids: Option<Vec<String>>,
+) -> Result<Vec<flow_engine::mcp_supervisor::McpServerInstance>, String> {
+    let (restored, failures) =
+        flow_engine::mcp_supervisor::restore_published(ids.as_deref()).await;
+    if restored.is_empty() && !failures.is_empty() {
+        return Err(failures.join("; "));
+    }
+    Ok(restored)
+}
+
+/// 重载指定的 MCP Server 实例配置与工具
+#[tauri::command]
+pub async fn mcp_reload_server(id: String) -> Result<bool, String> {
+    flow_engine::mcp_supervisor::reload_server(&id).await
+}
+
+/// 静态探测目标流程文件的工具定义与入参 Schema
+#[tauri::command]
+pub async fn mcp_inspect_flow_tools(
+    flow_path: String,
+) -> Result<flow_engine::mcp_supervisor::McpToolInspection, String> {
+    flow_engine::mcp_supervisor::inspect_flow_tools(&flow_path)
+}
+
+/// 获取面向 Claude Desktop 与 Cursor 的一键配置代码片段
+#[tauri::command]
+pub async fn mcp_get_client_config(
+    _app: tauri::AppHandle,
+    server: flow_engine::mcp_supervisor::McpServerInstance,
+) -> Result<flow_engine::mcp_supervisor::McpClientSnippets, String> {
+    // stdio snippets launch the host binary itself (`mpe mcp serve`): the MCP
+    // server engine is native now, so the MCP client plugin is irrelevant here.
+    let host_bin = std::env::current_exe()
+        .ok()
+        .and_then(|p| p.to_str().map(str::to_string));
+    Ok(flow_engine::mcp_supervisor::get_client_config(
+        &server,
+        host_bin.as_deref(),
+    ))
+}
+
+// ============================================================================
 // 单元测试
 // ============================================================================
 

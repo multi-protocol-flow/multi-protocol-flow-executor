@@ -137,6 +137,13 @@ pub use tauri_commands::{
     list_marketplace_plugins, reload_plugins,
 };
 
+// MCP Server 流程导出与服务治理命令
+pub use tauri_commands::{
+    mcp_check_plugin_status, mcp_get_client_config, mcp_inspect_flow_tools, mcp_list_servers,
+    mcp_reload_server, mcp_remove_server, mcp_restore_servers, mcp_start_server,
+    mcp_stop_server,
+};
+
 // SSE 连接测试命令
 #[cfg(feature = "protocol-sse")]
 pub use tauri_commands::sse_test_connection;
@@ -538,6 +545,22 @@ pub fn run() {
 
             // 注册 Ingress 流程级 Mock 服务监听管理器
             app.manage(Arc::new(flow_engine::ingress::IngressManager::new()));
+
+            // 启动后恢复上次发布的 MCP 服务（应用重启 / 崩溃 / 系统重启后
+            // 守护进程可能已不存在，实例元数据仍然保留）。
+            tauri::async_runtime::spawn(async {
+                let (restored, failures) =
+                    flow_engine::mcp_supervisor::restore_published(None).await;
+                if !restored.is_empty() {
+                    log::info!(
+                        "[MCP] Restored {} published MCP server(s) on startup",
+                        restored.len()
+                    );
+                }
+                for failure in failures {
+                    log::warn!("[MCP] Failed to restore published MCP server: {failure}");
+                }
+            });
             // 从 store 读取日志目录配置
             let log_dir = match app.store("store/settings.bin") {
                 Ok(store) => store
@@ -702,6 +725,16 @@ pub fn run() {
             check_app_update,
             download_update_package,
             install_update_package,
+            // MCP Server 流程导出与服务治理命令
+            mcp_check_plugin_status,
+            mcp_list_servers,
+            mcp_start_server,
+            mcp_stop_server,
+            mcp_remove_server,
+            mcp_reload_server,
+            mcp_restore_servers,
+            mcp_inspect_flow_tools,
+            mcp_get_client_config,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
