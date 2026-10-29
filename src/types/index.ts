@@ -168,6 +168,15 @@ export type {
   MarketplacePlatformAsset,
 } from './plugins';
 
+// MCP Server 流程导出与服务治理类型
+export type {
+  McpPluginStatus,
+  McpStartConfig,
+  McpServerInstance,
+  McpToolInspection,
+  McpClientSnippets,
+} from './mcp';
+
 // 变量类型
 export type { Variable, VariablePool, OutputMapping } from './variable';
 

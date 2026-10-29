@@ -6,6 +6,7 @@
 import { isTauriEnv } from '@/lib/platform';
 import type { Settings, ThemeMode, Locale } from '@/types/settings';
 import type { AIProviderConfig } from '@/types/ai';
+import { DEFAULT_MCP_PORT } from '@/types/mcp';
 
 
 const SETTINGS_FILE = 'settings.bin';
@@ -43,6 +44,7 @@ export async function loadSettings(): Promise<Settings> {
     const pluginMaxConcurrency = await store.get<number>('pluginMaxConcurrency');
     const pluginQueueCapacity = await store.get<number>('pluginQueueCapacity');
     const defaultIngressPort = await store.get<number>('defaultIngressPort');
+    const defaultMcpPort = await store.get<number>('defaultMcpPort');
     const theme = await store.get<string>('theme');
     const locale = await store.get<string>('locale');
     const aiProviders = await store.get<AIProviderConfig[]>('aiProviders');
@@ -65,6 +67,7 @@ export async function loadSettings(): Promise<Settings> {
       pluginMaxConcurrency,
       pluginQueueCapacity,
       defaultIngressPort: defaultIngressPort ?? 9527,
+      defaultMcpPort: defaultMcpPort ?? DEFAULT_MCP_PORT,
       theme: (theme as ThemeMode) ?? 'system',
       locale: (locale as Locale) ?? 'en-US',
       aiProviders: aiProviders ?? [],
@@ -121,6 +124,9 @@ export async function saveSettings(settings: Partial<Settings>): Promise<void> {
     }
     if (settings.defaultIngressPort !== undefined) {
       await store.set('defaultIngressPort', settings.defaultIngressPort);
+    }
+    if (settings.defaultMcpPort !== undefined) {
+      await store.set('defaultMcpPort', settings.defaultMcpPort);
     }
     if (settings.theme !== undefined) {
       await store.set('theme', settings.theme);

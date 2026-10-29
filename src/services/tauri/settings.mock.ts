@@ -36,6 +36,8 @@ export async function loadSettings(): Promise<Settings> {
     defaultExecutionTimeoutMs: stored.defaultExecutionTimeoutMs,
     pluginMaxConcurrency: stored.pluginMaxConcurrency,
     pluginQueueCapacity: stored.pluginQueueCapacity,
+    defaultIngressPort: stored.defaultIngressPort ?? 9527,
+    defaultMcpPort: stored.defaultMcpPort ?? 9528,
     theme: stored.theme ?? DEFAULT_THEME,
     locale: stored.locale ?? 'en-US',
     aiProviders: stored.aiProviders ?? [],

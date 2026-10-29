@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Palette, HardDrive, Sparkles, Cpu, CheckCircle2, Info, X, Keyboard, Network } from 'lucide-react';
+import { Palette, HardDrive, Sparkles, Cpu, CheckCircle2, Info, X, Keyboard, Network, Server } from 'lucide-react';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
@@ -16,9 +16,10 @@ import { AboutSettingsTab } from './AboutSettingsTab';
 import { NetworkSettingsTab } from './NetworkSettingsTab';
 import { AIProviderSettingsCard } from '@/components/ai/AIProviderSettingsCard';
 import { ShortcutsSettingsTab } from './ShortcutsSettingsTab';
+import { McpSettingsTab } from './McpSettingsTab';
 import { useUpdateStore } from '@/stores/update';
 
-export type SettingsTabId = 'general' | 'storage' | 'ai' | 'engine' | 'network' | 'shortcuts' | 'about';
+export type SettingsTabId = 'general' | 'storage' | 'ai' | 'engine' | 'network' | 'mcp' | 'shortcuts' | 'about';
 
 export function SettingsDialog() {
   useCurrentLocale();
@@ -95,6 +96,13 @@ export function SettingsDialog() {
       icon: Network,
       title: ll.settings.tab_network(),
       description: ll.settings.network_desc(),
+    },
+    {
+      id: 'mcp',
+      label: ll.settings.tab_mcp(),
+      icon: Server,
+      title: ll.settings.tab_mcp(),
+      description: ll.settings.mcp_desc(),
     },
     {
       id: 'shortcuts',
@@ -206,6 +214,7 @@ export function SettingsDialog() {
                 {activeTab === 'engine' && <EngineSettingsTab />}
                 {activeTab === 'shortcuts' && <ShortcutsSettingsTab />}
                 {activeTab === 'network' && <NetworkSettingsTab />}
+                {activeTab === 'mcp' && <McpSettingsTab />}
                 {activeTab === 'about' && <AboutSettingsTab />}
               </div>
             </ScrollArea>

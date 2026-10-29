@@ -44,6 +44,8 @@ export interface Settings {
   pluginQueueCapacity?: number;
   /** 全局 Ingress 默认网关端口（未设置时兜底 9527） */
   defaultIngressPort?: number;
+  /** 全局 MCP 共享网关默认端口（未设置时兜底 9528） */
+  defaultMcpPort?: number;
   /** 主题模式 */
   theme: ThemeMode;
   /** 语言区域 */
@@ -96,6 +98,8 @@ export interface SettingsState {
   pluginQueueCapacity?: number;
   /** 全局 Ingress 默认网关端口 */
   defaultIngressPort: number;
+  /** 全局 MCP 共享网关默认端口 */
+  defaultMcpPort: number;
   /** 主题模式 */
   theme: ThemeMode;
   /** 语言区域 */
@@ -158,6 +162,8 @@ export interface SettingsActions {
   setPluginQueueCapacity: (capacity: number) => Promise<void>;
   /** 设置全局 Ingress 默认网关端口 */
   setDefaultIngressPort: (port: number) => Promise<void>;
+  /** 设置全局 MCP 共享网关默认端口 */
+  setDefaultMcpPort: (port: number) => Promise<void>;
   /** 打开报告目录 */
   openReportDir: () => Promise<void>;
   /** 打开日志目录 */

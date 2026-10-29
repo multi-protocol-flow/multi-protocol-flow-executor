@@ -1,24 +1,36 @@
 import { useState, useEffect } from 'react';
-import { Radio, Globe, Copy, Check, RotateCcw } from 'lucide-react';
+import { Radio, Globe, Copy, Check, RotateCcw, Bot } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useSettingsStore } from '@/stores/settings';
+import { DEFAULT_MCP_PORT } from '@/types/mcp';
 import { getLL } from '@/i18n/i18n-lazy';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
 export function NetworkSettingsTab() {
-  const { defaultIngressPort, setDefaultIngressPort } = useSettingsStore();
+  const { defaultIngressPort, setDefaultIngressPort, defaultMcpPort, setDefaultMcpPort } =
+    useSettingsStore();
   const ll = getLL();
 
   const [portInput, setPortInput] = useState<string>(String(defaultIngressPort ?? 9527));
   const [copied, setCopied] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  const [mcpPortInput, setMcpPortInput] = useState<string>(
+    String(defaultMcpPort ?? DEFAULT_MCP_PORT),
+  );
+  const [mcpCopied, setMcpCopied] = useState(false);
+  const [mcpErrorMsg, setMcpErrorMsg] = useState<string | null>(null);
+
   useEffect(() => {
     setPortInput(String(defaultIngressPort ?? 9527));
   }, [defaultIngressPort]);
+
+  useEffect(() => {
+    setMcpPortInput(String(defaultMcpPort ?? DEFAULT_MCP_PORT));
+  }, [defaultMcpPort]);
 
   const recommendedTag = ll.settings.preset_recommended();
   const portPresets = [
@@ -40,8 +52,22 @@ export function NetworkSettingsTab() {
     toast.success(ll.settings.saved_badge());
   };
 
+  const handleApplyMcpPort = (portNum: number) => {
+    if (isNaN(portNum) || portNum < 1024 || portNum > 65535) {
+      setMcpErrorMsg(ll.settings.mcp_port_invalid());
+      return;
+    }
+    setMcpErrorMsg(null);
+    setMcpPortInput(String(portNum));
+    setDefaultMcpPort(portNum);
+    toast.success(ll.settings.saved_badge());
+  };
+
   const currentPort = parseInt(portInput, 10) || defaultIngressPort || 9527;
   const previewUrl = `http://127.0.0.1:${currentPort}/{flow-slug}/*`;
+
+  const currentMcpPort = parseInt(mcpPortInput, 10) || defaultMcpPort || DEFAULT_MCP_PORT;
+  const mcpPreviewUrl = `http://127.0.0.1:${currentMcpPort}/{flow-slug}/mcp`;
 
   return (
     <div className="space-y-6">
@@ -232,6 +258,198 @@ export function NetworkSettingsTab() {
             <div className="flex items-center justify-between text-[11px]">
               <span className="text-muted-foreground">{ll.settings.ingress_route_format_label()}:</span>
               <code className="font-mono text-emerald-600 dark:text-emerald-400 font-medium">/*</code>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* MCP 共享网关端口 */}
+      <div className="rounded-xl border border-border/70 bg-card p-4 space-y-4">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-start gap-3 min-w-0 flex-1">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-500/10 text-amber-500 mt-0.5">
+              <Bot className="h-4 w-4" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-sm font-semibold text-foreground">
+                  {ll.settings.mcp_gateway_port()}
+                </span>
+                <Badge variant="outline" className="text-[10px] font-mono border-amber-500/30 text-amber-500">
+                  :{currentMcpPort}
+                </Badge>
+              </div>
+              <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                {ll.settings.mcp_gateway_port_desc()}
+              </p>
+            </div>
+          </div>
+
+          {currentMcpPort !== DEFAULT_MCP_PORT && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleApplyMcpPort(DEFAULT_MCP_PORT)}
+              className="text-xs h-7 gap-1.5 shrink-0 cursor-pointer"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>{ll.settings.mcp_reset_default()}</span>
+            </Button>
+          )}
+        </div>
+
+        <div className="pt-1 space-y-3">
+          <div className="flex items-center gap-3">
+            <div className="relative w-48 max-w-full">
+              <Input
+                type="number"
+                min={1024}
+                max={65535}
+                value={mcpPortInput}
+                onChange={(e) => {
+                  setMcpPortInput(e.target.value);
+                  setMcpErrorMsg(null);
+                }}
+                onBlur={() => handleApplyMcpPort(parseInt(mcpPortInput.trim(), 10))}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleApplyMcpPort(parseInt(mcpPortInput.trim(), 10));
+                  }
+                }}
+                className={cn(
+                  'h-9 font-mono text-sm pr-12',
+                  mcpErrorMsg && 'border-destructive focus-visible:ring-destructive'
+                )}
+                placeholder={String(DEFAULT_MCP_PORT)}
+              />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-mono select-none">
+                TCP
+              </span>
+            </div>
+            {mcpErrorMsg && <span className="text-xs text-destructive">{mcpErrorMsg}</span>}
+          </div>
+
+          <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+            <span className="text-xs text-muted-foreground mr-1 select-none shrink-0">
+              {ll.settings.ingress_port_presets()}:
+            </span>
+            {[DEFAULT_MCP_PORT, 8080, 8000, 3000, 5000].map((preset) => {
+              const isSelected = currentMcpPort === preset;
+              const label =
+                preset === DEFAULT_MCP_PORT
+                  ? `${preset} (${recommendedTag})`
+                  : String(preset);
+              return (
+                <Button
+                  key={preset}
+                  type="button"
+                  variant={isSelected ? 'secondary' : 'outline'}
+                  size="sm"
+                  className={cn(
+                    'h-7 px-2.5 text-xs font-mono cursor-pointer',
+                    isSelected && 'font-semibold border-amber-500/50 bg-amber-500/10 text-amber-500'
+                  )}
+                  onClick={() => handleApplyMcpPort(preset)}
+                >
+                  {label}
+                </Button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* MCP 端点预览 */}
+      <div className="rounded-xl border border-border/70 bg-card p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
+            <Globe className="w-4 h-4 text-amber-500" />
+            <span>{ll.settings.mcp_url_preview()}</span>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              navigator.clipboard.writeText(mcpPreviewUrl);
+              setMcpCopied(true);
+              setTimeout(() => setMcpCopied(false), 2000);
+            }}
+            className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground gap-1.5 cursor-pointer"
+          >
+            {mcpCopied ? (
+              <>
+                <Check className="w-3.5 h-3.5 text-emerald-500" />
+                <span className="text-emerald-500 font-medium">{ll.settings.path_copied()}</span>
+              </>
+            ) : (
+              <>
+                <Copy className="w-3.5 h-3.5" />
+                <span>{ll.settings.copy_path()}</span>
+              </>
+            )}
+          </Button>
+        </div>
+
+        <div className="flex items-center justify-between p-3 rounded-lg bg-muted/40 border border-border/80 font-mono text-xs">
+          <div className="flex items-center gap-1 truncate">
+            <span className="text-muted-foreground">http://127.0.0.1:{currentMcpPort}/</span>
+            <span className="text-amber-500 font-semibold">{'{flow-slug}'}</span>
+            <span className="text-muted-foreground">/mcp</span>
+          </div>
+          <Badge variant="secondary" className="text-[10px] shrink-0 font-normal ml-3">
+            MCP
+          </Badge>
+        </div>
+      </div>
+
+      {/* MCP 模式对照说明 */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="flex flex-col justify-between p-4 rounded-xl border border-amber-500/30 bg-amber-500/5 space-y-3">
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-amber-500" />
+                <h4 className="text-xs font-semibold text-foreground">
+                  {ll.settings.mcp_shared_mode_title()}
+                </h4>
+              </div>
+              <Badge variant="outline" className="text-[10px] bg-amber-500/10 text-amber-500 border-amber-500/30 font-normal">
+                Port :{currentMcpPort}
+              </Badge>
+            </div>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              {ll.settings.mcp_shared_mode_desc()}
+            </p>
+          </div>
+          <div className="pt-2 border-t border-amber-500/10">
+            <div className="flex items-center justify-between text-[11px]">
+              <span className="text-muted-foreground">{ll.settings.ingress_route_format_label()}:</span>
+              <code className="font-mono text-amber-500 font-medium">/{'{flow-slug}'}/mcp</code>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex flex-col justify-between p-4 rounded-xl border border-border/70 bg-card space-y-3">
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                <h4 className="text-xs font-semibold text-foreground">
+                  {ll.settings.mcp_dedicated_mode_title()}
+                </h4>
+              </div>
+              <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-500 border-emerald-500/30 font-normal">
+                Port :Custom
+              </Badge>
+            </div>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              {ll.settings.mcp_dedicated_mode_desc()}
+            </p>
+          </div>
+          <div className="pt-2 border-t border-border/50">
+            <div className="flex items-center justify-between text-[11px]">
+              <span className="text-muted-foreground">{ll.settings.ingress_route_format_label()}:</span>
+              <code className="font-mono text-emerald-600 dark:text-emerald-400 font-medium">/mcp</code>
             </div>
           </div>
         </div>
