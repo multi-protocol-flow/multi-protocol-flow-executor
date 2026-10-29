@@ -41,10 +41,18 @@ flow-engine-plugin-marketplace = { path = "../flow-engine-plugin-marketplace", o
 # facade 自身代码需要的最小依赖（仅用于 re-export 类型的序列化边界）
 serde = { workspace = true }
 serde_json = { workspace = true }
+serde_yml = { workspace = true }
+regex = { workspace = true }
+tokio = { workspace = true, features = ["process", "time", "net"] }
+reqwest = { workspace = true }
+log = { workspace = true }
+uuid = { workspace = true }
+chrono = { workspace = true }
 workspace-hack = { version = "0.1", path = "../workspace-hack" }
 
 [dev-dependencies]
 tokio = { workspace = true }
+tempfile = { workspace = true }
 mockito = "1.0"
 wiremock = "0.6"
 proptest = "1.4"

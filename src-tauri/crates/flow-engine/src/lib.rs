@@ -100,6 +100,9 @@ pub use flow_engine_executor::stress_test;
 pub use flow_engine_executor::default_registry;
 
 // 插件系统（sidecar 插件进程；`plugin-manager` 特性门控，与 `protocol-*` 无关）
+pub mod mcp_server;
+pub mod mcp_supervisor;
+pub mod supervisor;
 #[cfg(feature = "plugin-manager")]
 pub use flow_engine_executor::default_registry::default_registry_with_plugins;
 #[cfg(feature = "plugin-manager")]

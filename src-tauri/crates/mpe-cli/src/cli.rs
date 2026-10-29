@@ -12,6 +12,7 @@ pub mod junit;
 pub mod output;
 #[cfg(feature = "plugin-manager")]
 pub mod plugin;
+pub mod mcp;
 pub mod report;
 pub mod run;
 pub mod run_node;
@@ -249,6 +250,12 @@ pub enum Commands {
         #[command(subcommand)]
         command: PluginCommands,
     },
+    /// Model Context Protocol (MCP) server lifecycle & flow governance
+    Mcp {
+        /// MCP management subcommand
+        #[command(subcommand)]
+        command: McpCommands,
+    },
     /// Activate and analyze the current project or execute AI tasks in MPE GUI
     Ai {
         /// Prompt for the AI (e.g. "Analyze APIs and generate login flow")
@@ -289,6 +296,136 @@ pub enum PluginCommands {
         /// Re-install over an existing plugin
         #[arg(long)]
         force: bool,
+    },
+}
+
+/// Model Context Protocol (MCP) subcommand enumeration
+#[derive(Subcommand, Debug, Clone)]
+pub enum McpCommands {
+    /// Run native MCP server in foreground for a flow or directory
+    Serve {
+        /// Flow file path to expose as MCP tool (.json or .mpf)
+        #[arg(short, long)]
+        flow: Option<String>,
+
+        /// Directory path containing flows
+        #[arg(long)]
+        dir: Option<String>,
+
+        /// Start as an empty shared gateway that flows register into at runtime
+        #[arg(long)]
+        gateway: bool,
+
+        /// Listening port (defaults to the shared gateway port 9528)
+        #[arg(short, long, default_value_t = flow_engine::mcp_server::DEFAULT_MCP_PORT)]
+        port: u16,
+
+        /// Listening host address
+        #[arg(short = 'H', long, default_value = "127.0.0.1")]
+        host: String,
+
+        /// Transport protocol ("stdio" or "streamable")
+        #[arg(short, long, default_value = "streamable")]
+        transport: String,
+
+        /// Execution timeout in milliseconds per tool call
+        #[arg(long, default_value = "28000")]
+        timeout_ms: u64,
+    },
+
+    /// Start an MCP server for a flow or directory
+    Start {
+        /// Flow file path to expose as MCP tool (.json or .mpf)
+        #[arg(short, long)]
+        flow: Option<String>,
+
+        /// Directory path containing flows
+        #[arg(long)]
+        dir: Option<String>,
+
+        /// Listening port. Omit to join the shared gateway (slug-prefixed routes)
+        #[arg(short, long)]
+        port: Option<u16>,
+
+        /// Force shared-gateway mode even when an explicit port is given
+        #[arg(long)]
+        shared: bool,
+
+        /// Listening host address
+        #[arg(short = 'H', long, default_value = "127.0.0.1")]
+        host: String,
+
+        /// Transport protocol ("stdio" or "streamable")
+        #[arg(short, long, default_value = "streamable")]
+        transport: String,
+
+        /// Execution timeout in milliseconds per tool call
+        #[arg(long, default_value = "28000")]
+        timeout_ms: u64,
+
+        /// Name for the server instance
+        #[arg(short, long)]
+        name: Option<String>,
+
+        /// Run in background detached mode
+        #[arg(short, long)]
+        detach: bool,
+    },
+
+    /// List managed MCP server instances (alias: ps)
+    #[command(alias = "ps")]
+    List {
+        /// Show all instances including stopped
+        #[arg(long)]
+        all: bool,
+    },
+
+    /// Stop MCP server instances, keeping their published records restorable
+    Stop {
+        /// Server Name or ID
+        target: Option<String>,
+
+        /// Stop all published MCP server instances
+        #[arg(long)]
+        all: bool,
+
+        /// Stop server listening on specific port
+        #[arg(short, long)]
+        port: Option<u16>,
+    },
+
+    /// Unpublish MCP server instances (stop and delete their published records)
+    Remove {
+        /// Server Name or ID
+        target: Option<String>,
+
+        /// Remove all published MCP server instances
+        #[arg(long)]
+        all: bool,
+    },
+
+    /// Restore published-but-stopped MCP servers (after app restart / reboot)
+    Restore {
+        /// Restore only this instance (Name or ID); omit to restore all
+        target: Option<String>,
+    },
+
+    /// Restart an MCP server instance
+    Restart {
+        /// Server Name or ID
+        target: String,
+    },
+
+    /// Reload flows and tools for a running MCP server
+    Reload {
+        /// Server Name or ID
+        target: String,
+    },
+
+    /// Generate Claude Desktop and Cursor client JSON configuration snippets
+    ConfigSnippet {
+        /// Server Name or ID (or flow file path)
+        target: String,
     },
 }
 
@@ -716,6 +853,7 @@ async fn async_main() -> Result<(), CliError> {
         Commands::Report { command } => report::execute(&cli.format, command).await,
         #[cfg(feature = "plugin-manager")]
         Commands::Plugin { command } => plugin::execute(command).await,
+        Commands::Mcp { command } => mcp::execute(command).await,
         Commands::Open { path } => {
             let abs_path = std::fs::canonicalize(&path).unwrap_or_else(|_| {
                 if path.is_absolute() {
