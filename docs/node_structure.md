@@ -72,6 +72,9 @@ pub enum NodeType {
     Entry,        // 入口节点 - 流程入口（必需）
     Http,         // HTTP 请求
     Conditional,  // 条件分支
+    SubFlow,      // 子流程（flow:sub）
+    Loop,         // 循环（flow:loop）：count / items / until 三种来源，body 为内联子图
+    Delay,        // 延时（flow:delay）：可中断等待，支持变量模板与抖动
 }
 ```
 
@@ -362,6 +365,18 @@ pub enum PortType {
 | Entry | 0 个 | 1 个（ID: `"out"`，类型: `PortType::Output`） |
 | Http | 1 个（ID: `"in"`，类型: `PortType::Input`） | 1 个（ID: `"out"`，类型: `PortType::Output`） |
 | Conditional | 1 个（ID: `"in"`，类型: `PortType::Input`） | 2 个（ID: `"true"`, `"false"`，类型: `PortType::Output`） |
+| Loop (`flow:loop`) | 1 个（ID: `"in"`，类型: `PortType::Input`） | 2 个（ID: `"done"`, `"false"`，类型: `PortType::Output`） |
+| Delay (`flow:delay`) | 1 个（ID: `"in"`，类型: `PortType::Input`） | 1 个（ID: `"out"`，类型: `PortType::Output`） |
+
+**`flow:loop` body 执行语义：**
+
+- body 是独立子图，与 Setup/Teardown 共用同一执行器（`execute_subgraph`）。
+- **不需要 `entry` 节点**：以「入度为 0」的节点为起点。
+- 若存在 `entry`，它总是最先执行；其余根节点按画布位置（y 升序，同高按 x 升序）依次执行。
+- **多个互不连线的节点都会执行**（各自作为独立起点，后续节点照常推进），不会像主流程那样只取第一条路径。
+- 每轮迭代的 `last` = 本轮 body 中**最后一条带输出的节点报告**的输出对象，`until` 与 `output_mappings` 都基于它。
+- 迭代内可用变量：`loop.index`（0 基）、`loop.count`（计划总轮数）、`loop.first` / `loop.last`、`loop.item`（仅 `items` 来源）。
+- body 内的变量变更不跨轮、不泄漏到主流程；导出用 `output_mappings`（路径相对 `{"last": ...}`）。
 
 **端口功能**：
 - **Entry**：仅输出 `out`，流程起始点

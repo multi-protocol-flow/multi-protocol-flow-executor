@@ -153,8 +153,55 @@ pub struct NodeExecutionReport {
 
     /// 错误详情
     pub error: Option<ErrorDetail>,
+
+    /// 所属迭代序号（0-based），仅 `flow:loop` body 内的节点有值
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub iteration_index: Option<u32>,
+
+    /// 所属 loop 节点 uuid，仅 `flow:loop` body 内的节点有值
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub iteration_of: Option<String>,
+
+    /// `flow:loop` 节点的迭代摘要（仅 loop 节点自身有值，不裁剪）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub iteration_summary: Option<Vec<IterationSummary>>,
+
+    /// 被裁掉完整详情的迭代数（仅 loop 节点自身有值）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub truncated_iterations: Option<u32>,
 }
 ```
+
+**单轮迭代摘要（`flow:loop` 专用）：**
+
+```rust
+/// 单轮迭代摘要
+pub struct IterationSummary {
+    /// 迭代序号（0-based）
+    pub index: u32,
+    /// 该轮执行状态
+    pub status: ExecutionStatus,
+    /// 该轮耗时（毫秒）
+    pub duration_ms: u64,
+    /// 该轮结束后、下一轮开始前的实际等待（毫秒）
+    pub wait_ms: u64,
+    /// 该轮失败详情
+    pub error: Option<ErrorDetail>,
+}
+```
+
+**`flow:loop` 报告结构约定：**
+
+- body 内的节点报告放在 `NodeExecutionReport.sub_flow_report`（与 `flow:sub` 同一通道），
+  **不平铺**进流程级 `node_reports`：平铺会污染 `executed_count`、`FlowStatistics::from_reports`
+  与压测采样，且 Viewer 只拿到单个节点报告，无法定位 body 明细。
+- 每条 body 报告都带 `iteration_index` / `iteration_of`，供 Viewer 按迭代分组。
+- `iteration_summary` 保留全部迭代摘要；`report.detail_iterations` 之外的迭代只保留摘要
+  （失败轮在 `always_keep_failed=true` 时仍保留完整详情），被裁掉的轮数记在
+  `truncated_iterations`。
+- loop 节点自身输出（`output_data`）：`{"iterations", "break_reason", "last"}`，异常终止时
+  额外带 `"error"`。`break_reason` ∈ `exhausted | until | budget | timeout | depth | error | cancelled`，
+  前两者走 `done` 端口，其余走 `false` 端口。
 
 ---
 
