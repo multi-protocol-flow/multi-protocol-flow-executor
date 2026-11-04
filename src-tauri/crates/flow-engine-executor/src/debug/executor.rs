@@ -358,6 +358,7 @@ impl DebuggableFlowExecutor {
             current_node_plugin_data: None,
             call_stack: Vec::new(),
             current_sub_flow_report: None,
+            current_loop_report: None,
         }
         .with_default_providers();
 
@@ -1372,6 +1373,10 @@ impl DebuggableFlowExecutor {
                         plugin_data: None,
                         sub_flow_report: entry.sub_flow_report.clone(),
                         is_detail_stripped: None,
+                        iteration_index: None,
+                        iteration_of: None,
+                        iteration_summary: None,
+                        truncated_iterations: None,
                     }
                 })
                 .collect();
@@ -2104,6 +2109,10 @@ impl DebuggableFlowExecutor {
                     plugin_data: None,
                     sub_flow_report: entry.sub_flow_report.clone(),
                     is_detail_stripped: None,
+                    iteration_index: None,
+                    iteration_of: None,
+                    iteration_summary: None,
+                    truncated_iterations: None,
                 }
             })
             .collect();

@@ -22,6 +22,7 @@ use uuid::Uuid;
 /// - `initial_vars`: 阶段初始变量
 /// - `executor`: 主流程执行器引用
 /// - `cancel_rx`: 可选的取消信号通道
+/// - `loop_scope`: 可选的循环作用域（`flow:loop` body 执行时传入，缺省则新建根作用域）
 ///
 /// # 返回
 /// - `Ok((updated_variables, stage_report))`: 阶段执行报告与更新后的变量上下文
@@ -31,6 +32,7 @@ pub async fn execute_subgraph(
     initial_vars: HashMap<String, serde_json::Value>,
     executor: &FlowExecutor,
     cancel_rx: Option<tokio::sync::watch::Receiver<bool>>,
+    loop_scope: Option<Arc<crate::loop_scope::LoopScope>>,
 ) -> Result<(HashMap<String, serde_json::Value>, StageExecutionReport), String> {
     let start_time = std::time::Instant::now();
 
@@ -71,6 +73,7 @@ pub async fn execute_subgraph(
         current_node_plugin_data: None,
         call_stack: executor.call_stack().clone(),
         current_sub_flow_report: None,
+        current_loop_report: None,
     }
     .with_default_providers();
 
@@ -78,6 +81,12 @@ pub async fn execute_subgraph(
     for (name, provider) in executor.extra_providers() {
         context.set_provider(name, provider.clone());
     }
+    // 显式传入的循环作用域优先级最高：`extra_providers` 会搬运父上下文里的
+    // 同名 provider，若不在此处覆盖，body 内的嵌套 loop 会拿到父作用域层数。
+    context.set_provider(
+        crate::loop_scope::LOOP_SCOPE_PROVIDER,
+        loop_scope.unwrap_or_else(|| Arc::new(crate::loop_scope::LoopScope::root())),
+    );
 
     // 2. 构建节点索引与拓扑出入度映射
     let node_map: HashMap<String, &Node> = subgraph
@@ -286,6 +295,7 @@ pub async fn execute_subgraph(
                 let node_failed = used_port_id.as_deref() == Some("false");
                 let node_error = extract_error_from_output(&output_data);
 
+                let current_loop = context.current_loop_report.take();
                 let report = NodeExecutionReport {
                     node_uuid: node.uuid.clone(),
                     node_type: node.node_type.clone(),
@@ -309,6 +319,10 @@ pub async fn execute_subgraph(
                     plugin_data: context.current_node_plugin_data.take(),
                     sub_flow_report: context.current_sub_flow_report.take(),
                     is_detail_stripped: None,
+                    iteration_index: None,
+                    iteration_of: None,
+                    iteration_summary: current_loop.as_ref().map(|s| s.summaries.clone()),
+                    truncated_iterations: current_loop.map(|s| s.truncated_iterations),
                 };
 
                 context
@@ -373,6 +387,7 @@ pub async fn execute_subgraph(
                     &context,
                 ));
 
+                let current_loop = context.current_loop_report.take();
                 let report = NodeExecutionReport {
                     node_uuid: node.uuid.clone(),
                     node_type: node.node_type.clone(),
@@ -392,6 +407,10 @@ pub async fn execute_subgraph(
                     plugin_data: context.current_node_plugin_data.take(),
                     sub_flow_report: context.current_sub_flow_report.take(),
                     is_detail_stripped: None,
+                    iteration_index: None,
+                    iteration_of: None,
+                    iteration_summary: current_loop.as_ref().map(|s| s.summaries.clone()),
+                    truncated_iterations: current_loop.map(|s| s.truncated_iterations),
                 };
 
                 context

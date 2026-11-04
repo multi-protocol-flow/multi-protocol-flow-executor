@@ -15,18 +15,30 @@ pub mod debug;
 pub mod debug_event_adapter;
 /// 默认节点注册表，注册全部 14 个内置插件
 pub mod default_registry;
+/// 延时节点执行器（可中断等待）
+pub mod delay_executor;
 /// 入口节点执行器，处理流程起始节点
 pub mod entry_executor;
 /// 主执行器，驱动流程节点的遍历与执行
 pub mod executor;
+/// evalexpr 表达式求值（conditional 分支与 loop until 共用）
+pub mod expression;
 /// Ingress 流程级 Mock 监听服务模块
 pub mod ingress;
+/// 循环节点执行器（内联 body 迭代、预算/退避/报告裁剪）
+pub mod loop_executor;
+/// 循环运行时作用域（迭代预算与嵌套层数）
+pub mod loop_scope;
 /// 条件分支节点插件
 pub mod plugin_conditional;
+/// 延时节点插件
+pub mod plugin_delay;
 /// 结束节点插件
 pub mod plugin_end;
 /// 入口节点插件
 pub mod plugin_entry;
+/// 循环节点插件
+pub mod plugin_loop;
 /// 代理设置节点插件
 pub mod plugin_proxy;
 /// 子流程节点插件

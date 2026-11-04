@@ -350,6 +350,10 @@ mod tests {
             plugin_data: None,
             sub_flow_report: None,
             is_detail_stripped: None,
+            iteration_index: None,
+            iteration_of: None,
+            iteration_summary: None,
+            truncated_iterations: None,
         });
 
         let executor = VariableExtractorExecutor;
@@ -439,6 +443,10 @@ mod tests {
             plugin_data: None,
             sub_flow_report: None,
             is_detail_stripped: None,
+            iteration_index: None,
+            iteration_of: None,
+            iteration_summary: None,
+            truncated_iterations: None,
         });
 
         let executor = VariableExtractorExecutor;
@@ -510,6 +518,10 @@ mod tests {
             plugin_data: None,
             sub_flow_report: None,
             is_detail_stripped: None,
+            iteration_index: None,
+            iteration_of: None,
+            iteration_summary: None,
+            truncated_iterations: None,
         });
         context.node_reports.push(NodeExecutionReport {
             node_uuid: assert_uuid.clone(),
@@ -532,6 +544,10 @@ mod tests {
             plugin_data: None,
             sub_flow_report: None,
             is_detail_stripped: None,
+            iteration_index: None,
+            iteration_of: None,
+            iteration_summary: None,
+            truncated_iterations: None,
         });
 
         // 连接关系: http -> assert -> extractor

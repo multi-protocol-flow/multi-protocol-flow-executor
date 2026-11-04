@@ -21,6 +21,8 @@ use flow_engine_plugin::manager::PluginManager;
 /// | HTTP | HttpIngressPlugin | `http:ingress` |
 /// | HTTP | HttpRespondPlugin | `http:respond` |
 /// | Logic | SubFlowPlugin | `flow:sub` |
+/// | Logic | LoopPlugin | `flow:loop` |
+/// | Logic | DelayPlugin | `flow:delay` |
 /// | WebSocket | WsConnectPlugin | `ws:connect` |
 /// | WebSocket | WsSendCollectPlugin | `ws:send_collect` |
 /// | WebSocket | WsClosePlugin | `ws:close` |
@@ -54,6 +56,8 @@ pub fn default_registry() -> NodeRegistry {
         crate::plugin_conditional::ConditionalPlugin,
     ));
     registry.register(std::sync::Arc::new(crate::plugin_sub_flow::SubFlowPlugin));
+    registry.register(std::sync::Arc::new(crate::plugin_loop::LoopPlugin));
+    registry.register(std::sync::Arc::new(crate::plugin_delay::DelayPlugin));
 
     // HTTP (flow-engine-http)
     #[cfg(feature = "protocol-http")]
@@ -170,7 +174,7 @@ mod tests {
     fn test_plugin_count_matches_features() {
         let registry = default_registry();
         let count = registry.len();
-        let mut expected = 8usize; // always-on: entry, conditional, flow:sub, end, variable:extractor, proxy, http:ingress, http:respond
+        let mut expected = 10usize; // always-on: entry, conditional, flow:sub, flow:loop, flow:delay, end, variable:extractor, proxy, http:ingress, http:respond
 
         #[cfg(feature = "protocol-http")]
         {
@@ -218,6 +222,8 @@ mod tests {
         assert!(type_ids.contains(&"entry"));
         assert!(type_ids.contains(&"conditional"));
         assert!(type_ids.contains(&"flow:sub"));
+        assert!(type_ids.contains(&"flow:loop"));
+        assert!(type_ids.contains(&"flow:delay"));
         assert!(type_ids.contains(&"end"));
         assert!(type_ids.contains(&"variable:extractor"));
         assert!(type_ids.contains(&"proxy"));

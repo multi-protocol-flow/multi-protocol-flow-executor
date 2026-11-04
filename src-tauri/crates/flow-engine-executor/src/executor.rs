@@ -187,6 +187,15 @@ impl FlowExecutor {
         self.extra_providers.insert(name.to_string(), provider);
         self
     }
+
+    /// 用现成的 provider 映射整体替换（循环体子执行器从当前上下文复制 provider）
+    pub fn with_extra_providers(
+        mut self,
+        providers: HashMap<String, Arc<dyn std::any::Any + Send + Sync>>,
+    ) -> Self {
+        self.extra_providers = providers;
+        self
+    }
     /// 注入已存在的 Tool Bridge 调度句柄
     pub fn with_tool_bridge(mut self, bridge: crate::tool_bridge::ToolBridgeHandle) -> Self {
         self.tool_bridge = Some(bridge);
@@ -376,9 +385,12 @@ impl FlowExecutor {
             current_node_plugin_data: None,
             call_stack,
             current_sub_flow_report: None,
+            current_loop_report: None,
         }
         .with_default_providers();
 
+        let loop_scope = Arc::new(crate::loop_scope::LoopScope::root());
+        context.set_provider(crate::loop_scope::LOOP_SCOPE_PROVIDER, loop_scope.clone());
         context.set_provider("node_registry", self.registry.clone());
         for (name, provider) in &self.extra_providers {
             context.set_provider(name, provider.clone());
@@ -494,6 +506,7 @@ impl FlowExecutor {
                     current_vars_map.clone(),
                     self,
                     self.cancel_receiver.clone(),
+                    Some(loop_scope.clone()),
                 )
                 .await
                 {
@@ -557,6 +570,7 @@ impl FlowExecutor {
                         current_vars_map.clone(),
                         self,
                         self.cancel_receiver.clone().filter(|rx| !*rx.borrow()),
+                        Some(loop_scope.clone()),
                     )
                     .await
                     {
@@ -698,20 +712,19 @@ impl FlowExecutor {
                         .find(|node| node_types::is_entry_node_type(&node.node_type))
                 })
         }
-            .or_else(|| {
-                let node_uuids: HashSet<&str> =
-                    flow.nodes.iter().map(|n| n.uuid.as_str()).collect();
-                let target_uuids: HashSet<&str> = flow
-                    .connections
-                    .iter()
-                    .filter(|c| node_uuids.contains(c.source_node_uuid.as_str()))
-                    .map(|c| c.target_node_uuid.as_str())
-                    .collect();
-                flow.nodes
-                    .iter()
-                    .find(|n| !target_uuids.contains(n.uuid.as_str()))
-                    .or_else(|| flow.nodes.first())
-            });
+        .or_else(|| {
+            let node_uuids: HashSet<&str> = flow.nodes.iter().map(|n| n.uuid.as_str()).collect();
+            let target_uuids: HashSet<&str> = flow
+                .connections
+                .iter()
+                .filter(|c| node_uuids.contains(c.source_node_uuid.as_str()))
+                .map(|c| c.target_node_uuid.as_str())
+                .collect();
+            flow.nodes
+                .iter()
+                .find(|n| !target_uuids.contains(n.uuid.as_str()))
+                .or_else(|| flow.nodes.first())
+        });
         let start_node = match start_node {
             Some(node) => node,
             None => {
@@ -814,7 +827,12 @@ impl FlowExecutor {
                 let next_nodes: Vec<String> = flow
                     .connections
                     .iter()
-                    .filter(|c| c.source_node_uuid == node.uuid && (c.source_port_id == "out" || c.source_port_id == "true"))
+                    .filter(|c| {
+                        c.source_node_uuid == node.uuid
+                            && (c.source_port_id == "out"
+                                || c.source_port_id == "true"
+                                || c.source_port_id == "done")
+                    })
                     .map(|c| c.target_node_uuid.clone())
                     .collect();
                 Some(Ok((next_nodes, context.last_node_output.clone())))
@@ -825,83 +843,83 @@ impl FlowExecutor {
                     .execution_timeout_ms()
                     .map(|ms| std::cmp::min(ms, 3600000)); // Cap at 1 hour
                 match (context.cancel_receiver.is_some(), node_timeout_ms) {
-                (true, Some(ms)) => {
-                    // 有取消接收器 + 超时：在 select 中同时监听取消和超时
-                    let Some(mut rx) = context.cancel_receiver.clone() else {
-                        unreachable!("cancel_receiver.is_some() was just checked")
-                    };
-                    let timeout_dur = std::time::Duration::from_millis(ms);
-                    let execute =
-                        self.execute_node(node, &mut context, &flow.connections, &node_map);
-                    let wrapped = tokio::time::timeout(timeout_dur, execute);
-                    tokio::select! {
-                        result = wrapped => {
-                            match result {
-                                Ok(inner) => Some(inner),
-                                Err(_) => {
-                                    log::info!("[Flow {}] Node {} execution timeout ({}ms)", context.flow_uuid, node.name, ms);
-                                    Some(Err(ErrorDetail::new(ErrorKind::Timeout, format!("Node execution timeout ({}ms)", ms))
-                                    .with_error_code_typed(ErrorCode::E_TIMEOUT)
-                                    .with_i18n_arg("ms", ms.to_string())
-                                    .with_i18n_arg("operation", node.name.clone())))
+                    (true, Some(ms)) => {
+                        // 有取消接收器 + 超时：在 select 中同时监听取消和超时
+                        let Some(mut rx) = context.cancel_receiver.clone() else {
+                            unreachable!("cancel_receiver.is_some() was just checked")
+                        };
+                        let timeout_dur = std::time::Duration::from_millis(ms);
+                        let execute =
+                            self.execute_node(node, &mut context, &flow.connections, &node_map);
+                        let wrapped = tokio::time::timeout(timeout_dur, execute);
+                        tokio::select! {
+                            result = wrapped => {
+                                match result {
+                                    Ok(inner) => Some(inner),
+                                    Err(_) => {
+                                        log::info!("[Flow {}] Node {} execution timeout ({}ms)", context.flow_uuid, node.name, ms);
+                                        Some(Err(ErrorDetail::new(ErrorKind::Timeout, format!("Node execution timeout ({}ms)", ms))
+                                        .with_error_code_typed(ErrorCode::E_TIMEOUT)
+                                        .with_i18n_arg("ms", ms.to_string())
+                                        .with_i18n_arg("operation", node.name.clone())))
+                                    }
                                 }
                             }
-                        }
-                        _ = rx.changed() => {
-                            log::info!("[Flow {}] Node {} received cancellation signal during execution", context.flow_uuid, node.name);
-                            None
-                        }
-                    }
-                }
-                (true, None) => {
-                    // 有取消接收器但无超时：使用 tokio::select! 只监听取消信号
-                    let Some(mut rx) = context.cancel_receiver.clone() else {
-                        unreachable!("cancel_receiver.is_some() was just checked")
-                    };
-                    tokio::select! {
-                        result = self.execute_node(node, &mut context, &flow.connections, &node_map) => {
-                            Some(result)
-                        }
-                        _ = rx.changed() => {
-                            log::info!("[Flow {}] Node {} received cancellation signal during execution", context.flow_uuid, node.name);
-                            None
+                            _ = rx.changed() => {
+                                log::info!("[Flow {}] Node {} received cancellation signal during execution", context.flow_uuid, node.name);
+                                None
+                            }
                         }
                     }
-                }
-                (false, Some(ms)) => {
-                    // 无取消接收器但有超时
-                    let timeout_dur = std::time::Duration::from_millis(ms);
-                    match tokio::time::timeout(
-                        timeout_dur,
-                        self.execute_node(node, &mut context, &flow.connections, &node_map),
-                    )
-                    .await
-                    {
-                        Ok(result) => Some(result),
-                        Err(_) => {
-                            log::info!(
-                                "[Flow {}] Node {} execution timeout ({}ms)",
-                                context.flow_uuid,
-                                node.name,
-                                ms
-                            );
-                            Some(Err(ErrorDetail::new(
-                                ErrorKind::Timeout,
-                                format!("Node execution timeout ({}ms)", ms),
-                            )
-                            .with_error_code_typed(ErrorCode::E_TIMEOUT)
-                            .with_i18n_arg("ms", ms.to_string())
-                            .with_i18n_arg("operation", node.name.clone())))
+                    (true, None) => {
+                        // 有取消接收器但无超时：使用 tokio::select! 只监听取消信号
+                        let Some(mut rx) = context.cancel_receiver.clone() else {
+                            unreachable!("cancel_receiver.is_some() was just checked")
+                        };
+                        tokio::select! {
+                            result = self.execute_node(node, &mut context, &flow.connections, &node_map) => {
+                                Some(result)
+                            }
+                            _ = rx.changed() => {
+                                log::info!("[Flow {}] Node {} received cancellation signal during execution", context.flow_uuid, node.name);
+                                None
+                            }
                         }
                     }
-                }
-                (false, None) => {
-                    // 无取消接收器且无超时：直接执行
-                    Some(
-                        self.execute_node(node, &mut context, &flow.connections, &node_map)
-                            .await,
-                    )
-                }
+                    (false, Some(ms)) => {
+                        // 无取消接收器但有超时
+                        let timeout_dur = std::time::Duration::from_millis(ms);
+                        match tokio::time::timeout(
+                            timeout_dur,
+                            self.execute_node(node, &mut context, &flow.connections, &node_map),
+                        )
+                        .await
+                        {
+                            Ok(result) => Some(result),
+                            Err(_) => {
+                                log::info!(
+                                    "[Flow {}] Node {} execution timeout ({}ms)",
+                                    context.flow_uuid,
+                                    node.name,
+                                    ms
+                                );
+                                Some(Err(ErrorDetail::new(
+                                    ErrorKind::Timeout,
+                                    format!("Node execution timeout ({}ms)", ms),
+                                )
+                                .with_error_code_typed(ErrorCode::E_TIMEOUT)
+                                .with_i18n_arg("ms", ms.to_string())
+                                .with_i18n_arg("operation", node.name.clone())))
+                            }
+                        }
+                    }
+                    (false, None) => {
+                        // 无取消接收器且无超时：直接执行
+                        Some(
+                            self.execute_node(node, &mut context, &flow.connections, &node_map)
+                                .await,
+                        )
+                    }
                 }
             };
 
@@ -981,6 +999,7 @@ impl FlowExecutor {
                     }
 
                     // 创建节点执行报告，使用构建的 input_data
+                    let current_loop = context.current_loop_report.take();
                     let node_report = flow_engine_core::report::NodeExecutionReport {
                         node_uuid: node.uuid.clone(),
                         node_type: node.node_type.clone(),
@@ -1016,6 +1035,10 @@ impl FlowExecutor {
                         plugin_data: context.current_node_plugin_data.take(),
                         sub_flow_report: context.current_sub_flow_report.take(),
                         is_detail_stripped: None,
+                        iteration_index: None,
+                        iteration_of: None,
+                        iteration_summary: current_loop.as_ref().map(|s| s.summaries.clone()),
+                        truncated_iterations: current_loop.map(|s| s.truncated_iterations),
                     };
                     let event_report = node_report.clone();
                     node_reports.push(node_report.clone());
@@ -1138,6 +1161,7 @@ impl FlowExecutor {
                                 &context,
                             ));
 
+                        let current_loop = context.current_loop_report.take();
                         let node_report = flow_engine_core::report::NodeExecutionReport {
                             node_uuid: node.uuid.clone(),
                             node_type: node.node_type.clone(),
@@ -1161,6 +1185,10 @@ impl FlowExecutor {
                             plugin_data: context.current_node_plugin_data.take(),
                             sub_flow_report: context.current_sub_flow_report.take(),
                             is_detail_stripped: None,
+                            iteration_index: None,
+                            iteration_of: None,
+                            iteration_summary: current_loop.as_ref().map(|s| s.summaries.clone()),
+                            truncated_iterations: current_loop.map(|s| s.truncated_iterations),
                         };
                         let event_report = node_report.clone();
                         node_reports.push(node_report.clone());
@@ -1230,6 +1258,7 @@ impl FlowExecutor {
                     let plugin_data = context.current_node_plugin_data.take();
                     let node_output_data =
                         error_detail.context.clone().or_else(|| plugin_data.clone());
+                    let current_loop = context.current_loop_report.take();
                     let node_report = flow_engine_core::report::NodeExecutionReport {
                         node_uuid: node.uuid.clone(),
                         node_type: node.node_type.clone(),
@@ -1250,6 +1279,10 @@ impl FlowExecutor {
                         plugin_data,
                         sub_flow_report: context.current_sub_flow_report.take(),
                         is_detail_stripped: None,
+                        iteration_index: None,
+                        iteration_of: None,
+                        iteration_summary: current_loop.as_ref().map(|s| s.summaries.clone()),
+                        truncated_iterations: current_loop.map(|s| s.truncated_iterations),
                     };
                     let event_report = node_report.clone();
                     node_reports.push(node_report.clone());
@@ -1455,6 +1488,7 @@ impl FlowExecutor {
                     current_vars_map.clone(),
                     self,
                     self.cancel_receiver.clone().filter(|rx| !*rx.borrow()),
+                    Some(loop_scope.clone()),
                 )
                 .await
                 {
@@ -1690,6 +1724,10 @@ impl FlowExecutor {
         context.execution_id = execution_id.unwrap_or_else(|| Uuid::new_v4().to_string());
 
         // 1. 注入 node_registry 和 extra_providers
+        context.set_provider(
+            crate::loop_scope::LOOP_SCOPE_PROVIDER,
+            Arc::new(crate::loop_scope::LoopScope::root()),
+        );
         context.set_provider("node_registry", self.registry.clone());
         for (name, provider) in &self.extra_providers {
             context.set_provider(name, provider.clone());
@@ -1740,6 +1778,10 @@ impl FlowExecutor {
                         plugin_data: None,
                         sub_flow_report: None,
                         is_detail_stripped: None,
+                        iteration_index: None,
+                        iteration_of: None,
+                        iteration_summary: None,
+                        truncated_iterations: None,
                     }],
                     flow_report: None,
                     execution_id: context.execution_id.clone(),
@@ -1791,6 +1833,10 @@ impl FlowExecutor {
                     plugin_data: context.current_node_plugin_data.take(),
                     sub_flow_report: None,
                     is_detail_stripped: None,
+                    iteration_index: None,
+                    iteration_of: None,
+                    iteration_summary: None,
+                    truncated_iterations: None,
                 }],
                 flow_report: None,
                 execution_id: context.execution_id.clone(),
@@ -1821,6 +1867,10 @@ impl FlowExecutor {
                         plugin_data: context.current_node_plugin_data.take(),
                         sub_flow_report: None,
                         is_detail_stripped: None,
+                        iteration_index: None,
+                        iteration_of: None,
+                        iteration_summary: None,
+                        truncated_iterations: None,
                     }],
                     flow_report: None,
                     execution_id: context.execution_id.clone(),
@@ -1860,6 +1910,10 @@ impl FlowExecutor {
                         plugin_data: context.current_node_plugin_data.take(),
                         sub_flow_report: None,
                         is_detail_stripped: None,
+                        iteration_index: None,
+                        iteration_of: None,
+                        iteration_summary: None,
+                        truncated_iterations: None,
                     }],
                     flow_report: None,
                     execution_id: context.execution_id.clone(),
@@ -2154,10 +2208,7 @@ mod tests {
         // 验证执行Failed
         assert!(!result.success);
         assert!(result.error.is_some());
-        assert_eq!(
-            result.error.as_deref(),
-            Some("Flow missing start node")
-        );
+        assert_eq!(result.error.as_deref(), Some("Flow missing start node"));
         assert_eq!(result.executed_count, 0);
     }
 

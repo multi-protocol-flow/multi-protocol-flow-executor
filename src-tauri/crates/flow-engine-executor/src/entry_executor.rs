@@ -196,6 +196,7 @@ mod tests {
             current_node_plugin_data: None,
             call_stack: Vec::new(),
             current_sub_flow_report: None,
+            current_loop_report: None,
         };
 
         let mut node_map = HashMap::new();
@@ -259,6 +260,7 @@ mod tests {
             current_node_plugin_data: None,
             call_stack: Vec::new(),
             current_sub_flow_report: None,
+            current_loop_report: None,
         };
 
         let node_map = HashMap::new();
@@ -348,6 +350,7 @@ mod tests {
             current_node_plugin_data: None,
             call_stack: Vec::new(),
             current_sub_flow_report: None,
+            current_loop_report: None,
         };
 
         let mut node_map = HashMap::new();
@@ -427,6 +430,7 @@ mod tests {
             current_node_plugin_data: None,
             call_stack: Vec::new(),
             current_sub_flow_report: None,
+            current_loop_report: None,
         };
 
         let mut node_map = HashMap::new();
@@ -512,6 +516,7 @@ mod tests {
             current_node_plugin_data: None,
             call_stack: Vec::new(),
             current_sub_flow_report: None,
+            current_loop_report: None,
         };
 
         let mut node_map = HashMap::new();
@@ -581,6 +586,7 @@ mod tests {
             current_node_plugin_data: None,
             call_stack: Vec::new(),
             current_sub_flow_report: None,
+            current_loop_report: None,
         };
 
         let mut node_map = HashMap::new();
@@ -655,6 +661,7 @@ mod tests {
             current_node_plugin_data: None,
             call_stack: Vec::new(),
             current_sub_flow_report: None,
+            current_loop_report: None,
         };
 
         let mut node_map = HashMap::new();

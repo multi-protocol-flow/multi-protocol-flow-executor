@@ -347,6 +347,7 @@ impl StressTestExecutor {
                     global_vars.clone(),
                     &setup_executor,
                     None,
+                    None,
                 )
                 .await
                 {
@@ -584,6 +585,7 @@ impl StressTestExecutor {
                     teardown_subgraph,
                     teardown_vars,
                     &teardown_executor,
+                    None,
                     None,
                 )
                 .await

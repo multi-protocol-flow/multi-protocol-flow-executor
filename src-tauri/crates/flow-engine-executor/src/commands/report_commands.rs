@@ -55,8 +55,12 @@ pub fn get_flow_report_markdown(
 }
 
 /// 获取压力测试报告的 Markdown 摘要
-pub fn get_stress_report_markdown(report: crate::stress_test::StressTestReport) -> Result<String, String> {
-    Ok(crate::report_export::generate_stress_markdown_summary(&report))
+pub fn get_stress_report_markdown(
+    report: crate::stress_test::StressTestReport,
+) -> Result<String, String> {
+    Ok(crate::report_export::generate_stress_markdown_summary(
+        &report,
+    ))
 }
 
 /// 导出流程执行报告为自包含 HTML 文件
@@ -136,6 +140,10 @@ mod tests {
                     plugin_data: None,
                     sub_flow_report: None,
                     is_detail_stripped: None,
+                    iteration_index: None,
+                    iteration_of: None,
+                    iteration_summary: None,
+                    truncated_iterations: None,
                 },
                 NodeExecutionReport {
                     node_uuid: "node-2".to_string(),
@@ -156,6 +164,10 @@ mod tests {
                     plugin_data: None,
                     sub_flow_report: None,
                     is_detail_stripped: None,
+                    iteration_index: None,
+                    iteration_of: None,
+                    iteration_summary: None,
+                    truncated_iterations: None,
                 },
             ],
             statistics: FlowStatistics::default(),
@@ -504,10 +516,8 @@ mod tests {
         assert!(stress_md.contains("Stress Command Test"));
 
         let stress_html_path = temp_dir.path().join("nested/stress-report.html");
-        let export_stress_res = export_stress_report_html(
-            stress_report,
-            &stress_html_path.to_string_lossy(),
-        );
+        let export_stress_res =
+            export_stress_report_html(stress_report, &stress_html_path.to_string_lossy());
         assert!(export_stress_res.is_ok());
         assert!(stress_html_path.exists());
         let stress_html_content = std::fs::read_to_string(&stress_html_path).unwrap();

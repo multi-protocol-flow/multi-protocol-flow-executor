@@ -93,6 +93,7 @@ impl DatasetExecutor {
                     setup_vars.clone(),
                     &setup_executor,
                     cancel_rx.clone(),
+                    None,
                 )
                 .await
                 {
@@ -181,6 +182,7 @@ impl DatasetExecutor {
                             teardown_vars,
                             &teardown_executor,
                             cancel_rx.clone(),
+                            None,
                         )
                         .await;
                     }
