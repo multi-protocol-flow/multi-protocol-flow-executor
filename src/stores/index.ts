@@ -39,6 +39,13 @@ export {
 } from './flow';
 export type { FlowStage, StageNodeEntry } from './flow';
 export { getStageGraph, getStageNodes, getNodeStage } from './flow';
+export {
+  resolveScopeGraph,
+  mapScopeGraph,
+  locateNode,
+  isLoopPathValid,
+} from './flow';
+export type { CanvasScope, NodePath } from './flow';
 export { getAllNodes, findNodeInFlow } from './flow';
 
 // FlowList store selectors

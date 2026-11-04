@@ -365,6 +365,61 @@ describe('Tauri IPC flow.ts 服务', () => {
       expect(slice.teardown).toBeUndefined();
     });
 
+    it('loop body 内的节点也能切出可执行流程（并带 loop 默认变量）', () => {
+      const flow: Flow = {
+        uuid: 'loop-flow',
+        name: 'Loop Flow',
+        initial_variables: { api_key: 'k' },
+        nodes: [
+          {
+            uuid: 'loop-1',
+            type: 'flow:loop',
+            name: 'Poll',
+            position: { x: 0, y: 0 },
+            data: {
+              type: 'flow:loop',
+              source: 'count',
+              count: 3,
+              max_iterations: 100,
+              concurrency: 1,
+              break_on_error: true,
+              report: { detail_iterations: 20, always_keep_failed: true },
+              body: {
+                nodes: [
+                  { uuid: 'body-1', type: 'script', name: 'Body 1', position: { x: 0, y: 0 }, data: { type: 'script', script: 'return 1;' } },
+                  { uuid: 'body-2', type: 'script', name: 'Body 2', position: { x: 100, y: 0 }, data: { type: 'script', script: 'return 2;' } },
+                ],
+                connections: [
+                  { id: 'bc1', source_node_uuid: 'body-1', target_node_uuid: 'body-2', source_port_id: 'out', target_port_id: 'in' },
+                ],
+              },
+            },
+          },
+        ],
+        connections: [],
+      };
+
+      // 单节点：切片必须非空，且补上 loop 迭代变量
+      const single = buildFlowSlice(flow, ['body-2']);
+      expect(single.nodes.map((n) => n.uuid)).toEqual(['body-2']);
+      expect(single.connections).toHaveLength(0);
+      expect(single.name).toBe('Test: Body 2');
+      expect(single.initial_variables).toMatchObject({
+        api_key: 'k',
+        loop: { index: 0, count: 1, first: true, last: true, item: null },
+      });
+
+      // 多节点：同一 body 内的连线一并带上
+      const multi = buildFlowSlice(flow, ['body-1', 'body-2']);
+      expect(multi.nodes.map((n) => n.uuid)).toEqual(['body-1', 'body-2']);
+      expect(multi.connections.map((c) => c.id)).toEqual(['bc1']);
+
+      // 阶段层节点不受影响，且不会注入 loop 变量
+      const stageSlice = buildFlowSlice(flow, ['loop-1']);
+      expect(stageSlice.nodes.map((n) => n.uuid)).toEqual(['loop-1']);
+      expect(stageSlice.initial_variables).toEqual({ api_key: 'k' });
+    });
+
     it('单个节点切片应该以该节点名称命名', () => {
       const flow = createTestFlow();
       const slice = buildFlowSlice(flow, ['http-node-uuid']);

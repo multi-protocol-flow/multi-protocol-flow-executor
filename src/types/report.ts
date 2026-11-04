@@ -142,6 +142,30 @@ export interface NodeExecutionReport {
   sub_flow_report?: FlowExecutionReport;
   /** 标记输入/输出数据是否已在热通道推送中被剥离（冷热通道优化） */
   is_detail_stripped?: boolean;
+  /** 所属迭代序号（0-based），仅 loop body 内的节点有值 */
+  iteration_index?: number;
+  /** 所属 loop 节点 uuid，仅 loop body 内的节点有值 */
+  iteration_of?: string;
+  /** loop 节点的迭代摘要（仅 loop 节点自身有值） */
+  iteration_summary?: IterationSummary[];
+  /** 被裁剪掉的迭代数（仅 loop 节点自身有值） */
+  truncated_iterations?: number;
+}
+
+/**
+ * 单轮迭代摘要（`flow:loop` 报告）
+ */
+export interface IterationSummary {
+  /** 迭代序号（0-based） */
+  index: number;
+  /** 该轮执行状态 */
+  status: ExecutionStatus;
+  /** 该轮耗时（毫秒） */
+  duration_ms: number;
+  /** 该轮结束后、下一轮开始前的实际等待（毫秒） */
+  wait_ms: number;
+  /** 该轮失败详情 */
+  error?: ErrorDetail;
 }
 
 // ============================================================================

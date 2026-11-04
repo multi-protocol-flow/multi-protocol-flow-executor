@@ -39,10 +39,147 @@ function withStageGraph(flow: Flow, stage: FlowStage, graph: FlowSubGraph): Flow
   return stage === 'setup' ? { ...flow, setup: graph } : { ...flow, teardown: graph };
 }
 
+/**
+ * 画布作用域片段：生命周期阶段，或进入某个 loop 节点的 body
+ */
+export type CanvasScope =
+  | { kind: 'stage'; stage: FlowStage }
+  | { kind: 'loop'; loopNodeUuid: string };
+
+/** 节点在流程中的完整路径（stage + 外层 loop 节点 uuid 链，最外层在前） */
+export interface NodePath {
+  stage: FlowStage;
+  loopPath: string[];
+}
+
+/** 取 loop 节点的 body（缺失时返回空子图） */
+function getLoopBody(node: Node): FlowSubGraph {
+  if (node.type !== 'flow:loop') return EMPTY_SUBGRAPH;
+  const body = (node.data as { body?: FlowSubGraph }).body;
+  return body ?? EMPTY_SUBGRAPH;
+}
+
+/**
+ * 按 `loopPath` 递归下行取画布子图
+ *
+ * 任一层 uuid 缺失或不是 `flow:loop` 时，截断到最长有效前缀（例如撤销后路径失效）。
+ */
+export function resolveScopeGraph(
+  flow: Flow | null,
+  stage: FlowStage,
+  loopPath: string[],
+): FlowSubGraph {
+  let graph = getStageGraph(flow, stage);
+  for (const uuid of loopPath) {
+    const node = graph.nodes.find((n) => n.uuid === uuid && n.type === 'flow:loop');
+    if (!node) break;
+    graph = getLoopBody(node);
+  }
+  return graph;
+}
+
+/** `loopPath` 在当前流程中是否仍然完全有效 */
+export function isLoopPathValid(flow: Flow | null, stage: FlowStage, loopPath: string[]): boolean {
+  if (loopPath.length === 0) return true;
+  let graph = getStageGraph(flow, stage);
+  for (const uuid of loopPath) {
+    const node = graph.nodes.find((n) => n.uuid === uuid && n.type === 'flow:loop');
+    if (!node) return false;
+    graph = getLoopBody(node);
+  }
+  return true;
+}
+
+/** 截断到最长有效 `loopPath` 前缀（路径失效时避免渲染空画布） */
+function trimLoopPath(flow: Flow, stage: FlowStage, loopPath: string[]): string[] {
+  if (loopPath.length === 0) return loopPath;
+  let graph = getStageGraph(flow, stage);
+  const valid: string[] = [];
+  for (const uuid of loopPath) {
+    const node = graph.nodes.find((n) => n.uuid === uuid && n.type === 'flow:loop');
+    if (!node) break;
+    valid.push(uuid);
+    graph = getLoopBody(node);
+  }
+  return valid;
+}
+
+/**
+ * 在 `loopPath` 最深处子图上施加变更，逐层重建父节点 `data`（其余引用保持不变）
+ */
+export function mapScopeGraph(
+  flow: Flow,
+  stage: FlowStage,
+  loopPath: string[],
+  fn: (graph: FlowSubGraph) => FlowSubGraph,
+): Flow {
+  if (loopPath.length === 0) return mapStageGraph(flow, stage, fn);
+
+  const [head, ...rest] = loopPath;
+  const updated = mapStageGraph(flow, stage, (graph) => ({
+    ...graph,
+    nodes: graph.nodes.map((node) => {
+      if (node.uuid !== head || node.type !== 'flow:loop') return node;
+      const body = getLoopBody(node);
+      const nextBody = mapScopeGraphInGraph(body, rest, fn);
+      return { ...node, data: { ...node.data, body: nextBody } as NodeData };
+    }),
+  }));
+  return updated;
+}
+
+/** 在子图内部递归应用变更（`mapScopeGraph` 的内部实现） */
+function mapScopeGraphInGraph(
+  graph: FlowSubGraph,
+  loopPath: string[],
+  fn: (graph: FlowSubGraph) => FlowSubGraph,
+): FlowSubGraph {
+  if (loopPath.length === 0) return fn(graph);
+  const [head, ...rest] = loopPath;
+  return {
+    ...graph,
+    nodes: graph.nodes.map((node) => {
+      if (node.uuid !== head || node.type !== 'flow:loop') return node;
+      const body = getLoopBody(node);
+      return {
+        ...node,
+        data: { ...node.data, body: mapScopeGraphInGraph(body, rest, fn) } as NodeData,
+      };
+    }),
+  };
+}
+
+/**
+ * 递归定位节点（含 setup/teardown 与所有 loop body）
+ *
+ * 返回其所属阶段与外层 loop 节点链；未找到返回 `null`。
+ */
+export function locateNode(flow: Flow | null, uuid: string): NodePath | null {
+  if (!flow) return null;
+  const search = (graph: FlowSubGraph, stage: FlowStage, prefix: string[]): NodePath | null => {
+    for (const node of graph.nodes) {
+      if (node.uuid === uuid) return { stage, loopPath: prefix };
+      if (node.type === 'flow:loop') {
+        const found = search(getLoopBody(node), stage, [...prefix, node.uuid]);
+        if (found) return found;
+      }
+    }
+    return null;
+  };
+  for (const stage of ['setup', 'main', 'teardown'] as const) {
+    if (stage !== 'main' && !flow[stage]) continue;
+    const found = search(getStageGraph(flow, stage), stage, []);
+    if (found) return found;
+  }
+  return null;
+}
+
 /** 阶段化节点条目（含所属阶段，用于跨阶段导航） */
 export interface StageNodeEntry {
   node: Node;
   stage: FlowStage;
+  /** 外层 loop 节点 uuid 链（最外层在前，空表示不在循环体内） */
+  loopPath: string[];
 }
 
 const EMPTY_STAGE_NODES: StageNodeEntry[] = [];
@@ -66,9 +203,15 @@ export function getStageNodes(flow: Flow | null): StageNodeEntry[] {
     return stageNodesCache;
   }
   const result: StageNodeEntry[] = [];
-  for (const node of flow.setup?.nodes ?? []) result.push({ node, stage: 'setup' });
-  for (const node of flow.nodes) result.push({ node, stage: 'main' });
-  for (const node of flow.teardown?.nodes ?? []) result.push({ node, stage: 'teardown' });
+  const collect = (graph: FlowSubGraph, stage: FlowStage, loopPath: string[]) => {
+    for (const node of graph.nodes) {
+      result.push({ node, stage, loopPath });
+      if (node.type === 'flow:loop') collect(getLoopBody(node), stage, [...loopPath, node.uuid]);
+    }
+  };
+  collect(flow.setup ?? EMPTY_SUBGRAPH, 'setup', []);
+  collect({ nodes: flow.nodes, connections: flow.connections }, 'main', []);
+  collect(flow.teardown ?? EMPTY_SUBGRAPH, 'teardown', []);
   stageNodesCacheKey = [flow, flow.setup, flow.teardown];
   stageNodesCache = result.length === 0 ? EMPTY_STAGE_NODES : result;
   return stageNodesCache;
@@ -94,31 +237,31 @@ export function getAllNodes(flow: Flow | null): Node[] {
     return allNodesCache;
   }
   const result: Node[] = [];
-  for (const node of flow.setup?.nodes ?? []) result.push(node);
-  for (const node of flow.nodes) result.push(node);
-  for (const node of flow.teardown?.nodes ?? []) result.push(node);
+  const collect = (graph: FlowSubGraph) => {
+    for (const node of graph.nodes) {
+      result.push(node);
+      if (node.type === 'flow:loop') collect(getLoopBody(node));
+    }
+  };
+  collect(flow.setup ?? EMPTY_SUBGRAPH);
+  collect({ nodes: flow.nodes, connections: flow.connections });
+  collect(flow.teardown ?? EMPTY_SUBGRAPH);
   allNodesCacheKey = [flow, flow.setup, flow.teardown];
   allNodesCache = result.length === 0 ? EMPTY_NODES : result;
   return allNodesCache;
 }
 
-/** 查找节点（跨 Setup / Main / Teardown 三阶段，未找到返回 null） */
+/** 查找节点（跨三阶段与所有 loop body，未找到返回 null） */
 export function findNodeInFlow(flow: Flow | null, uuid: string): Node | null {
-  if (!flow) return null;
-  return (
-    flow.setup?.nodes.find((n) => n.uuid === uuid) ??
-    flow.nodes.find((n) => n.uuid === uuid) ??
-    flow.teardown?.nodes.find((n) => n.uuid === uuid) ??
-    null
-  );
+  const path = locateNode(flow, uuid);
+  if (!flow || !path) return null;
+  const graph = resolveScopeGraph(flow, path.stage, path.loopPath);
+  return graph.nodes.find((n) => n.uuid === uuid) ?? null;
 }
 
-/** 查找节点所属阶段（未找到返回 null） */
+/** 查找节点所属阶段（含 loop body，未找到返回 null） */
 export function getNodeStage(flow: Flow, uuid: string): FlowStage | null {
-  if (flow.setup?.nodes.some((n) => n.uuid === uuid)) return 'setup';
-  if (flow.nodes.some((n) => n.uuid === uuid)) return 'main';
-  if (flow.teardown?.nodes.some((n) => n.uuid === uuid)) return 'teardown';
-  return null;
+  return locateNode(flow, uuid)?.stage ?? null;
 }
 
 /** 规范化流程中的节点状态（对齐 disabled 与 on_error: 'bypass'） */
@@ -141,12 +284,6 @@ export function normalizeFlowNodes(flow: Flow): Flow {
 /** 对指定阶段的子图施加变更，其余阶段引用保持原样 */
 function mapStageGraph(flow: Flow, stage: FlowStage, fn: (graph: FlowSubGraph) => FlowSubGraph): Flow {
   return withStageGraph(flow, stage, fn(getStageGraph(flow, stage)));
-}
-
-/** 对包含指定节点的阶段施加变更（节点不在任何阶段时返回 null） */
-function mapGraphOwningNode(flow: Flow, uuid: string, fn: (graph: FlowSubGraph) => FlowSubGraph): Flow | null {
-  const stage = getNodeStage(flow, uuid);
-  return stage ? mapStageGraph(flow, stage, fn) : null;
 }
 
 /** 深度比较两个值是否相等（属性顺序无关，undefined 值视为缺失） */
@@ -205,6 +342,12 @@ interface FlowState {
   flow: Flow | null;
   /** 当前画布展示的生命周期阶段 */
   activeStage: FlowStage;
+  /**
+   * 当前画布在 stage 内下钻的 loop 节点链（最外层在前，空 = 停留在 stage 层）
+   *
+   * 与 `activeStage` 组合出画布作用域：`resolveScopeGraph(flow, activeStage, loopPath)`。
+   */
+  loopPath: string[];
   /** 当前选中的节点 UUID */
   selectedNodeId: string | null;
   /** 流程是否已修改（未保存） */
@@ -256,6 +399,18 @@ interface FlowState {
   setFlow: (flow: Flow | null, filePath?: string) => void;
   /** 切换画布展示的生命周期阶段 */
   setActiveStage: (stage: FlowStage) => void;
+  /**
+   * 直接跳到指定画布作用域（阶段 + loop 链），供跨面板导航使用
+   *
+   * 路径失效时自动截断到最长有效前缀；选中节点不在目标作用域内时清除选中。
+   */
+  setScope: (stage: FlowStage, loopPath: string[]) => void;
+  /** 进入 loop 节点 body（body 缺失时初始化为空子图，记一次撤销步） */
+  enterLoop: (loopNodeUuid: string) => void;
+  /** 退出一层 loop（无链路时无操作） */
+  exitLoop: () => void;
+  /** 退到指定层级（面包屑点击），depth 为保留的外层 loop 数量 */
+  truncateLoopPath: (depth: number) => void;
   /** 更新流程名称 */
   updateFlowName: (name: string) => void;
   /** 更新流程描述 */
@@ -330,6 +485,7 @@ interface FlowState {
 const initialState = {
   flow: null,
   activeStage: 'main' as FlowStage,
+  loopPath: [] as string[],
   selectedNodeId: null,
   isDirty: false,
   pendingAddNodeType: null,
@@ -404,6 +560,7 @@ export const useFlowStore = create<FlowState>((set, get) => {
         return set({
           flow: null,
           activeStage: 'main',
+          loopPath: [],
           activeTabUuid: null,
           selectedNodeId: null,
           isDirty: false,
@@ -416,15 +573,20 @@ export const useFlowStore = create<FlowState>((set, get) => {
 
     setActiveStage: (stage) =>
       set((state) => {
-        if (state.activeStage === stage) return state;
-        // 选中节点不属于目标阶段时清除选中，避免配置面板显示画布外的节点
-        const selectedInStage =
-          state.flow && state.selectedNodeId
-            ? getStageGraph(state.flow, stage).nodes.some((n) => n.uuid === state.selectedNodeId)
-            : false;
+        // 已在目标阶段且停在阶段层：无需变更；但 loop 体内点击当前阶段等于「回到阶段画布」
+        if (state.activeStage === stage && state.loopPath.length === 0) return state;
+        // 选中节点只有同时属于「目标阶段 + 阶段层」才保留；
+        // loop body 内的节点在阶段画布上不可见，保留会让配置面板编辑画布外的节点
+        const selectedPath =
+          state.flow && state.selectedNodeId ? locateNode(state.flow, state.selectedNodeId) : null;
+        const selectedVisible =
+          selectedPath !== null &&
+          selectedPath.stage === stage &&
+          selectedPath.loopPath.length === 0;
         return {
           activeStage: stage,
-          selectedNodeId: selectedInStage ? state.selectedNodeId : null,
+          loopPath: [],
+          selectedNodeId: selectedVisible ? state.selectedNodeId : null,
         };
       }),
 
@@ -466,6 +628,7 @@ export const useFlowStore = create<FlowState>((set, get) => {
             tabSessions: updatedSessions,
             flow,
             activeStage: 'main',
+            loopPath: [],
             selectedNodeId: null,
             isDirty: false,
             past: [],
@@ -506,6 +669,7 @@ export const useFlowStore = create<FlowState>((set, get) => {
           tabSessions: updatedSessions,
           flow,
           activeStage: 'main',
+          loopPath: [],
           selectedNodeId: null,
           isDirty: false,
           past: [],
@@ -547,6 +711,7 @@ export const useFlowStore = create<FlowState>((set, get) => {
         tabSessions: updatedSessions,
         flow,
         activeStage: 'main',
+        loopPath: [],
         selectedNodeId: null,
         isDirty: false,
         past: [],
@@ -588,6 +753,7 @@ export const useFlowStore = create<FlowState>((set, get) => {
         activeTabUuid: targetUuid,
         flow: targetSession.flow,
         activeStage: targetStage,
+        loopPath: [],
         selectedNodeId: isTargetNodeInStage ? targetSession.selectedNodeId : null,
         isDirty: targetSession.isDirty,
         past: targetSession.past,
@@ -621,6 +787,7 @@ export const useFlowStore = create<FlowState>((set, get) => {
           tabSessions: {},
           flow: null,
           activeStage: 'main',
+          loopPath: [],
           selectedNodeId: null,
           isDirty: false,
           past: [],
@@ -647,6 +814,7 @@ export const useFlowStore = create<FlowState>((set, get) => {
         tabSessions: newSessions,
         flow: nextSession ? nextSession.flow : null,
         activeStage: nextStage,
+        loopPath: [],
         selectedNodeId: isNextNodeInStage ? nextSession!.selectedNodeId : null,
         isDirty: nextSession ? nextSession.isDirty : false,
         past: nextSession ? nextSession.past : [],
@@ -693,6 +861,7 @@ export const useFlowStore = create<FlowState>((set, get) => {
         tabSessions: newSessions,
         flow: keepSession.flow,
         activeStage: keepStage,
+        loopPath: [],
         selectedNodeId: isKeepNodeInStage ? keepSession.selectedNodeId : null,
         isDirty: keepSession.isDirty,
         past: keepSession.past,
@@ -743,6 +912,7 @@ export const useFlowStore = create<FlowState>((set, get) => {
           tabSessions: updatedSessions,
           flow: targetSession ? targetSession.flow : null,
           activeStage: targetStage,
+          loopPath: [],
           selectedNodeId: isTargetNodeInStage ? targetSession!.selectedNodeId : null,
           isDirty: targetSession ? targetSession.isDirty : false,
           past: targetSession ? targetSession.past : [],
@@ -765,6 +935,7 @@ export const useFlowStore = create<FlowState>((set, get) => {
         tabSessions: {},
         flow: null,
         activeStage: 'main',
+        loopPath: [],
         selectedNodeId: null,
         isDirty: false,
         past: [],
@@ -832,17 +1003,97 @@ export const useFlowStore = create<FlowState>((set, get) => {
         return { ...history, flow: newFlow, isDirty: true, tabs };
       }),
 
+    setScope: (stage, loopPath) =>
+      set((state) => {
+        if (!state.flow) return state;
+        const nextPath = trimLoopPath(state.flow, stage, loopPath);
+        const graph = resolveScopeGraph(state.flow, stage, nextPath);
+        const selectedVisible =
+          state.selectedNodeId !== null &&
+          graph.nodes.some((n) => n.uuid === state.selectedNodeId);
+        const nextSelected = selectedVisible ? state.selectedNodeId : null;
+        if (
+          state.activeStage === stage &&
+          state.loopPath.join('/') === nextPath.join('/') &&
+          state.selectedNodeId === nextSelected
+        ) {
+          return state;
+        }
+        return {
+          activeStage: stage,
+          loopPath: nextPath,
+          selectedNodeId: nextSelected,
+        };
+      }),
+
+    enterLoop: (loopNodeUuid) => {
+      const state = get();
+      if (!state.flow) return;
+      const scope = resolveScopeGraph(state.flow, state.activeStage, state.loopPath);
+      const target = scope.nodes.find(
+        (n) => n.uuid === loopNodeUuid && n.type === 'flow:loop',
+      );
+      if (!target) return;
+      let flow = state.flow;
+      let history: { past: Flow[]; future: Flow[] } | null = null;
+      const body = (target.data as { body?: FlowSubGraph }).body;
+      if (!body) {
+        // 首次进入：补一个空 body，并记为一步撤销
+        flow = mapScopeGraph(state.flow, state.activeStage, state.loopPath, (graph) => ({
+          ...graph,
+          nodes: graph.nodes.map((n) =>
+            n.uuid === loopNodeUuid
+              ? {
+                  ...n,
+                  data: { ...n.data, body: { nodes: [], connections: [] } } as NodeData,
+                }
+              : n,
+          ),
+        }));
+        history = pushHistory(state, flow);
+      }
+      set({
+        ...(history ?? {}),
+        flow,
+        loopPath: [...state.loopPath, loopNodeUuid],
+        selectedNodeId: null,
+        ...(history ? { isDirty: true, tabs: markTabDirty(state.tabs, state.activeTabUuid) } : {}),
+      });
+    },
+
+    exitLoop: () => {
+      const state = get();
+      if (state.loopPath.length === 0) return;
+      const loopPath = state.loopPath.slice(0, -1);
+      const scope = resolveScopeGraph(state.flow, state.activeStage, loopPath);
+      const stillExists =
+        state.selectedNodeId !== null &&
+        scope.nodes.some((n) => n.uuid === state.selectedNodeId);
+      set({ loopPath, selectedNodeId: stillExists ? state.selectedNodeId : null });
+    },
+
+    truncateLoopPath: (depth) => {
+      const state = get();
+      if (depth >= state.loopPath.length) return;
+      const loopPath = state.loopPath.slice(0, Math.max(0, depth));
+      const scope = resolveScopeGraph(state.flow, state.activeStage, loopPath);
+      const stillExists =
+        state.selectedNodeId !== null &&
+        scope.nodes.some((n) => n.uuid === state.selectedNodeId);
+      set({ loopPath, selectedNodeId: stillExists ? state.selectedNodeId : null });
+    },
+
     addNode: (node) =>
       set((state) => {
         if (!state.flow) return state;
-        const currentStageGraph = getStageGraph(state.flow, state.activeStage);
-        if (node.type === 'entry' && currentStageGraph.nodes.some((n) => n.type === 'entry')) {
+        const scopeGraph = resolveScopeGraph(state.flow, state.activeStage, state.loopPath);
+        if (node.type === 'entry' && scopeGraph.nodes.some((n) => n.type === 'entry')) {
           return state;
         }
-        if (node.type === 'http:ingress' && currentStageGraph.nodes.some((n) => n.type === 'http:ingress')) {
+        if (node.type === 'http:ingress' && scopeGraph.nodes.some((n) => n.type === 'http:ingress')) {
           return state;
         }
-        const newFlow = mapStageGraph(state.flow, state.activeStage, (graph) => ({
+        const newFlow = mapScopeGraph(state.flow, state.activeStage, state.loopPath, (graph) => ({
           ...graph,
           nodes: [...graph.nodes, node],
         }));
@@ -855,7 +1106,9 @@ export const useFlowStore = create<FlowState>((set, get) => {
     updateNode: (uuid, updates) =>
       set((state) => {
         if (!state.flow) return state;
-        const newFlow = mapGraphOwningNode(state.flow, uuid, (graph) => ({
+        const path = locateNode(state.flow, uuid);
+        if (!path) return state;
+        const newFlow = mapScopeGraph(state.flow, path.stage, path.loopPath, (graph) => ({
           ...graph,
           nodes: graph.nodes.map((n) => {
             if (n.uuid !== uuid) return n;
@@ -876,7 +1129,7 @@ export const useFlowStore = create<FlowState>((set, get) => {
     batchUpdateNodePositions: (positions) =>
       set((state) => {
         if (!state.flow) return state;
-        const newFlow = mapStageGraph(state.flow, state.activeStage, (graph) => ({
+        const newFlow = mapScopeGraph(state.flow, state.activeStage, state.loopPath, (graph) => ({
           ...graph,
           nodes: graph.nodes.map((n) => {
             const pos = positions.get(n.uuid);
@@ -892,7 +1145,9 @@ export const useFlowStore = create<FlowState>((set, get) => {
     removeNode: (uuid) =>
       set((state) => {
         if (!state.flow) return state;
-        const newFlow = mapGraphOwningNode(state.flow, uuid, (graph) => ({
+        const path = locateNode(state.flow, uuid);
+        if (!path) return state;
+        const newFlow = mapScopeGraph(state.flow, path.stage, path.loopPath, (graph) => ({
           ...graph,
           nodes: graph.nodes.filter((n) => n.uuid !== uuid),
           connections: graph.connections.filter(
@@ -917,11 +1172,16 @@ export const useFlowStore = create<FlowState>((set, get) => {
       set((state) => {
         if (!state.flow || uuids.length === 0) return state;
         const uuidSet = new Set(uuids);
-        // 批量删除可能跨阶段（节点列表聚合展示三个阶段），逐阶段过滤
+        // 批量删除可能跨阶段与跨 loop body（节点列表聚合展示），按作用域路径分组过滤
+        const groups = new Map<string, { stage: FlowStage; loopPath: string[] }>();
+        for (const uuid of uuidSet) {
+          const path = locateNode(state.flow, uuid);
+          if (!path) continue;
+          groups.set(`${path.stage}|${path.loopPath.join('/')}`, path);
+        }
         let newFlow = state.flow;
-        for (const stage of ['setup', 'main', 'teardown'] as const) {
-          if (stage !== 'main' && !newFlow[stage]) continue;
-          newFlow = mapStageGraph(newFlow, stage, (graph) => ({
+        for (const { stage, loopPath } of groups.values()) {
+          newFlow = mapScopeGraph(newFlow, stage, loopPath, (graph) => ({
             ...graph,
             nodes: graph.nodes.filter((n) => !uuidSet.has(n.uuid)),
             connections: graph.connections.filter(
@@ -945,7 +1205,7 @@ export const useFlowStore = create<FlowState>((set, get) => {
     addConnection: (connection) =>
       set((state) => {
         if (!state.flow) return state;
-        const newFlow = mapStageGraph(state.flow, state.activeStage, (graph) => ({
+        const newFlow = mapScopeGraph(state.flow, state.activeStage, state.loopPath, (graph) => ({
           ...graph,
           connections: [...graph.connections, connection],
         }));
@@ -958,7 +1218,7 @@ export const useFlowStore = create<FlowState>((set, get) => {
     removeConnection: (id) =>
       set((state) => {
         if (!state.flow) return state;
-        const newFlow = mapStageGraph(state.flow, state.activeStage, (graph) => ({
+        const newFlow = mapScopeGraph(state.flow, state.activeStage, state.loopPath, (graph) => ({
           ...graph,
           connections: graph.connections.filter(
             (c) => c.id !== id
@@ -1047,9 +1307,11 @@ export const useFlowStore = create<FlowState>((set, get) => {
   toggleBreakpoint: (uuid) =>
     set((state) => {
       if (!state.flow) return state;
-      const stage = getNodeStage(state.flow, uuid);
-      if (!stage) return state;
-      const node = getStageGraph(state.flow, stage).nodes.find((n) => n.uuid === uuid);
+      const path = locateNode(state.flow, uuid);
+      if (!path) return state;
+      const node = resolveScopeGraph(state.flow, path.stage, path.loopPath).nodes.find(
+        (n) => n.uuid === uuid,
+      );
       if (!node) return state;
       const currentBreakpoint = node.hasBreakpoint ?? false;
       const newBreakpoint = !currentBreakpoint;
@@ -1066,7 +1328,7 @@ export const useFlowStore = create<FlowState>((set, get) => {
       });
 
         return {
-          flow: mapStageGraph(state.flow, stage, (graph) => ({
+          flow: mapScopeGraph(state.flow, path.stage, path.loopPath, (graph) => ({
             ...graph,
             nodes: graph.nodes.map((n) =>
               n.uuid === uuid ? { ...n, hasBreakpoint: newBreakpoint } : n
@@ -1081,12 +1343,16 @@ export const useFlowStore = create<FlowState>((set, get) => {
     set((state) => {
       if (!state.flow) return state;
       return {
-        flow: mapGraphOwningNode(state.flow, uuid, (graph) => ({
-          ...graph,
-          nodes: graph.nodes.map((n) =>
-            n.uuid === uuid ? { ...n, hasBreakpoint: enabled } : n
-          ),
-        })) ?? state.flow,
+        flow: (() => {
+          const path = locateNode(state.flow, uuid);
+          if (!path) return state.flow;
+          return mapScopeGraph(state.flow, path.stage, path.loopPath, (graph) => ({
+            ...graph,
+            nodes: graph.nodes.map((n) =>
+              n.uuid === uuid ? { ...n, hasBreakpoint: enabled } : n
+            ),
+          }));
+        })(),
         isDirty: true,
         tabs: markTabDirty(state.tabs, state.activeTabUuid),
       };
@@ -1108,10 +1374,14 @@ export const useFlowStore = create<FlowState>((set, get) => {
     const restoredFlow = past[past.length - 1];
     // 保留选中状态，仅当节点不存在于恢复后的 flow 时才清除
     const stillExists = selectedNodeId ? getNodeStage(restoredFlow, selectedNodeId) !== null : false;
+    const loopPath = isLoopPathValid(restoredFlow, get().activeStage, get().loopPath)
+      ? get().loopPath
+      : [];
     set({
       past: past.slice(0, -1),
       future: [...future, flow],
       flow: restoredFlow,
+      loopPath,
       selectedNodeId: stillExists ? selectedNodeId : null,
       isDirty: true,
       historyVersion: historyVersion + 1,
@@ -1125,10 +1395,14 @@ export const useFlowStore = create<FlowState>((set, get) => {
     const restoredFlow = future[future.length - 1];
     // 保留选中状态，仅当节点不存在于恢复后的 flow 时才清除
     const stillExists = selectedNodeId ? getNodeStage(restoredFlow, selectedNodeId) !== null : false;
+    const loopPath = isLoopPathValid(restoredFlow, get().activeStage, get().loopPath)
+      ? get().loopPath
+      : [];
     set({
       past: [...past, flow],
       future: future.slice(0, -1),
       flow: restoredFlow,
+      loopPath,
       selectedNodeId: stillExists ? selectedNodeId : null,
       isDirty: true,
       historyVersion: historyVersion + 1,
@@ -1140,17 +1414,21 @@ export const useFlowStore = create<FlowState>((set, get) => {
   getSelectedNode: () => {
     const { flow, selectedNodeId } = get();
     if (!flow || !selectedNodeId) return null;
-    const stage = getNodeStage(flow, selectedNodeId);
-    if (!stage) return null;
-    return getStageGraph(flow, stage).nodes.find((n) => n.uuid === selectedNodeId) || null;
+    const path = locateNode(flow, selectedNodeId);
+    if (!path) return null;
+    return (
+      resolveScopeGraph(flow, path.stage, path.loopPath).nodes.find(
+        (n) => n.uuid === selectedNodeId,
+      ) || null
+    );
   },
 
   getNodeByUuid: (uuid: string) => {
     const { flow } = get();
     if (!flow) return null;
-    const stage = getNodeStage(flow, uuid);
-    if (!stage) return null;
-    return getStageGraph(flow, stage).nodes.find((n) => n.uuid === uuid) || null;
+    const path = locateNode(flow, uuid);
+    if (!path) return null;
+    return resolveScopeGraph(flow, path.stage, path.loopPath).nodes.find((n) => n.uuid === uuid) || null;
   },
 
   hasBreakpoint: (uuid: string) => getBreakpointSet(get().flow).has(uuid),
@@ -1177,10 +1455,13 @@ export const selectNodes = (state: FlowState) => state.flow?.nodes ?? EMPTY_NODE
 export const selectConnections = (state: FlowState) =>
   state.flow?.connections ?? EMPTY_CONNECTIONS;
 /** 选择当前阶段画布的节点列表 */
-export const selectStageNodes = (state: FlowState) => getStageGraph(state.flow, state.activeStage).nodes;
+export const selectStageNodes = (state: FlowState) =>
+  resolveScopeGraph(state.flow, state.activeStage, state.loopPath).nodes;
 /** 选择当前阶段画布的连接列表 */
 export const selectStageConnections = (state: FlowState) =>
-  getStageGraph(state.flow, state.activeStage).connections;
+  resolveScopeGraph(state.flow, state.activeStage, state.loopPath).connections;
+/** 选择当前画布下钻的 loop 节点链 */
+export const selectLoopPath = (state: FlowState) => state.loopPath;
 /** 选择 Setup 阶段节点数量 */
 export const selectSetupNodeCount = (state: FlowState) => state.flow?.setup?.nodes.length ?? 0;
 /** 选择 Main 阶段节点数量 */

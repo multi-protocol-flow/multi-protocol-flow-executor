@@ -5,6 +5,9 @@
 
 import { invoke, Channel } from '@tauri-apps/api/core';
 import type { Flow } from '@/types/flow';
+import type { Node } from '@/types/node';
+import type { Connection } from '@/types/connection';
+import { locateNode, resolveScopeGraph, type FlowStage } from '@/stores/flow';
 import type { FlowExecutionReport, NodeExecutionReport } from '@/types/report';
 import type {
   CreateFlowCommandInput,
@@ -235,26 +238,55 @@ export async function validateFlow(flow: Flow): Promise<ValidationResult> {
  */
 export function buildFlowSlice(flow: Flow, targetNodeUuids: string[], sliceName?: string): Flow {
   const targetSet = new Set(targetNodeUuids);
-  const allNodes = [
-    ...(flow.setup?.nodes ?? []),
-    ...flow.nodes,
-    ...(flow.teardown?.nodes ?? []),
-  ];
-  const allConnections = [
-    ...(flow.setup?.connections ?? []),
-    ...flow.connections,
-    ...(flow.teardown?.connections ?? []),
-  ];
-  const nodes = allNodes.filter((n) => targetSet.has(n.uuid));
-  const connections = allConnections.filter(
-    (c) => targetSet.has(c.source_node_uuid) && targetSet.has(c.target_node_uuid)
-  );
+
+  // 目标节点可能在 setup / main / teardown，也可能在某个 flow:loop 的内联 body 里。
+  // 先按作用域（阶段 + loop 链）分组，再各自在对应子图里取节点与内部连线；
+  // 否则对 loop body 内的节点会切出空流程（后端报 "Flow missing start node"）。
+  const groups = new Map<string, { stage: FlowStage; loopPath: string[] }>();
+  for (const uuid of targetSet) {
+    const path = locateNode(flow, uuid);
+    if (!path) continue;
+    const key = `${path.stage}|${path.loopPath.join('/')}`;
+    if (!groups.has(key)) groups.set(key, path);
+  }
+
+  const nodes: Node[] = [];
+  const connections: Connection[] = [];
+  const collected = new Set<string>();
+  let inLoopBody = false;
+
+  for (const { stage, loopPath } of groups.values()) {
+    if (loopPath.length > 0) inLoopBody = true;
+    const graph = resolveScopeGraph(flow, stage, loopPath);
+    for (const node of graph.nodes) {
+      if (targetSet.has(node.uuid) && !collected.has(node.uuid)) {
+        collected.add(node.uuid);
+        nodes.push(node);
+      }
+    }
+    for (const conn of graph.connections) {
+      if (targetSet.has(conn.source_node_uuid) && targetSet.has(conn.target_node_uuid)) {
+        connections.push(conn);
+      }
+    }
+  }
+
+  // 循环体内的节点依赖 loop.* 迭代变量：单节点试跑时给一组首轮默认值，
+  // 用户流程变量同名时以用户为准（放在后面覆盖）
+  const initialVariables = inLoopBody
+    ? {
+        loop: { index: 0, count: 1, first: true, last: true, item: null },
+        ...(flow.initial_variables ?? {}),
+      }
+    : flow.initial_variables;
+
   return {
     ...flow,
     uuid: `slice-${Date.now()}`,
     name: sliceName || (nodes.length === 1 ? `Test: ${nodes[0]?.name || ''}` : `Slice (${nodes.length} nodes)`),
     nodes,
     connections,
+    initial_variables: initialVariables,
     setup: undefined,
     teardown: undefined,
   };
@@ -279,7 +311,7 @@ export async function startInteractiveSliceExecution(
     return;
   }
   const sliceFlow = buildFlowSlice(flow, targetNodeUuids);
-  const flowVariables = getActiveVariables(flow);
+  const flowVariables = getActiveVariables(sliceFlow);
   useExecutionStore.getState().clearExecutionState();
   useDebugStore.getState().clearDebugData();
   useConsoleStore.getState().clearLogs();

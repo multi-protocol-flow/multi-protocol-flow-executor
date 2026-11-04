@@ -4,6 +4,7 @@
  */
 
 import type { OutputMapping } from './variable';
+import type { FlowSubGraph } from './flow';
 
 import type { Port } from './port';
 
@@ -19,6 +20,8 @@ export type NodeType =
   | 'entry'
   | 'end'
   | 'flow:sub'
+  | 'flow:loop'
+  | 'flow:delay'
   | 'http:request'
   | 'conditional'
   | 'ws:connect'
@@ -962,6 +965,69 @@ export interface SubFlowConfig {
 }
 
 /**
+ * 循环来源
+ */
+export type LoopSource = 'until' | 'items' | 'count';
+
+/**
+ * 循环报告裁剪配置
+ */
+export interface LoopReportConfig {
+  /** 保留完整节点详情的迭代数 */
+  detail_iterations: number;
+  /** 失败轮是否始终保留完整详情 */
+  always_keep_failed: boolean;
+}
+
+/**
+ * 循环节点配置
+ */
+export interface LoopConfig {
+  type: 'flow:loop';
+  /** 循环来源 */
+  source: LoopSource;
+  /** source=items 时的集合表达式，渲染后必须是 JSON 数组 */
+  items?: string;
+  /** source=count 时的次数 */
+  count?: number;
+  /** 每轮结束后的继续条件（命中即结束） */
+  until?: string;
+  /** 迭代间隔（毫秒） */
+  interval_ms?: number;
+  /** 间隔退避系数 */
+  interval_backoff?: number;
+  /** 间隔上限（毫秒） */
+  interval_max_ms?: number;
+  /** 首轮之前的等待（毫秒） */
+  initial_delay_ms?: number;
+  /** 迭代硬上限 */
+  max_iterations: number;
+  /** 并发度：当前仅支持 1 */
+  concurrency: number;
+  /** 循环体（内联子图） */
+  body: FlowSubGraph;
+  /** 导出到流程上下文的变量，路径相对 `{"last": <最后一轮 body 末节点输出>}` */
+  output_mappings?: OutputMapping[];
+  /** body 任一轮失败时是否跳出并走 false 端口 */
+  break_on_error: boolean;
+  /** 循环整体超时（毫秒，含所有等待） */
+  timeout_ms?: number;
+  /** 报告裁剪配置 */
+  report: LoopReportConfig;
+}
+
+/**
+ * 延时节点配置
+ */
+export interface DelayConfig {
+  type: 'flow:delay';
+  /** 等待时长（毫秒），支持变量模板，如 "{{wait_ms}}" */
+  duration_ms: string;
+  /** 随机抖动上限（毫秒） */
+  jitter_ms: number;
+}
+
+/**
  * HTTP Ingress 节点配置（Mock 服务入口）
  */
 export interface HttpIngressConfig {
@@ -1020,6 +1086,8 @@ export type NodeData =
   | VariableExtractorConfig
   | ProxyConfig
   | SubFlowConfig
+  | LoopConfig
+  | DelayConfig
   | HttpIngressConfig
   | HttpRespondConfig;
 
@@ -1160,6 +1228,20 @@ export function isScriptConfig(data: NodeData): data is ScriptNodeConfig {
  */
 export function isSubFlowConfig(data: NodeData): data is SubFlowConfig {
   return data.type === 'flow:sub';
+}
+
+/**
+ * 判断是否为 LoopConfig
+ */
+export function isLoopConfig(data: NodeData): data is LoopConfig {
+  return data.type === 'flow:loop';
+}
+
+/**
+ * 判断是否为 DelayConfig
+ */
+export function isDelayConfig(data: NodeData): data is DelayConfig {
+  return data.type === 'flow:delay';
 }
 
 /**

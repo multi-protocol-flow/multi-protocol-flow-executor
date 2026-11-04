@@ -13,6 +13,9 @@ import {
   selectTeardownNodeCount,
   getAllNodes,
   findNodeInFlow,
+  getNodeStage,
+  locateNode,
+  resolveScopeGraph,
 } from '@/stores/flow';
 import type { Flow, Node, Connection } from '@/types';
 
@@ -1096,5 +1099,211 @@ describe('FlowStore', () => {
       expect(findNodeInFlow(state.flow, 'teardown-1')?.name).toBe('Teardown 节点');
       expect(findNodeInFlow(state.flow, 'missing')).toBeNull();
     });
+  });
+});
+
+/**
+ * Loop 作用域栈（loopPath）测试
+ *
+ * `enterLoop` / `exitLoop` / `truncateLoopPath` 与 `resolveScopeGraph` /
+ * `locateNode` 的组合决定画布当前展示的子图，改造点集中在 store 内，
+ * 因此这里直接对 store 行为做断言。
+ */
+describe('FlowStore loop scope', () => {
+  beforeEach(() => {
+    useFlowStore.getState().reset();
+  });
+
+  const makeDelay = (uuid: string): Node => ({
+    uuid,
+    type: 'flow:delay',
+    name: uuid,
+    position: { x: 0, y: 0 },
+    data: { type: 'flow:delay', duration_ms: '10', jitter_ms: 0 },
+  });
+
+  const makeLoop = (uuid: string, bodyNodes: Node[] = []): Node => ({
+    uuid,
+    type: 'flow:loop',
+    name: uuid,
+    position: { x: 0, y: 0 },
+    data: {
+      type: 'flow:loop',
+      source: 'count',
+      count: 2,
+      max_iterations: 100,
+      concurrency: 1,
+      break_on_error: true,
+      report: { detail_iterations: 20, always_keep_failed: true },
+      body: { nodes: bodyNodes, connections: [] },
+    },
+  });
+
+  const makeFlow = (nodes: Node[]): Flow => ({
+    uuid: 'flow-loop-scope',
+    name: 'loop scope',
+    nodes,
+    connections: [],
+  });
+
+  it('enterLoop 后 selectStageNodes 返回 body 节点', () => {
+    useFlowStore.getState().setFlow(makeFlow([makeLoop('loop-1', [makeDelay('body-1')])]));
+    useFlowStore.getState().enterLoop('loop-1');
+
+    const state = useFlowStore.getState();
+    expect(state.loopPath).toEqual(['loop-1']);
+    expect(selectStageNodes(state).map((n) => n.uuid)).toEqual(['body-1']);
+  });
+
+  it('body 内 addNode 只修改 data.body', () => {
+    const flow = makeFlow([makeLoop('loop-1', [makeDelay('body-1')])]);
+    useFlowStore.getState().setFlow(flow);
+    useFlowStore.getState().enterLoop('loop-1');
+    useFlowStore.getState().addNode(makeDelay('body-2'));
+
+    const state = useFlowStore.getState();
+    expect(state.flow!.nodes.map((n) => n.uuid)).toEqual(['loop-1']);
+    const loopNode = state.flow!.nodes[0];
+    const body = (loopNode.data as { body: { nodes: Node[] } }).body;
+    expect(body.nodes.map((n) => n.uuid)).toEqual(['body-1', 'body-2']);
+  });
+
+  it('locateNode 对嵌套 body 节点返回完整 loopPath', () => {
+    const nested = makeLoop('loop-outer', [makeLoop('loop-inner', [makeDelay('deep-1')])]);
+    useFlowStore.getState().setFlow(makeFlow([nested]));
+
+    const path = locateNode(useFlowStore.getState().flow, 'deep-1');
+    expect(path).toEqual({ stage: 'main', loopPath: ['loop-outer', 'loop-inner'] });
+    expect(getNodeStage(useFlowStore.getState().flow!, 'deep-1')).toBe('main');
+  });
+
+  it('updateNode 作用于 body 内的节点', () => {
+    useFlowStore.getState().setFlow(makeFlow([makeLoop('loop-1', [makeDelay('body-1')])]));
+    useFlowStore.getState().updateNode('body-1', { name: 'renamed' });
+
+    const state = useFlowStore.getState();
+    const body = (state.flow!.nodes[0].data as { body: { nodes: Node[] } }).body;
+    expect(body.nodes[0].name).toBe('renamed');
+  });
+
+  it('truncateLoopPath / exitLoop 逐级回退', () => {
+    const nested = makeLoop('loop-outer', [makeLoop('loop-inner', [makeDelay('deep-1')])]);
+    useFlowStore.getState().setFlow(makeFlow([nested]));
+    useFlowStore.getState().enterLoop('loop-outer');
+    useFlowStore.getState().enterLoop('loop-inner');
+    expect(useFlowStore.getState().loopPath).toEqual(['loop-outer', 'loop-inner']);
+
+    useFlowStore.getState().truncateLoopPath(1);
+    expect(useFlowStore.getState().loopPath).toEqual(['loop-outer']);
+
+    useFlowStore.getState().exitLoop();
+    expect(useFlowStore.getState().loopPath).toEqual([]);
+  });
+
+  it('undo 后路径失效自动回落到 stage 层', () => {
+    // 先造一步历史，再让当前 loopPath 指向一个不存在的 loop 节点
+    useFlowStore.getState().setFlow(makeFlow([makeLoop('loop-1', [makeDelay('body-1')])]));
+    useFlowStore.getState().addNode(makeDelay('extra-1'));
+    useFlowStore.setState({ loopPath: ['ghost-loop'] });
+
+    useFlowStore.getState().undo();
+    expect(useFlowStore.getState().loopPath).toEqual([]);
+  });
+
+  it('undo 保留仍然有效的 loopPath', () => {
+    useFlowStore.getState().setFlow(makeFlow([makeLoop('loop-1', [makeDelay('body-1')])]));
+    useFlowStore.getState().enterLoop('loop-1');
+    useFlowStore.getState().addNode(makeDelay('body-2'));
+
+    useFlowStore.getState().undo();
+    expect(useFlowStore.getState().loopPath).toEqual(['loop-1']);
+  });
+
+  it('点击当前阶段标签可退出 loop body（回到阶段画布）', () => {
+    useFlowStore.getState().setFlow(makeFlow([makeLoop('loop-1', [makeDelay('body-1')])]));
+    useFlowStore.getState().enterLoop('loop-1');
+    expect(selectStageNodes(useFlowStore.getState()).map((n) => n.uuid)).toEqual(['body-1']);
+
+    // activeStage 已经是 main，点击 main 不再是无操作
+    useFlowStore.getState().setActiveStage('main');
+    expect(useFlowStore.getState().loopPath).toEqual([]);
+    expect(selectStageNodes(useFlowStore.getState()).map((n) => n.uuid)).toEqual(['loop-1']);
+  });
+
+  it('setActiveStage 清空 loopPath', () => {
+    useFlowStore.getState().setFlow(makeFlow([makeLoop('loop-1', [makeDelay('body-1')])]));
+    useFlowStore.getState().enterLoop('loop-1');
+    useFlowStore.getState().setActiveStage('setup');
+    expect(useFlowStore.getState().loopPath).toEqual([]);
+  });
+
+  it('reset 清空 loopPath', () => {
+    useFlowStore.getState().setFlow(makeFlow([makeLoop('loop-1', [makeDelay('body-1')])]));
+    useFlowStore.getState().enterLoop('loop-1');
+    useFlowStore.getState().reset();
+    expect(useFlowStore.getState().loopPath).toEqual([]);
+  });
+
+  it('resolveScopeGraph 对失效路径截断到最长有效前缀', () => {
+    useFlowStore.getState().setFlow(makeFlow([makeLoop('loop-1', [makeDelay('body-1')])]));
+    const flow = useFlowStore.getState().flow;
+    const graph = resolveScopeGraph(flow, 'main', ['loop-1', 'missing']);
+    expect(graph.nodes.map((n) => n.uuid)).toEqual(['body-1']);
+  });
+
+  it('setActiveStage 清除 loop body 内的选中节点', () => {
+    useFlowStore.getState().setFlow(makeFlow([makeLoop('loop-1', [makeDelay('body-1')])]));
+    useFlowStore.getState().enterLoop('loop-1');
+    useFlowStore.getState().selectNode('body-1');
+    expect(useFlowStore.getState().selectedNodeId).toBe('body-1');
+
+    // 回到阶段画布：body 节点不可见，选中必须清除，否则配置面板编辑画布外的节点
+    useFlowStore.getState().setActiveStage('main');
+    expect(useFlowStore.getState().loopPath).toEqual([]);
+    expect(useFlowStore.getState().selectedNodeId).toBeNull();
+  });
+
+  it('setActiveStage 保留阶段层仍可见的选中节点', () => {
+    useFlowStore.getState().setFlow(makeFlow([makeLoop('loop-1', [makeDelay('body-1')])]));
+    useFlowStore.getState().setActiveStage('setup');
+    useFlowStore.getState().selectNode('loop-1');
+
+    // 切回 main：节点就在 main 阶段层，选中应保留
+    useFlowStore.getState().setActiveStage('main');
+    expect(useFlowStore.getState().selectedNodeId).toBe('loop-1');
+  });
+
+  it('setScope 直接跳到 loop body 并保留可见选中', () => {
+    useFlowStore.getState().setFlow(makeFlow([makeLoop('loop-1', [makeDelay('body-1')])]));
+    useFlowStore.getState().selectNode('body-1');
+
+    useFlowStore.getState().setScope('main', ['loop-1']);
+
+    const state = useFlowStore.getState();
+    expect(state.activeStage).toBe('main');
+    expect(state.loopPath).toEqual(['loop-1']);
+    expect(state.selectedNodeId).toBe('body-1');
+    expect(selectStageNodes(state).map((n) => n.uuid)).toEqual(['body-1']);
+  });
+
+  it('setScope 清除目标作用域外的选中节点', () => {
+    useFlowStore.getState().setFlow(makeFlow([makeLoop('loop-1', [makeDelay('body-1')])]));
+    useFlowStore.getState().enterLoop('loop-1');
+    useFlowStore.getState().selectNode('body-1');
+
+    useFlowStore.getState().setScope('main', []);
+
+    const state = useFlowStore.getState();
+    expect(state.loopPath).toEqual([]);
+    expect(state.selectedNodeId).toBeNull();
+  });
+
+  it('setScope 对失效路径截断到最长有效前缀', () => {
+    useFlowStore.getState().setFlow(makeFlow([makeLoop('loop-1', [makeDelay('body-1')])]));
+    useFlowStore.getState().setScope('main', ['loop-1', 'ghost']);
+
+    const state = useFlowStore.getState();
+    expect(state.loopPath).toEqual(['loop-1']);
+    expect(selectStageNodes(state).map((n) => n.uuid)).toEqual(['body-1']);
   });
 });
