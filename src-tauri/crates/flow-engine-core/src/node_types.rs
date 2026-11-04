@@ -58,6 +58,10 @@ pub const GRAPHQL_INTROSPECT: &str = "graphql:introspect";
 pub const GRAPHQL_DISCONNECT: &str = "graphql:disconnect";
 /// 子流程节点
 pub const SUB_FLOW: &str = "flow:sub";
+/// 循环节点
+pub const LOOP: &str = "flow:loop";
+/// 延时节点
+pub const DELAY: &str = "flow:delay";
 /// HTTP Ingress 监听节点（Mock 服务入口）
 pub const HTTP_INGRESS: &str = "http:ingress";
 /// HTTP Respond 响应节点（Mock 服务出口）

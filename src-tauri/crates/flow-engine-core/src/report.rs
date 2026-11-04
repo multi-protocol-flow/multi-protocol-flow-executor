@@ -47,6 +47,32 @@ pub struct VariableChange {
     pub new_value: serde_json::Value,
 }
 
+/// 单轮迭代摘要
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct IterationSummary {
+    /// 迭代序号（0-based）
+    pub index: u32,
+    /// 该轮执行状态
+    pub status: ExecutionStatus,
+    /// 该轮耗时（毫秒）
+    pub duration_ms: u64,
+    /// 该轮结束后、下一轮开始前的实际等待（毫秒）
+    #[serde(default)]
+    pub wait_ms: u64,
+    /// 该轮失败详情
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub error: Option<crate::error::ErrorDetail>,
+}
+
+/// loop 节点自身的迭代摘要（`ExecutionContext` 回传通道，非对外结构）
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct LoopReportSummary {
+    /// 全部迭代摘要（不裁剪）
+    pub summaries: Vec<IterationSummary>,
+    /// 被裁掉完整详情的迭代数
+    pub truncated_iterations: u32,
+}
+
 /// 节点执行报告
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct NodeExecutionReport {
@@ -97,6 +123,18 @@ pub struct NodeExecutionReport {
     /// 标记输入/输出数据是否已在热通道推送中被剥离（冷热通道优化）
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub is_detail_stripped: Option<bool>,
+    /// 所属迭代序号（0-based），仅 loop body 内的节点有值
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub iteration_index: Option<u32>,
+    /// 所属 loop 节点 uuid，仅 loop body 内的节点有值
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub iteration_of: Option<String>,
+    /// loop 节点的迭代摘要（仅 loop 节点自身有值）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub iteration_summary: Option<Vec<IterationSummary>>,
+    /// 被裁剪掉的迭代数（仅 loop 节点自身有值）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub truncated_iterations: Option<u32>,
 }
 impl Default for NodeExecutionReport {
     fn default() -> Self {
@@ -119,6 +157,10 @@ impl Default for NodeExecutionReport {
             plugin_data: None,
             sub_flow_report: None,
             is_detail_stripped: None,
+            iteration_index: None,
+            iteration_of: None,
+            iteration_summary: None,
+            truncated_iterations: None,
         }
     }
 }
@@ -874,6 +916,7 @@ mod tests {
                 "result": "ok",
             })),
             is_detail_stripped: None,
+            ..Default::default()
         };
 
         // None 时字段从 JSON 中省略

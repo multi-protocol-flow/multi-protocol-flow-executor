@@ -1449,6 +1449,155 @@ impl Default for SubFlowConfig {
 }
 
 // ============================================================================
+// Loop / Delay 节点配置
+// ============================================================================
+
+/// 循环来源
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum LoopSource {
+    /// 不遍历集合，仅按 until 条件反复执行 body
+    Until,
+    /// 遍历集合
+    Items,
+    /// 固定次数
+    #[default]
+    Count,
+}
+
+/// 循环报告裁剪配置
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct LoopReportConfig {
+    /// 保留完整节点详情的迭代数
+    #[serde(default = "default_detail_iterations")]
+    pub detail_iterations: u32,
+    /// 失败轮是否始终保留完整详情
+    #[serde(default = "default_always_keep_failed")]
+    pub always_keep_failed: bool,
+}
+
+impl Default for LoopReportConfig {
+    fn default() -> Self {
+        Self {
+            detail_iterations: 20,
+            always_keep_failed: true,
+        }
+    }
+}
+
+/// 循环节点配置
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct LoopConfig {
+    /// 循环来源
+    #[serde(default)]
+    pub source: LoopSource,
+    /// `source=items` 时的集合表达式，渲染后必须是 JSON 数组
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub items: Option<String>,
+    /// `source=count` 时的次数
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub count: Option<u32>,
+    /// 每轮结束后的继续条件（evalexpr 子集，见 `expression`），命中即结束
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub until: Option<String>,
+    /// 迭代间隔（毫秒），默认 0
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub interval_ms: Option<u64>,
+    /// 间隔退避系数，默认 1.0
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub interval_backoff: Option<f64>,
+    /// 间隔上限（毫秒），默认 10000
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub interval_max_ms: Option<u64>,
+    /// 首轮之前的等待（毫秒），默认 0
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub initial_delay_ms: Option<u64>,
+    /// 迭代硬上限
+    #[serde(default = "default_max_iterations")]
+    pub max_iterations: u32,
+    /// 并发度：当前仅支持 1，>1 在校验期报错
+    #[serde(default = "default_concurrency")]
+    pub concurrency: u32,
+    /// 循环体（内联子图）
+    #[serde(default)]
+    pub body: crate::flow::FlowSubGraph,
+    /// 导出到流程上下文的变量，路径相对 `{"last": <最后一轮 body 末节点输出>}`
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub output_mappings: Vec<crate::variable::OutputMapping>,
+    /// body 任一轮失败时是否跳出并走 false 端口（默认 true）
+    #[serde(default = "default_true")]
+    pub break_on_error: bool,
+    /// 循环整体超时（毫秒），默认 600000，含所有等待
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub timeout_ms: Option<u64>,
+    /// 报告裁剪配置
+    #[serde(default)]
+    pub report: LoopReportConfig,
+}
+
+fn default_max_iterations() -> u32 {
+    100
+}
+
+fn default_concurrency() -> u32 {
+    1
+}
+
+fn default_detail_iterations() -> u32 {
+    20
+}
+
+fn default_always_keep_failed() -> bool {
+    true
+}
+
+impl Default for LoopConfig {
+    fn default() -> Self {
+        Self {
+            source: LoopSource::Count,
+            items: None,
+            count: None,
+            until: None,
+            interval_ms: None,
+            interval_backoff: None,
+            interval_max_ms: None,
+            initial_delay_ms: None,
+            max_iterations: default_max_iterations(),
+            concurrency: default_concurrency(),
+            body: crate::flow::FlowSubGraph::default(),
+            output_mappings: Vec::new(),
+            break_on_error: true,
+            timeout_ms: None,
+            report: LoopReportConfig::default(),
+        }
+    }
+}
+
+/// 延时节点配置
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct DelayConfig {
+    /// 等待时长（毫秒），支持变量模板，如 `"{{wait_ms}}"`
+    #[serde(default = "default_delay_duration")]
+    pub duration_ms: String,
+    /// 随机抖动上限（毫秒）
+    #[serde(default)]
+    pub jitter_ms: u64,
+}
+
+fn default_delay_duration() -> String {
+    "1000".to_string()
+}
+
+impl Default for DelayConfig {
+    fn default() -> Self {
+        Self {
+            duration_ms: default_delay_duration(),
+            jitter_ms: 0,
+        }
+    }
+}
+
+// ============================================================================
 // 节点数据配置统一枚举
 // ============================================================================
 
@@ -1548,6 +1697,12 @@ pub enum NodeData {
     /// 子流程节点配置
     #[serde(rename = "flow:sub")]
     SubFlow(SubFlowConfig),
+    /// 循环节点配置
+    #[serde(rename = "flow:loop")]
+    Loop(LoopConfig),
+    /// 延时节点配置
+    #[serde(rename = "flow:delay")]
+    Delay(DelayConfig),
     /// 插件节点配置（未知类型的兜底捕获）
     ///
     /// 当反序列化遇到不认识的 `type` 值时，整个 JSON 对象会被保留在此变体中。
@@ -1663,6 +1818,12 @@ impl<'de> serde::Deserialize<'de> for NodeData {
             "flow:sub" => serde_json::from_value::<SubFlowConfig>(value.clone())
                 .map(NodeData::SubFlow)
                 .map_err(serde::de::Error::custom),
+            "flow:loop" => serde_json::from_value::<LoopConfig>(value.clone())
+                .map(NodeData::Loop)
+                .map_err(serde::de::Error::custom),
+            "flow:delay" => serde_json::from_value::<DelayConfig>(value.clone())
+                .map(NodeData::Delay)
+                .map_err(serde::de::Error::custom),
             // 未知 type → 兜底到 Plugin
             _ => Ok(NodeData::Plugin(value)),
         }
@@ -1704,6 +1865,8 @@ impl NodeData {
             NodeData::VariableExtractor(_) => "variable:extractor".to_string(),
             NodeData::End(_) => "end".to_string(),
             NodeData::SubFlow(_) => "flow:sub".to_string(),
+            NodeData::Loop(_) => "flow:loop".to_string(),
+            NodeData::Delay(_) => "flow:delay".to_string(),
             NodeData::Plugin(val) => val
                 .get("type")
                 .and_then(|v| v.as_str())
@@ -1846,6 +2009,19 @@ impl NodeData {
     /// 创建 `SubFlow` 节点配置
     pub fn sub_flow(config: SubFlowConfig) -> Self {
         Self::SubFlow(config)
+    }
+
+    /// 创建 `Loop` 节点配置
+    pub fn loop_node(config: LoopConfig) -> Self {
+        Self::Loop(config)
+    }
+
+    /// 创建 `Delay` 节点配置
+    pub fn delay(duration_ms: impl Into<String>) -> Self {
+        Self::Delay(DelayConfig {
+            duration_ms: duration_ms.into(),
+            ..Default::default()
+        })
     }
 }
 

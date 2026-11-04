@@ -221,6 +221,7 @@ mod tests {
             wait_duration_ms: None,
             plugin_data: None,
             is_detail_stripped: None,
+            ..Default::default()
         };
 
         let event = ExecutionEvent::NodeCompleted {
@@ -341,6 +342,7 @@ mod tests {
             wait_duration_ms: None,
             plugin_data: None,
             is_detail_stripped: None,
+            ..Default::default()
         };
         let event = ExecutionEvent::NodeCompleted {
             report: Box::new(report),

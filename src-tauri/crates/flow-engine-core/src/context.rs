@@ -130,6 +130,10 @@ pub struct ExecutionContext {
     /// 暂存的子流程执行报告（供 `FlowExecutor` 收集构建 `NodeExecutionReport`）
     #[serde(skip)]
     pub current_sub_flow_report: Option<Box<crate::report::FlowExecutionReport>>,
+
+    /// 暂存的 loop 迭代摘要（供执行器构造 `NodeExecutionReport`）
+    #[serde(skip)]
+    pub current_loop_report: Option<crate::report::LoopReportSummary>,
 }
 
 impl ExecutionContext {
@@ -165,6 +169,7 @@ impl ExecutionContext {
             current_node_plugin_data: None,
             call_stack: Vec::new(),
             current_sub_flow_report: None,
+            current_loop_report: None,
         }
     }
 
@@ -271,6 +276,41 @@ impl ExecutionContext {
             *receiver.borrow()
         } else {
             false
+        }
+    }
+
+    /// 可中断等待
+    ///
+    /// 返回 `true` 表示正常睡满；返回 `false` 表示被取消信号唤醒。
+    /// `ms == 0` 时立即返回 `true`（不检查取消，保持调用点语义简单）。
+    /// 取消通道的发送端被 drop 后不会再有任何信号，此时继续睡满剩余时长
+    /// （否则 `rx.changed()` 立即返回 `Err`，循环间隔会退化成忙自旋）。
+    pub async fn wait_or_cancelled(&self, ms: u64) -> bool {
+        if ms == 0 {
+            return true;
+        }
+        let sleep = tokio::time::sleep(std::time::Duration::from_millis(ms));
+        match self.cancel_receiver.clone() {
+            Some(mut rx) => {
+                if *rx.borrow() {
+                    return false;
+                }
+                tokio::pin!(sleep);
+                tokio::select! {
+                    _ = &mut sleep => true,
+                    changed = rx.changed() => match changed {
+                        Ok(()) => !*rx.borrow(),
+                        Err(_) => {
+                            sleep.await;
+                            true
+                        }
+                    },
+                }
+            }
+            None => {
+                sleep.await;
+                true
+            }
         }
     }
 
@@ -1312,6 +1352,50 @@ mod tests {
         assert_eq!(
             deserialized.current_node_plugin_data,
             Some(serde_json::json!({"plugin_name": "demo", "result": "ok"}))
+        );
+    }
+
+    #[tokio::test]
+    async fn wait_or_cancelled_returns_false_when_already_cancelled() {
+        let (tx, rx) = tokio::sync::watch::channel(true);
+        let mut ctx = ExecutionContext::new("test-flow".to_string(), 1000);
+        ctx.cancel_receiver = Some(rx);
+
+        let started = std::time::Instant::now();
+        assert!(!ctx.wait_or_cancelled(10_000).await);
+        assert!(started.elapsed().as_millis() < 1000, "不应真的等待");
+        drop(tx);
+    }
+
+    #[tokio::test]
+    async fn wait_or_cancelled_wakes_on_cancel_signal() {
+        let (tx, rx) = tokio::sync::watch::channel(false);
+        let mut ctx = ExecutionContext::new("test-flow".to_string(), 1000);
+        ctx.cancel_receiver = Some(rx);
+
+        let sender = tokio::spawn(async move {
+            tokio::time::sleep(std::time::Duration::from_millis(30)).await;
+            let _ = tx.send(true);
+        });
+
+        assert!(!ctx.wait_or_cancelled(10_000).await);
+        sender.await.unwrap_or_else(|e| panic!("{e}"));
+    }
+
+    /// 取消通道发送端被 drop 后不会再有信号，必须睡满而不是立即返回
+    #[tokio::test]
+    async fn wait_or_cancelled_sleeps_when_sender_dropped() {
+        let (tx, rx) = tokio::sync::watch::channel(false);
+        let mut ctx = ExecutionContext::new("test-flow".to_string(), 1000);
+        ctx.cancel_receiver = Some(rx);
+        drop(tx);
+
+        let started = std::time::Instant::now();
+        assert!(ctx.wait_or_cancelled(80).await);
+        assert!(
+            started.elapsed().as_millis() >= 60,
+            "发送端 drop 后应继续睡满，实测提前返回：{:?}",
+            started.elapsed()
         );
     }
 }
