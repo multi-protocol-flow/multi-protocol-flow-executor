@@ -683,6 +683,10 @@ const zh_CN_flow: BaseTranslation = {
   unsaved_other_tabs_confirm_desc: '{names:string} 有未保存的修改。确定放弃并关闭其他标签吗？',
   unsaved_right_tabs_confirm_desc: '{names:string} 有未保存的修改。确定放弃并关闭右侧标签吗？',
   unsaved_all_tabs_confirm_desc: '{names:string} 有未保存的修改。确定放弃并关闭所有标签吗？',
+  scope: {
+    back_to_stage: '返回阶段画布',
+    inside_loop: '循环体内',
+  },
 };
 
 export default zh_CN_flow;

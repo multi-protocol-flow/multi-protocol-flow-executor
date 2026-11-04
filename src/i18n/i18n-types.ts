@@ -277,6 +277,14 @@ type RootTranslation = {
 		 */
 		sub_flow: string
 		/**
+		 * 循​环
+		 */
+		loop: string
+		/**
+		 * 延​时
+		 */
+		delay: string
+		/**
 		 * 此​节​点​无​需​配​置​，​仅​用​于​标​记​流​程​终​点​。
 		 */
 		end_config_hint: string
@@ -509,6 +517,14 @@ type RootTranslation = {
 			 * 嵌​套​执​行​另​一​个​独​立​流​程​，​实​现​模​板​与​组​件​复​用
 			 */
 			sub_flow: string
+			/**
+			 * 遍​历​集​合​、​固​定​次​数​或​轮​询​到​条​件​命​中​；​循​环​体​为​内​联​子​图​，​可​等​待​与​退​避
+			 */
+			loop: string
+			/**
+			 * 等​待​指​定​时​长​（​支​持​变​量​模​板​与​随​机​抖​动​）​，​等​待​期​间​可​被​取​消
+			 */
+			delay: string
 			/**
 			 * 建​立​ ​W​e​b​S​o​c​k​e​t​ ​客​户​端​长​连​接​会​话
 			 */
@@ -4949,6 +4965,183 @@ type RootTranslation = {
 			 */
 			running_starting: string
 		}
+		loop: {
+			/**
+			 * 循​环​来​源
+			 */
+			source: string
+			/**
+			 * 固​定​次​数
+			 */
+			source_count: string
+			/**
+			 * 遍​历​集​合
+			 */
+			source_items: string
+			/**
+			 * 条​件​轮​询
+			 */
+			source_until: string
+			/**
+			 * 集​合​表​达​式
+			 */
+			items: string
+			/**
+			 * 渲​染​后​必​须​是​ ​J​S​O​N​ ​数​组​，​例​如​ ​[​1​,​2​,​3​]​ ​或​集​合​变​量​名
+			 */
+			items_hint: string
+			/**
+			 * 循​环​次​数
+			 */
+			count: string
+			/**
+			 * 继​续​条​件
+			 */
+			until: string
+			/**
+			 * 每​轮​结​束​后​求​值​，​命​中​即​结​束​；​可​用​变​量​ ​l​a​s​t​（​上​一​轮​末​节​点​输​出​）​与​ ​l​o​o​p​.​i​n​d​e​x​ ​/​ ​l​o​o​p​.​i​t​e​m
+			 */
+			until_hint: string
+			/**
+			 * 节​奏
+			 */
+			rhythm: string
+			/**
+			 * 首​轮​前​等​待​ ​(​m​s​)
+			 */
+			initial_delay_ms: string
+			/**
+			 * 迭​代​间​隔​ ​(​m​s​)
+			 */
+			interval_ms: string
+			/**
+			 * 间​隔​退​避​系​数
+			 */
+			interval_backoff: string
+			/**
+			 * 间​隔​上​限​ ​(​m​s​)
+			 */
+			interval_max_ms: string
+			/**
+			 * 护​栏
+			 */
+			guards: string
+			/**
+			 * 最​大​迭​代​次​数
+			 */
+			max_iterations: string
+			/**
+			 * 整​体​超​时​ ​(​m​s​)
+			 */
+			timeout_ms: string
+			/**
+			 * 并​发​度
+			 */
+			concurrency: string
+			/**
+			 * 当​前​仅​支​持​ ​1
+			 */
+			concurrency_unsupported: string
+			/**
+			 * 循​环​体​失​败​时​中​止​循​环
+			 */
+			break_on_error: string
+			/**
+			 * 输​出​变​量
+			 */
+			outputs: string
+			/**
+			 * 路​径​相​对​ ​l​a​s​t​ ​变​量​（​最​后​一​轮​ ​b​o​d​y​ ​末​节​点​输​出​）
+			 */
+			outputs_desc: string
+			/**
+			 * 添​加​导​出​变​量
+			 */
+			add_output: string
+			/**
+			 * 暂​无​导​出​变​量
+			 */
+			no_outputs: string
+			/**
+			 * 如​ ​$​.​l​a​s​t​.​s​t​a​t​u​s
+			 */
+			source_path_placeholder: string
+			/**
+			 * 如​ ​f​i​n​a​l​_​s​t​a​t​u​s
+			 */
+			target_var_placeholder: string
+			/**
+			 * 报​告
+			 */
+			report: string
+			/**
+			 * 保​留​完​整​详​情​的​迭​代​数
+			 */
+			detail_iterations: string
+			/**
+			 * 失​败​轮​始​终​保​留​完​整​详​情
+			 */
+			always_keep_failed: string
+			/**
+			 * 可​在​条​件​里​使​用​的​变​量
+			 */
+			until_help_title: string
+			/**
+			 * 当​前​迭​代​序​号​，​从​ ​0​ ​开​始
+			 */
+			until_help_index: string
+			/**
+			 * 本​次​循​环​计​划​的​总​轮​数​（​i​t​e​m​s​ ​为​数​组​长​度​，​c​o​u​n​t​ ​为​次​数​，​u​n​t​i​l​ ​来​源​为​最​大​迭​代​数​）
+			 */
+			until_help_count: string
+			/**
+			 * 本​轮​元​素​（​仅​ ​i​t​e​m​s​ ​来​源​有​值​，​其​余​为​ ​n​u​l​l​）
+			 */
+			until_help_item: string
+			/**
+			 * 本​轮​ ​b​o​d​y​ ​最​后​一​个​节​点​（​按​执​行​顺​序​）​的​输​出​对​象​，​可​写​ ​l​a​s​t​.​s​t​a​t​u​s​、​l​a​s​t​.​r​e​q​u​e​s​t​e​d​_​m​s​ ​等​；​取​不​到​时​为​ ​n​u​l​l
+			 */
+			until_help_last: string
+			/**
+			 * 例​如​：​l​a​s​t​.​s​u​c​c​e​s​s​ ​=​=​ ​t​r​u​e​、​l​o​o​p​.​i​t​e​m​ ​=​=​ ​"​b​"​、​l​o​o​p​.​i​n​d​e​x​ ​>​=​ ​4​ ​&​&​ ​l​a​s​t​.​s​t​a​t​u​s​ ​=​=​ ​"​O​K​"
+			 */
+			until_help_example: string
+			/**
+			 * 语​法​为​表​达​式​：​=​=​ ​!​=​ ​>​ ​>​=​ ​<​ ​<​=​ ​&​&​ ​|​|​ ​!​ ​+​ ​-​ ​*​ ​/​ ​与​括​号​，​可​混​用​流​程​变​量​名​；​结​果​为​真​即​结​束​循​环
+			 */
+			until_help_syntax: string
+			/**
+			 * 循​环​体​不​需​要​ ​e​n​t​r​y​ ​节​点​：​进​入​后​按​「​入​度​为​ ​0​」​的​节​点​作​为​起​点​开​始​执​行
+			 */
+			body_entry_hint: string
+			/**
+			 * 多​个​未​连​线​的​节​点​会​按​画​布​位​置​（​上​→​下​、​左​→​右​）​依​次​各​自​执​行​；​若​放​了​ ​e​n​t​r​y​，​它​总​是​最​先​执​行
+			 */
+			body_roots_hint: string
+			/**
+			 * 进​入​循​环​体
+			 */
+			enter_body: string
+			/**
+			 * 循​环​体​节​点​数​：​{​c​o​u​n​t​}
+			 * @param {unknown} count
+			 */
+			body_node_count: RequiredParams<'count'>
+		}
+		delay: {
+			/**
+			 * 等​待​时​长​ ​(​m​s​)
+			 */
+			duration_ms: string
+			/**
+			 * 支​持​变​量​模​板​（​如​ ​w​a​i​t​_​m​s​）​；​上​限​ ​1​ ​小​时
+			 */
+			duration_hint: string
+			/**
+			 * 随​机​抖​动​上​限​ ​(​m​s​)
+			 */
+			jitter_ms: string
+		}
 	}
 	execution: {
 		node_types: {
@@ -5562,6 +5755,64 @@ type RootTranslation = {
 			 * 导​出​ ​H​T​M​L​ ​报​告​失​败
 			 */
 			export_html_failed: string
+			/**
+			 * 迭​代​次​数
+			 */
+			loop_iterations: string
+			/**
+			 * 终​止​原​因
+			 */
+			loop_break_reason: string
+			/**
+			 * 循​环​耗​时
+			 */
+			loop_duration: string
+			/**
+			 * 次​数​/​集​合​耗​尽
+			 */
+			loop_reason_exhausted: string
+			/**
+			 * 条​件​命​中
+			 */
+			loop_reason_until: string
+			/**
+			 * 迭​代​额​度​耗​尽
+			 */
+			loop_reason_budget: string
+			/**
+			 * 整​体​超​时
+			 */
+			loop_reason_timeout: string
+			/**
+			 * 嵌​套​层​数​超​限
+			 */
+			loop_reason_depth: string
+			/**
+			 * 循​环​体​失​败
+			 */
+			loop_reason_error: string
+			/**
+			 * 已​取​消
+			 */
+			loop_reason_cancelled: string
+			/**
+			 * 第​ ​{​i​n​d​e​x​}​ ​轮
+			 * @param {unknown} index
+			 */
+			loop_iteration_label: RequiredParams<'index'>
+			/**
+			 * {​c​o​u​n​t​}​ ​轮​仅​保​留​摘​要
+			 * @param {unknown} count
+			 */
+			loop_truncated: RequiredParams<'count'>
+			/**
+			 * 该​轮​详​情​已​按​报​告​裁​剪​配​置​省​略
+			 */
+			loop_truncated_hint: string
+			/**
+			 * 间​隔​等​待
+			 */
+			loop_wait_ms: string
 		}
 		compare: {
 			/**
@@ -11168,6 +11419,16 @@ type RootTranslation = {
 		 * @param {string} names
 		 */
 		unsaved_all_tabs_confirm_desc: RequiredParams<'names'>
+		scope: {
+			/**
+			 * 返​回​阶​段​画​布
+			 */
+			back_to_stage: string
+			/**
+			 * 循​环​体​内
+			 */
+			inside_loop: string
+		}
 	}
 	validation: {
 		/**
@@ -16051,6 +16312,14 @@ export type TranslationFunctions = {
 		 */
 		sub_flow: () => LocalizedString
 		/**
+		 * 循环
+		 */
+		loop: () => LocalizedString
+		/**
+		 * 延时
+		 */
+		delay: () => LocalizedString
+		/**
 		 * 此节点无需配置，仅用于标记流程终点。
 		 */
 		end_config_hint: () => LocalizedString
@@ -16281,6 +16550,14 @@ export type TranslationFunctions = {
 			 * 嵌套执行另一个独立流程，实现模板与组件复用
 			 */
 			sub_flow: () => LocalizedString
+			/**
+			 * 遍历集合、固定次数或轮询到条件命中；循环体为内联子图，可等待与退避
+			 */
+			loop: () => LocalizedString
+			/**
+			 * 等待指定时长（支持变量模板与随机抖动），等待期间可被取消
+			 */
+			delay: () => LocalizedString
 			/**
 			 * 建立 WebSocket 客户端长连接会话
 			 */
@@ -20685,6 +20962,182 @@ export type TranslationFunctions = {
 			 */
 			running_starting: () => LocalizedString
 		}
+		loop: {
+			/**
+			 * 循环来源
+			 */
+			source: () => LocalizedString
+			/**
+			 * 固定次数
+			 */
+			source_count: () => LocalizedString
+			/**
+			 * 遍历集合
+			 */
+			source_items: () => LocalizedString
+			/**
+			 * 条件轮询
+			 */
+			source_until: () => LocalizedString
+			/**
+			 * 集合表达式
+			 */
+			items: () => LocalizedString
+			/**
+			 * 渲染后必须是 JSON 数组，例如 [1,2,3] 或集合变量名
+			 */
+			items_hint: () => LocalizedString
+			/**
+			 * 循环次数
+			 */
+			count: () => LocalizedString
+			/**
+			 * 继续条件
+			 */
+			until: () => LocalizedString
+			/**
+			 * 每轮结束后求值，命中即结束；可用变量 last（上一轮末节点输出）与 loop.index / loop.item
+			 */
+			until_hint: () => LocalizedString
+			/**
+			 * 节奏
+			 */
+			rhythm: () => LocalizedString
+			/**
+			 * 首轮前等待 (ms)
+			 */
+			initial_delay_ms: () => LocalizedString
+			/**
+			 * 迭代间隔 (ms)
+			 */
+			interval_ms: () => LocalizedString
+			/**
+			 * 间隔退避系数
+			 */
+			interval_backoff: () => LocalizedString
+			/**
+			 * 间隔上限 (ms)
+			 */
+			interval_max_ms: () => LocalizedString
+			/**
+			 * 护栏
+			 */
+			guards: () => LocalizedString
+			/**
+			 * 最大迭代次数
+			 */
+			max_iterations: () => LocalizedString
+			/**
+			 * 整体超时 (ms)
+			 */
+			timeout_ms: () => LocalizedString
+			/**
+			 * 并发度
+			 */
+			concurrency: () => LocalizedString
+			/**
+			 * 当前仅支持 1
+			 */
+			concurrency_unsupported: () => LocalizedString
+			/**
+			 * 循环体失败时中止循环
+			 */
+			break_on_error: () => LocalizedString
+			/**
+			 * 输出变量
+			 */
+			outputs: () => LocalizedString
+			/**
+			 * 路径相对 last 变量（最后一轮 body 末节点输出）
+			 */
+			outputs_desc: () => LocalizedString
+			/**
+			 * 添加导出变量
+			 */
+			add_output: () => LocalizedString
+			/**
+			 * 暂无导出变量
+			 */
+			no_outputs: () => LocalizedString
+			/**
+			 * 如 $.last.status
+			 */
+			source_path_placeholder: () => LocalizedString
+			/**
+			 * 如 final_status
+			 */
+			target_var_placeholder: () => LocalizedString
+			/**
+			 * 报告
+			 */
+			report: () => LocalizedString
+			/**
+			 * 保留完整详情的迭代数
+			 */
+			detail_iterations: () => LocalizedString
+			/**
+			 * 失败轮始终保留完整详情
+			 */
+			always_keep_failed: () => LocalizedString
+			/**
+			 * 可在条件里使用的变量
+			 */
+			until_help_title: () => LocalizedString
+			/**
+			 * 当前迭代序号，从 0 开始
+			 */
+			until_help_index: () => LocalizedString
+			/**
+			 * 本次循环计划的总轮数（items 为数组长度，count 为次数，until 来源为最大迭代数）
+			 */
+			until_help_count: () => LocalizedString
+			/**
+			 * 本轮元素（仅 items 来源有值，其余为 null）
+			 */
+			until_help_item: () => LocalizedString
+			/**
+			 * 本轮 body 最后一个节点（按执行顺序）的输出对象，可写 last.status、last.requested_ms 等；取不到时为 null
+			 */
+			until_help_last: () => LocalizedString
+			/**
+			 * 例如：last.success == true、loop.item == "b"、loop.index >= 4 && last.status == "OK"
+			 */
+			until_help_example: () => LocalizedString
+			/**
+			 * 语法为表达式：== != > >= < <= && || ! + - * / 与括号，可混用流程变量名；结果为真即结束循环
+			 */
+			until_help_syntax: () => LocalizedString
+			/**
+			 * 循环体不需要 entry 节点：进入后按「入度为 0」的节点作为起点开始执行
+			 */
+			body_entry_hint: () => LocalizedString
+			/**
+			 * 多个未连线的节点会按画布位置（上→下、左→右）依次各自执行；若放了 entry，它总是最先执行
+			 */
+			body_roots_hint: () => LocalizedString
+			/**
+			 * 进入循环体
+			 */
+			enter_body: () => LocalizedString
+			/**
+			 * 循环体节点数：{count}
+			 */
+			body_node_count: (arg: { count: unknown }) => LocalizedString
+		}
+		delay: {
+			/**
+			 * 等待时长 (ms)
+			 */
+			duration_ms: () => LocalizedString
+			/**
+			 * 支持变量模板（如 wait_ms）；上限 1 小时
+			 */
+			duration_hint: () => LocalizedString
+			/**
+			 * 随机抖动上限 (ms)
+			 */
+			jitter_ms: () => LocalizedString
+		}
 	}
 	execution: {
 		node_types: {
@@ -21290,6 +21743,62 @@ export type TranslationFunctions = {
 			 * 导出 HTML 报告失败
 			 */
 			export_html_failed: () => LocalizedString
+			/**
+			 * 迭代次数
+			 */
+			loop_iterations: () => LocalizedString
+			/**
+			 * 终止原因
+			 */
+			loop_break_reason: () => LocalizedString
+			/**
+			 * 循环耗时
+			 */
+			loop_duration: () => LocalizedString
+			/**
+			 * 次数/集合耗尽
+			 */
+			loop_reason_exhausted: () => LocalizedString
+			/**
+			 * 条件命中
+			 */
+			loop_reason_until: () => LocalizedString
+			/**
+			 * 迭代额度耗尽
+			 */
+			loop_reason_budget: () => LocalizedString
+			/**
+			 * 整体超时
+			 */
+			loop_reason_timeout: () => LocalizedString
+			/**
+			 * 嵌套层数超限
+			 */
+			loop_reason_depth: () => LocalizedString
+			/**
+			 * 循环体失败
+			 */
+			loop_reason_error: () => LocalizedString
+			/**
+			 * 已取消
+			 */
+			loop_reason_cancelled: () => LocalizedString
+			/**
+			 * 第 {index} 轮
+			 */
+			loop_iteration_label: (arg: { index: unknown }) => LocalizedString
+			/**
+			 * {count} 轮仅保留摘要
+			 */
+			loop_truncated: (arg: { count: unknown }) => LocalizedString
+			/**
+			 * 该轮详情已按报告裁剪配置省略
+			 */
+			loop_truncated_hint: () => LocalizedString
+			/**
+			 * 间隔等待
+			 */
+			loop_wait_ms: () => LocalizedString
 		}
 		compare: {
 			/**
@@ -26790,6 +27299,16 @@ export type TranslationFunctions = {
 		 * {names} 有未保存的修改。确定放弃并关闭所有标签吗？
 		 */
 		unsaved_all_tabs_confirm_desc: (arg: { names: string }) => LocalizedString
+		scope: {
+			/**
+			 * 返回阶段画布
+			 */
+			back_to_stage: () => LocalizedString
+			/**
+			 * 循环体内
+			 */
+			inside_loop: () => LocalizedString
+		}
 	}
 	validation: {
 		/**

@@ -683,6 +683,10 @@ const en_US_flow = {
   unsaved_other_tabs_confirm_desc: '{names} have unsaved changes. Discard and close other tabs?',
   unsaved_right_tabs_confirm_desc: '{names} have unsaved changes. Discard and close tabs to the right?',
   unsaved_all_tabs_confirm_desc: '{names} have unsaved changes. Discard and close all tabs?',
+  scope: {
+    back_to_stage: 'Back to stage canvas',
+    inside_loop: 'Inside loop body',
+  },
 };
 
 export default en_US_flow;
