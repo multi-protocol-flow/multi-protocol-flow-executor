@@ -1,0 +1,58 @@
+{
+  "_version": 1,
+  "flow": {
+    "uuid": "fixture-delay-basic",
+    "name": "Delay Basic Fixture",
+    "initial_variables": {},
+    "nodes": [
+      {
+        "uuid": "entry-delay",
+        "type": "entry",
+        "name": "Entry",
+        "position": { "x": 0.0, "y": 0.0 },
+        "data": { "type": "entry" },
+        "ports": null,
+        "has_breakpoint": null
+      },
+      {
+        "uuid": "delay-50",
+        "type": "flow:delay",
+        "name": "Wait 50ms",
+        "position": { "x": 250.0, "y": 0.0 },
+        "data": {
+          "type": "flow:delay",
+          "duration_ms": "50",
+          "jitter_ms": 0
+        },
+        "ports": null,
+        "has_breakpoint": null
+      },
+      {
+        "uuid": "end-delay",
+        "type": "end",
+        "name": "End",
+        "position": { "x": 500.0, "y": 0.0 },
+        "data": { "type": "end" },
+        "ports": null,
+        "has_breakpoint": null
+      }
+    ],
+    "connections": [
+      {
+        "id": "conn-entry-delay",
+        "source_node_uuid": "entry-delay",
+        "target_node_uuid": "delay-50",
+        "source_port_id": "out",
+        "target_port_id": "in"
+      },
+      {
+        "id": "conn-delay-end",
+        "source_node_uuid": "delay-50",
+        "target_node_uuid": "end-delay",
+        "source_port_id": "out",
+        "target_port_id": "in"
+      }
+    ]
+  },
+  "_meta": null
+}

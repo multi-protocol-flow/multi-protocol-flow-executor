@@ -1,0 +1,90 @@
+{
+  "_version": 1,
+  "flow": {
+    "uuid": "fixture-loop-count",
+    "name": "Loop Count Fixture",
+    "initial_variables": {},
+    "nodes": [
+      {
+        "uuid": "entry-loop",
+        "type": "entry",
+        "name": "Entry",
+        "position": { "x": 0.0, "y": 0.0 },
+        "data": { "type": "entry" },
+        "ports": null,
+        "has_breakpoint": null
+      },
+      {
+        "uuid": "loop-count-3",
+        "type": "flow:loop",
+        "name": "Loop x3",
+        "position": { "x": 250.0, "y": 0.0 },
+        "data": {
+          "type": "flow:loop",
+          "source": "count",
+          "count": 3,
+          "interval_ms": 0,
+          "interval_max_ms": 10000,
+          "initial_delay_ms": 0,
+          "max_iterations": 100,
+          "concurrency": 1,
+          "break_on_error": true,
+          "output_mappings": [],
+          "report": { "detail_iterations": 20, "always_keep_failed": true },
+          "body": {
+            "nodes": [
+              {
+                "uuid": "body-script-1",
+                "type": "script",
+                "name": "Body Script",
+                "position": { "x": 0.0, "y": 0.0 },
+                "data": {
+                  "type": "script",
+                  "script": "fn.variables.set('n', 1);"
+                },
+                "ports": null,
+                "has_breakpoint": null
+              }
+            ],
+            "connections": []
+          }
+        },
+        "ports": null,
+        "has_breakpoint": null
+      },
+      {
+        "uuid": "end-loop",
+        "type": "end",
+        "name": "End",
+        "position": { "x": 500.0, "y": 0.0 },
+        "data": { "type": "end" },
+        "ports": null,
+        "has_breakpoint": null
+      }
+    ],
+    "connections": [
+      {
+        "id": "conn-entry-loop",
+        "source_node_uuid": "entry-loop",
+        "target_node_uuid": "loop-count-3",
+        "source_port_id": "out",
+        "target_port_id": "in"
+      },
+      {
+        "id": "conn-loop-done",
+        "source_node_uuid": "loop-count-3",
+        "target_node_uuid": "end-loop",
+        "source_port_id": "done",
+        "target_port_id": "in"
+      },
+      {
+        "id": "conn-loop-false",
+        "source_node_uuid": "loop-count-3",
+        "target_node_uuid": "end-loop",
+        "source_port_id": "false",
+        "target_port_id": "in"
+      }
+    ]
+  },
+  "_meta": null
+}
