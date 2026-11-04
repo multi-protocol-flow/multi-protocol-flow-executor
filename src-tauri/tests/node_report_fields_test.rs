@@ -32,6 +32,7 @@ fn test_node_report_fields_exist() {
         wait_duration_ms: Some(500),
         plugin_data: None,
         is_detail_stripped: None,
+        ..Default::default()
     };
 
     // 验证新字段值
@@ -114,6 +115,7 @@ fn test_node_report_skip_serializing_if() {
         wait_duration_ms: None,
         plugin_data: None,
         is_detail_stripped: None,
+        ..Default::default()
     };
 
     // 序列化
@@ -124,6 +126,11 @@ fn test_node_report_skip_serializing_if() {
     assert!(!json_str.contains("variable_changes"));
     assert!(!json_str.contains("skip_reason"));
     assert!(!json_str.contains("wait_duration_ms"));
+    // loop 迭代字段同样省略
+    assert!(!json_str.contains("iteration_index"));
+    assert!(!json_str.contains("iteration_of"));
+    assert!(!json_str.contains("iteration_summary"));
+    assert!(!json_str.contains("truncated_iterations"));
 }
 
 /// 测试 Skipped 状态节点的 skip_reason 字段
@@ -148,6 +155,7 @@ fn test_node_report_skipped_with_reason() {
         wait_duration_ms: None,
         plugin_data: None,
         is_detail_stripped: None,
+        ..Default::default()
     };
 
     // 验证序列化包含 skip_reason

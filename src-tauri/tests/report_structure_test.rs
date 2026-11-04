@@ -181,6 +181,7 @@ fn test_report_structure_node_execution_report() {
         wait_duration_ms: Some(150),
         plugin_data: None,
         is_detail_stripped: None,
+        ..Default::default()
     };
 
     // 序列化
@@ -261,6 +262,7 @@ fn test_report_structure_node_execution_report_failed() {
         wait_duration_ms: None,
         plugin_data: None,
         is_detail_stripped: None,
+        ..Default::default()
     };
 
     let json_str = serde_json::to_string(&report).expect("serialization failed");
@@ -303,6 +305,7 @@ fn test_report_structure_node_execution_report_skipped() {
         wait_duration_ms: None,
         plugin_data: None,
         is_detail_stripped: None,
+        ..Default::default()
     };
 
     let json_str = serde_json::to_string(&report).expect("serialization failed");
@@ -351,6 +354,7 @@ fn test_report_structure_flow_execution_report() {
             wait_duration_ms: None,
             plugin_data: None,
             is_detail_stripped: None,
+            ..Default::default()
         },
         NodeExecutionReport {
             sub_flow_report: None,
@@ -375,6 +379,7 @@ fn test_report_structure_flow_execution_report() {
             wait_duration_ms: Some(0),
             plugin_data: None,
             is_detail_stripped: None,
+            ..Default::default()
         },
     ];
 
@@ -604,6 +609,11 @@ fn test_report_structure_backward_compat_node_report() {
     assert!(report.variable_changes.is_none());
     assert!(report.skip_reason.is_none());
     assert!(report.wait_duration_ms.is_none());
+    // loop 迭代字段同样回落到 None（旧报告不含 iteration_* / truncated_iterations）
+    assert!(report.iteration_index.is_none());
+    assert!(report.iteration_of.is_none());
+    assert!(report.iteration_summary.is_none());
+    assert!(report.truncated_iterations.is_none());
 }
 
 /// 测试向后兼容性：旧版 FlowExecutionReport JSON 可反序列化
@@ -804,6 +814,7 @@ fn test_report_structure_full_roundtrip() {
                 wait_duration_ms: None,
                 plugin_data: None,
                 is_detail_stripped: None,
+                ..Default::default()
             },
             NodeExecutionReport {
                 sub_flow_report: None,
@@ -828,6 +839,7 @@ fn test_report_structure_full_roundtrip() {
                 wait_duration_ms: Some(0),
                 plugin_data: None,
                 is_detail_stripped: None,
+                ..Default::default()
             },
             NodeExecutionReport {
                 sub_flow_report: None,
@@ -848,6 +860,7 @@ fn test_report_structure_full_roundtrip() {
                 wait_duration_ms: Some(0),
                 plugin_data: None,
                 is_detail_stripped: None,
+                ..Default::default()
             },
         ],
         statistics: FlowStatistics {

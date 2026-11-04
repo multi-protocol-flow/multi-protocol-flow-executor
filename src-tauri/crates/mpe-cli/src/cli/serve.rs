@@ -81,7 +81,6 @@ async fn wait_for_shutdown_signal(mut cancel_rx: tokio::sync::watch::Receiver<bo
     }
 }
 
-
 /// Execute long-running serve runtime
 pub async fn execute(
     format: &str,
@@ -176,6 +175,7 @@ pub async fn execute(
                     setup_subgraph,
                     initial_vars,
                     &executor,
+                    None,
                     None,
                 )
                 .await
@@ -308,6 +308,7 @@ pub async fn execute(
                     teardown_subgraph,
                     vars,
                     &executor,
+                    None,
                     None,
                 )
                 .await

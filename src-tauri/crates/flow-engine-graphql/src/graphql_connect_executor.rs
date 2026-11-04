@@ -483,6 +483,7 @@ mod tests {
             cancel_receiver: None,
             providers: HashMap::new(),
             current_node_plugin_data: None,
+            current_loop_report: None,
         }
     }
 
