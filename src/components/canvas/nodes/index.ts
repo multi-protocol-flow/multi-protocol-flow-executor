@@ -5,6 +5,8 @@ export { EntryNode, type EntryNodeData } from './EntryNode';
 export { HttpNode, type HttpNodeData } from './HttpNode';
 export { ConditionalNode, type ConditionalNodeData } from './ConditionalNode';
 export { SubFlowNode, type SubFlowNodeData } from './SubFlowNode';
+export { LoopNode, type LoopNodeData } from './LoopNode';
+export { DelayNode, type DelayNodeData } from './DelayNode';
 export { WsConnectNode, type WsConnectNodeData } from './WsConnectNode';
 export { WsSendCollectNode, type WsSendCollectNodeData } from './WsSendCollectNode';
 export { WsCloseNode, type WsCloseNodeData } from './WsCloseNode';

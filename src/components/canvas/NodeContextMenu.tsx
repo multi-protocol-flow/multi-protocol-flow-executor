@@ -10,7 +10,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { getLL } from '@/i18n/i18n-lazy';
 import { startInteractiveSliceExecution } from '@/services/tauri';
-import { useFlowStore, useDebugStore, getStageGraph } from '@/stores';
+import { useFlowStore, useDebugStore, resolveScopeGraph } from '@/stores';
 import { isEntryNodeType } from '@/types';
 export interface NodeContextMenuProps {
   /** 菜单显示位置 (屏幕坐标) */
@@ -77,7 +77,10 @@ export function NodeContextMenu({
   const isEntryType = isEntryNodeType(nodeType);
   const currentFlow = useFlowStore.getState().flow;
   const activeStage = useFlowStore.getState().activeStage;
-  const stageNodes = currentFlow ? getStageGraph(currentFlow, activeStage).nodes : [];
+  const loopPath = useFlowStore.getState().loopPath;
+  const stageNodes = currentFlow
+    ? resolveScopeGraph(currentFlow, activeStage, loopPath).nodes
+    : [];
   const hasAlternativeEntry = stageNodes.some(
     (n) => n.uuid !== nodeId && isEntryNodeType(n.type)
   );

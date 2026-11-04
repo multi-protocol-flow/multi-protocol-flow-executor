@@ -21,6 +21,7 @@ import {
   useDebugStore,
   useUIStore,
   getNodeStage,
+  locateNode,
   selectAllNodes,
   findNodeInFlow,
 } from '@/stores';
@@ -467,11 +468,17 @@ export const ExecutionPanel = memo(function ExecutionPanel() {
 
   // ===== 节点选择回调（恒等引用，保证 ExecutionNodeList 的 memo 生效） =====
   const handleSelectNode = useCallback((nodeUuid: string) => {
-    const flow = useFlowStore.getState().flow;
+    const store = useFlowStore.getState();
+    const flow = store.flow;
     if (flow) {
-      const stage = getNodeStage(flow, nodeUuid);
-      if (stage && stage !== useFlowStore.getState().activeStage) {
-        useFlowStore.getState().setActiveStage(stage);
+      // 节点可能在 loop body 内：先跳到它所在的作用域（阶段 + loop 链），
+      // 否则切换阶段后画布上根本没有这个节点
+      const path = locateNode(flow, nodeUuid);
+      if (path) {
+        const scopeChanged =
+          store.activeStage !== path.stage ||
+          store.loopPath.join('/') !== path.loopPath.join('/');
+        if (scopeChanged) store.setScope(path.stage, path.loopPath);
       }
     }
     if (selectedNodeUuidRef.current === nodeUuid) {

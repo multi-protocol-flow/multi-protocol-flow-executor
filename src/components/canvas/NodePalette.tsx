@@ -12,7 +12,7 @@ import {
   Layers,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { getStageGraph } from '@/stores/flow';
+import { resolveScopeGraph } from '@/stores/flow';
 import { getLL } from '@/i18n/i18n-lazy';
 import { useFlowStore, useUIStore } from '@/stores';
 import type { NodeType } from '@/types';
@@ -151,6 +151,7 @@ export function NodePalette() {
   const setPendingAddNodeType = useFlowStore((s) => s.setPendingAddNodeType);
   const flow = useFlowStore((s) => s.flow);
   const activeStage = useFlowStore((s) => s.activeStage);
+  const loopPath = useFlowStore((s) => s.loopPath);
   const isOpen = useUIStore((s) => s.isNodePaletteOpen);
   const palettePosition = useUIStore((s) => s.nodePalettePosition);
   const closePalette = useUIStore((s) => s.closeNodePalette);
@@ -178,18 +179,18 @@ export function NodePalette() {
     [metadata, recentTypeIds]
   );
 
-  // 判断当前阶段子图中是否已有 entry 或 http:ingress 单例入口节点
+  // 判断当前画布作用域（阶段或 loop body）中是否已有 entry / http:ingress 单例入口节点
   const hasEntryNode = useMemo(() => {
     if (!flow) return false;
-    const stageGraph = getStageGraph(flow, activeStage);
-    return stageGraph.nodes.some((n) => n.type === 'entry');
-  }, [flow, activeStage]);
+    const scopeGraph = resolveScopeGraph(flow, activeStage, loopPath);
+    return scopeGraph.nodes.some((n) => n.type === 'entry');
+  }, [flow, activeStage, loopPath]);
 
   const hasIngressNode = useMemo(() => {
     if (!flow) return false;
-    const stageGraph = getStageGraph(flow, activeStage);
-    return stageGraph.nodes.some((n) => n.type === 'http:ingress');
-  }, [flow, activeStage]);
+    const scopeGraph = resolveScopeGraph(flow, activeStage, loopPath);
+    return scopeGraph.nodes.some((n) => n.type === 'http:ingress');
+  }, [flow, activeStage, loopPath]);
 
   // 搜索评分与过滤
   const isSearching = searchQuery.trim().length > 0;

@@ -159,6 +159,9 @@ const NODE_TYPE_ORDER: Record<string, number> = {
   'variable:extractor': 3,
   proxy: 4,
   end: 5,
+  // 控制流节点排在终结点之后
+  'flow:loop': 6,
+  'flow:delay': 7,
 };
 
 /**
@@ -182,6 +185,8 @@ export function getBadgeClassForType(typeId: string): string {
     'ws:close': 'bg-rose-100 text-rose-700',
     'variable:extractor': 'bg-amber-100 text-amber-700',
     proxy: 'bg-lime-100 text-lime-700',
+    'flow:loop': 'bg-sky-100 text-sky-700',
+    'flow:delay': 'bg-slate-100 text-slate-700',
     end: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300 border-purple-200 dark:border-purple-800',
     'tcp:connect': 'bg-emerald-100 text-emerald-700',
     'tcp:send': 'bg-emerald-100 text-emerald-700',
@@ -306,6 +311,8 @@ export interface CatalogGroup {
 const CORE_LOGIC_TYPES = [
   'entry',
   'flow:sub',
+  'flow:loop',
+  'flow:delay',
   'conditional',
   'script',
   'assertion',
@@ -352,6 +359,8 @@ export const BUILTIN_FALLBACK_METADATA: NodeMetadata[] = [
   { type_id: 'variable:extractor', display_name: '变量提取', category: 'tools', icon: 'braces', color: '#F59E0B', ports: [{ id: 'flow_in', label: 'In', position: 'top' }, { id: 'true', label: 'True', position: 'right' }], default_config: {} },
   { type_id: 'proxy', display_name: '代理设置', category: 'tools', icon: 'shield', color: '#84CC16', ports: [{ id: 'flow_in', label: 'In', position: 'top' }, { id: 'true', label: 'True', position: 'right' }], default_config: {} },
   { type_id: 'end', display_name: '终止', category: 'tools', icon: 'square', color: '#8B5CF6', ports: [{ id: 'flow_in', label: 'In', position: 'top' }], default_config: {} },
+  { type_id: 'flow:loop', display_name: '循环', category: 'logic', icon: 'rotate-cw', color: '#0EA5E9', ports: [{ id: 'flow_in', label: 'In', position: 'top' }, { id: 'done', label: 'Done', position: 'right' }, { id: 'false', label: 'Failed', position: 'bottom' }], default_config: {} },
+  { type_id: 'flow:delay', display_name: '延时', category: 'logic', icon: 'timer', color: '#64748B', ports: [{ id: 'flow_in', label: 'In', position: 'top' }, { id: 'out', label: 'Output', position: 'right' }], default_config: {} },
   { type_id: 'ws:connect', display_name: 'WS-连接', category: 'websocket', icon: 'wifi', color: '#F59E0B', ports: [{ id: 'flow_in', label: 'In', position: 'top' }, { id: 'true', label: 'True', position: 'right' }], default_config: {} },
   { type_id: 'ws:send_collect', display_name: 'WS-发送采集', category: 'websocket', icon: 'send', color: '#14B8A6', ports: [{ id: 'flow_in', label: 'In', position: 'top' }, { id: 'true', label: 'True', position: 'right' }], default_config: {} },
   { type_id: 'ws:close', display_name: 'WS-关闭', category: 'websocket', icon: 'plug', color: '#F43F5E', ports: [{ id: 'flow_in', label: 'In', position: 'top' }, { id: 'true', label: 'True', position: 'right' }], default_config: {} },

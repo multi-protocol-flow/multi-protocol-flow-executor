@@ -26,6 +26,13 @@ function makeReport(overrides: Partial<NodeExecutionReport> = {}): NodeExecution
 }
 
 describe('getViewerComponent', () => {
+  it('getViewerComponent_loop_resolves_loop_viewer', () => {
+    // flow:loop 用 getter 注册，验证模块初始化期没有 TDZ 报错
+    const viewer = getViewerComponent('flow:loop');
+    expect(viewer).toBe(viewerRegistry['flow:loop']);
+    expect(viewer).not.toBe(GenericViewer);
+  });
+
   it('getViewerComponent_known_builtin_resolves_exact_viewer', () => {
     expect(getViewerComponent('http:request')).toBe(HttpNodeViewer);
   });

@@ -5,20 +5,25 @@
  * FlowCanvas 组件测试
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor, act } from '@testing-library/react';
 import { ReactFlowProvider } from '@xyflow/react';
 import { FlowCanvas } from '@/components/canvas';
 import { useFlowStore } from '@/stores';
 import type { Flow } from '@/types';
 
-// Mock useReactFlow
+// Mock useReactFlow（fitView 用模块级 spy，便于断言作用域切换后的自动适配）
+const fitViewSpy = vi.fn();
 vi.mock('@xyflow/react', async () => {
   const actual = await vi.importActual('@xyflow/react');
   return {
     ...actual,
     useReactFlow: () => ({
       screenToFlowPosition: ({ x, y }: { x: number; y: number }) => ({ x, y }),
-      fitView: vi.fn(),
+      fitView: fitViewSpy,
+      setViewport: vi.fn(),
+      setCenter: vi.fn(),
+      getNode: vi.fn(),
+      getNodes: vi.fn(() => []),
     }),
   };
 });
@@ -107,6 +112,87 @@ describe('FlowCanvas', () => {
       const reactFlowContainer = container.querySelector('.react-flow');
       expect(reactFlowContainer).toBeDefined();
     });
+  });
+});
+
+describe('FlowCanvas loop 作用域', () => {
+  const loopFlow: Flow = {
+    uuid: 'loop-flow-001',
+    name: '循环流程',
+    nodes: [
+      {
+        uuid: 'loop-1',
+        type: 'flow:loop',
+        name: 'Poll',
+        position: { x: 0, y: 0 },
+        data: {
+          type: 'flow:loop',
+          source: 'count',
+          count: 2,
+          max_iterations: 100,
+          concurrency: 1,
+          break_on_error: true,
+          report: { detail_iterations: 20, always_keep_failed: true },
+          body: {
+            nodes: [
+              {
+                uuid: 'body-1',
+                type: 'flow:delay',
+                name: 'body delay',
+                position: { x: 0, y: 0 },
+                data: { type: 'flow:delay', duration_ms: '10', jitter_ms: 0 },
+              },
+            ],
+            connections: [],
+          },
+        },
+      },
+    ],
+    connections: [],
+  };
+
+  beforeEach(() => {
+    useFlowStore.getState().reset();
+  });
+
+  it('进入 loop body 切换画布，点击当前阶段标签回到阶段画布', async () => {
+    useFlowStore.getState().setFlow(loopFlow);
+    const { container } = render(
+      <TestWrapper>
+        <FlowCanvas />
+      </TestWrapper>,
+    );
+
+    // 阶段层：只有 loop 节点
+    await waitFor(() => {
+      expect(container.querySelector('[data-id="loop-1"]')).toBeTruthy();
+    });
+    expect(container.querySelector('[data-id="body-1"]')).toBeNull();
+
+    fitViewSpy.mockClear();
+    await act(async () => {
+      useFlowStore.getState().enterLoop('loop-1');
+    });
+    // 循环体内：只有 body 节点（FlowSurface 的重建 effect 必须依赖 loopPath）
+    await waitFor(() => {
+      expect(container.querySelector('[data-id="body-1"]')).toBeTruthy();
+    });
+    expect(container.querySelector('[data-id="loop-1"]')).toBeNull();
+
+    // 进入循环体后自动 fit view（放宽超时：全量并发跑时 80ms 定时器可能被延后）
+    await waitFor(() => expect(fitViewSpy).toHaveBeenCalledTimes(1), { timeout: 5000 });
+
+    // 用户动作：点击画布左侧当前阶段（main）标签
+    await act(async () => {
+      useFlowStore.getState().setActiveStage('main');
+    });
+    await waitFor(() => {
+      expect(container.querySelector('[data-id="loop-1"]')).toBeTruthy();
+    });
+    expect(container.querySelector('[data-id="body-1"]')).toBeNull();
+
+    // 退出循环体同样自动 fit view
+    await waitFor(() => expect(fitViewSpy).toHaveBeenCalledTimes(2), { timeout: 5000 });
   });
 });
 

@@ -5,7 +5,7 @@ import type { Node, Edge } from '@xyflow/react';
 import type { Flow, Connection, NodeData, NodeType, AnyNodeType } from '@/types';
 import { getCachedDefaultConfig } from '@/lib/NodeRegistry';
 import { getNodeDisplayName } from '@/lib/nodeMeta';
-import { getStageGraph, type FlowStage } from '@/stores/flow';
+import { resolveScopeGraph, type FlowStage } from '@/stores/flow';
 
 /** React Flow 节点数据类型 */
 export type FlowNodeData = Record<string, unknown> & {
@@ -18,13 +18,18 @@ export type FlowNodeData = Record<string, unknown> & {
  * 将 Flow 数据转换为 React Flow 格式
  *
  * `stage` 指定渲染哪个生命周期阶段：`main` 渲染流程主体的
- * `flow.nodes` / `flow.connections`，`setup` / `teardown` 渲染对应子图。
+ * `flow.nodes` / `flow.connections`，`setup` / `teardown` 渲染对应子图；
+ * `loopPath` 进一步下钻到 loop 节点的内联 body。
  */
-export function convertFlowToReactFlow(flow: Flow, stage: FlowStage = 'main'): {
+export function convertFlowToReactFlow(
+  flow: Flow,
+  stage: FlowStage = 'main',
+  loopPath: string[] = [],
+): {
   nodes: Node[];
   edges: Edge[];
 } {
-  const graph = getStageGraph(flow, stage);
+  const graph = resolveScopeGraph(flow, stage, loopPath);
   const nodes: Node[] = graph.nodes.map((node) => {
     const isBypassed = Boolean(node.disabled || node.on_error === 'bypass');
     return {
@@ -254,6 +259,23 @@ export function createDefaultNodeData(type: AnyNodeType): NodeData {
         inherit_all_variables: true,
         export_all_variables: true,
       };
+    case 'flow:loop':
+      return {
+        type: 'flow:loop',
+        source: 'count',
+        count: 1,
+        interval_ms: 0,
+        interval_max_ms: 10000,
+        initial_delay_ms: 0,
+        max_iterations: 100,
+        concurrency: 1,
+        break_on_error: true,
+        output_mappings: [],
+        report: { detail_iterations: 20, always_keep_failed: true },
+        body: { nodes: [], connections: [] },
+      };
+    case 'flow:delay':
+      return { type: 'flow:delay', duration_ms: '1000', jitter_ms: 0 };
     case 'entry':
       return { type: 'entry' };
     default:

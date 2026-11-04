@@ -25,7 +25,7 @@ import {
   selectFlow,
   selectIsDirty,
   connectionFor,
-  getStageGraph,
+  resolveScopeGraph,
 } from '@/stores';
 import type { NodeData, NodeType } from '@/types';
 import { isEntryNodeType } from '@/types';
@@ -39,6 +39,7 @@ import {
 import { cn } from '@/lib/utils';
 import { getLL } from '@/i18n/i18n-lazy';
 import { flowStorage } from '@/services/storage';
+import { cloneNodeData } from '@/lib/nodeClone';
 import { inferDefaults } from '@/lib/nodeDefaults';
 import { toast } from 'sonner';
 import { parseCurlToHttpNodeConfig } from '@/lib/curlParser';
@@ -444,16 +445,16 @@ function FlowCanvasInner() {
   // 复制节点（含源端连接复制）
   const handleCopyNode = useCallback(
     (nodeId: string) => {
-      const { flow: currentFlow, activeStage, addNode: addNewNode } = useFlowStore.getState();
+      const { flow: currentFlow, activeStage, loopPath, addNode: addNewNode } = useFlowStore.getState();
       if (!currentFlow) return;
 
-      const sourceNode = getStageGraph(currentFlow, activeStage).nodes.find((n) => n.uuid === nodeId);
+      const sourceNode = resolveScopeGraph(currentFlow, activeStage, loopPath).nodes.find((n) => n.uuid === nodeId);
       if (!sourceNode || sourceNode.type === 'entry' || sourceNode.type === 'http:ingress') return;
 
       const newUuid = crypto.randomUUID();
       const offset = 50;
 
-      // 深拷贝节点数据（孤立节点，不复制连接）
+      // 深拷贝节点数据（孤立节点，不复制连接）；loop body 内的 UUID 一并重生成
       addNewNode({
         uuid: newUuid,
         type: sourceNode.type,
@@ -462,7 +463,7 @@ function FlowCanvasInner() {
           x: sourceNode.position.x + offset,
           y: sourceNode.position.y + offset,
         },
-        data: JSON.parse(JSON.stringify(sourceNode.data)),
+        data: cloneNodeData(sourceNode.data),
       });
     },
     []
@@ -471,10 +472,10 @@ function FlowCanvasInner() {
   // 复制节点配置到剪贴板
   const handleCopyNodeConfig = useCallback(
     (nodeId: string) => {
-      const { flow: currentFlow, activeStage } = useFlowStore.getState();
+      const { flow: currentFlow, activeStage, loopPath } = useFlowStore.getState();
       if (!currentFlow) return;
 
-      const sourceNode = getStageGraph(currentFlow, activeStage).nodes.find((n) => n.uuid === nodeId);
+      const sourceNode = resolveScopeGraph(currentFlow, activeStage, loopPath).nodes.find((n) => n.uuid === nodeId);
       if (!sourceNode) return;
       const clipData: NodeConfigClipboard = {
         nodeType: sourceNode.type,
@@ -496,10 +497,10 @@ function FlowCanvasInner() {
   // 从剪贴板粘贴节点配置
   const handlePasteNodeConfig = useCallback(
     (nodeId: string) => {
-      const { flow: currentFlow, activeStage, updateNode: modifyNode } = useFlowStore.getState();
+      const { flow: currentFlow, activeStage, loopPath, updateNode: modifyNode } = useFlowStore.getState();
       if (!currentFlow) return;
 
-      const targetNode = getStageGraph(currentFlow, activeStage).nodes.find((n) => n.uuid === nodeId);
+      const targetNode = resolveScopeGraph(currentFlow, activeStage, loopPath).nodes.find((n) => n.uuid === nodeId);
       if (!targetNode) return;
       let clipData: NodeConfigClipboard | null = null;
       try {
@@ -532,10 +533,10 @@ function FlowCanvasInner() {
   // 删除节点（通过确认弹窗）
   const handleDeleteNode = useCallback(
     (nodeId: string) => {
-      const { flow: currentFlow, activeStage, removeNode: removeNodeById, selectNode: deselectNode } = useFlowStore.getState();
+      const { flow: currentFlow, activeStage, loopPath, removeNode: removeNodeById, selectNode: deselectNode } = useFlowStore.getState();
       if (!currentFlow) return;
 
-      const stageNodes = getStageGraph(currentFlow, activeStage).nodes;
+      const stageNodes = resolveScopeGraph(currentFlow, activeStage, loopPath).nodes;
       const node = stageNodes.find((n) => n.uuid === nodeId);
       if (!node) return;
       const hasAlternativeEntry = stageNodes.some(
@@ -698,16 +699,16 @@ function FlowCanvasInner() {
       });
 
       if (nodeType === 'entry') {
-        const { activeStage } = useFlowStore.getState();
-        const stageGraph = getStageGraph(flow, activeStage);
+        const { activeStage, loopPath } = useFlowStore.getState();
+        const stageGraph = resolveScopeGraph(flow, activeStage, loopPath);
         if (stageGraph.nodes.some((n) => n.type === 'entry')) {
           toast.warning(getLL().flow.entry_node_already_exists());
           return;
         }
       }
       if (nodeType === 'http:ingress') {
-        const { activeStage } = useFlowStore.getState();
-        const stageGraph = getStageGraph(flow, activeStage);
+        const { activeStage, loopPath } = useFlowStore.getState();
+        const stageGraph = resolveScopeGraph(flow, activeStage, loopPath);
         if (stageGraph.nodes.some((n) => n.type === 'http:ingress')) {
           toast.warning(getLL().flow.ingress_node_already_exists());
           return;
@@ -746,8 +747,8 @@ function FlowCanvasInner() {
     if (!pendingAddNodeType || !flow) return;
 
     if (pendingAddNodeType === 'entry') {
-      const { activeStage } = useFlowStore.getState();
-      const stageGraph = getStageGraph(flow, activeStage);
+      const { activeStage, loopPath } = useFlowStore.getState();
+      const stageGraph = resolveScopeGraph(flow, activeStage, loopPath);
       if (stageGraph.nodes.some((n) => n.type === 'entry')) {
         toast.warning(getLL().flow.entry_node_already_exists());
         clearPendingAddNodeType();
@@ -756,8 +757,8 @@ function FlowCanvasInner() {
       }
     }
     if (pendingAddNodeType === 'http:ingress') {
-      const { activeStage } = useFlowStore.getState();
-      const stageGraph = getStageGraph(flow, activeStage);
+      const { activeStage, loopPath } = useFlowStore.getState();
+      const stageGraph = resolveScopeGraph(flow, activeStage, loopPath);
       if (stageGraph.nodes.some((n) => n.type === 'http:ingress')) {
         toast.warning(getLL().flow.ingress_node_already_exists());
         clearPendingAddNodeType();
@@ -806,8 +807,8 @@ function FlowCanvasInner() {
       data,
     });
     if (pendingAddNodeType !== 'entry' && pendingAddNodeType !== 'end') {
-      const { activeStage, addConnection, removeConnection } = useFlowStore.getState();
-      const stageGraph = getStageGraph(flow, activeStage);
+      const { activeStage, loopPath, addConnection, removeConnection } = useFlowStore.getState();
+      const stageGraph = resolveScopeGraph(flow, activeStage, loopPath);
       const edgeToInsert = findEdgeToInsert(position, stageGraph.nodes, stageGraph.connections);
       if (edgeToInsert) {
         insertNodeIntoConnection(newNodeUuid, edgeToInsert, addConnection, removeConnection);
@@ -985,7 +986,7 @@ function FlowCanvasInner() {
                 type: clipData.nodeType as NodeType,
                 name,
                 position,
-                data: JSON.parse(JSON.stringify(clipData.data)),
+                data: cloneNodeData(clipData.data),
               });
 
               setSelectNode(newUuid);

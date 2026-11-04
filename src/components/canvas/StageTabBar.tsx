@@ -8,7 +8,19 @@
  *   暂停节点不在当前画布时浮现快速跳回条
  */
 import { useMemo } from 'react';
-import { Check, Hourglass, Pause, LocateFixed, Play, AlertTriangle, Wrench, Workflow, Brush } from 'lucide-react';
+import {
+  Check,
+  Hourglass,
+  Pause,
+  LocateFixed,
+  Play,
+  AlertTriangle,
+  Wrench,
+  Workflow,
+  Brush,
+  ChevronRight,
+  CornerUpLeft,
+} from 'lucide-react';
 import {
   useFlowStore,
   useDebugStore,
@@ -20,6 +32,8 @@ import {
   selectIsPaused,
   getNodeStage,
   getStageGraph,
+  resolveScopeGraph,
+  locateNode,
   type FlowStage,
 } from '@/stores';
 import { cn } from '@/lib/utils';
@@ -51,6 +65,8 @@ export function StageTabBar() {
   const isPaused = useDebugStore(selectIsPaused);
   const pausedNodeUuid = useDebugStore((s) => s.currentNodeUuid);
   const flow = useFlowStore((s) => s.flow);
+  const loopPath = useFlowStore((s) => s.loopPath);
+  const truncateLoopPath = useFlowStore((s) => s.truncateLoopPath);
   const countByStage: Record<FlowStage, number> = {
     setup: setupCount,
     main: mainCount,
@@ -114,6 +130,26 @@ export function StageTabBar() {
     return rootCount > 1;
   }, [activeStage, flow]);
 
+
+  // 循环体面包屑：阶段名 + 每层 loop 节点名（含 body 节点数）
+  const loopCrumbs = useMemo(() => {
+    if (!flow || loopPath.length === 0) return [];
+    const crumbs: Array<{ uuid: string; name: string; count: number; depth: number }> = [];
+    let graph = getStageGraph(flow, activeStage);
+    loopPath.forEach((uuid) => {
+      const node = graph.nodes.find((n) => n.uuid === uuid && n.type === 'flow:loop');
+      if (!node) return;
+      const body = (node.data as { body?: { nodes: unknown[] } }).body;
+      crumbs.push({
+        uuid,
+        name: node.name,
+        count: body?.nodes?.length ?? 0,
+        depth: crumbs.length + 1,
+      });
+      graph = resolveScopeGraph(flow, activeStage, loopPath.slice(0, crumbs.length));
+    });
+    return crumbs;
+  }, [flow, activeStage, loopPath]);
 
   // 暂停节点不在当前画布时提供快速跳回
   const showJumpBack = isDebugging && isPaused && pausedStage !== null && pausedStage !== activeStage;
@@ -213,6 +249,48 @@ export function StageTabBar() {
         })}
       </div>
 
+      {loopCrumbs.length > 0 && (
+        <div
+          data-testid="loop-breadcrumb"
+          className="flex max-w-[520px] flex-wrap items-center gap-0.5 rounded-lg border border-border/70 bg-background/90 px-1.5 py-1 text-[11px] shadow-sm backdrop-blur-md"
+        >
+          <button
+            type="button"
+            className="flex items-center gap-1 rounded px-1 py-0.5 text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+            title={getLL().flow.scope.back_to_stage()}
+            onClick={() => truncateLoopPath(0)}
+          >
+            <CornerUpLeft className="w-3 h-3" />
+            <span>{labelByStage[activeStage]}</span>
+          </button>
+          {loopCrumbs.map((crumb, index) => {
+            const isLast = index === loopCrumbs.length - 1;
+            return (
+              <span key={crumb.uuid} className="flex items-center gap-0.5">
+                <ChevronRight className="w-3 h-3 text-muted-foreground/60" />
+                <button
+                  type="button"
+                  data-testid={`loop-crumb-${crumb.uuid}`}
+                  disabled={isLast}
+                  onClick={() => truncateLoopPath(index + 1)}
+                  className={cn(
+                    'flex items-center gap-1 rounded px-1 py-0.5',
+                    isLast
+                      ? 'text-sky-600 font-medium cursor-default'
+                      : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground',
+                  )}
+                >
+                  <span className="max-w-[140px] truncate">{crumb.name}</span>
+                  <span className="rounded-full bg-muted px-1 font-mono text-[9px] tabular-nums">
+                    {crumb.count}
+                  </span>
+                </button>
+              </span>
+            );
+          })}
+        </div>
+      )}
+
       {/* 隐藏的辅助文本供屏幕阅读器和测试获取，免于在屏幕中央常驻遮挡画布 */}
       <span data-testid="stage-hint" className="sr-only">
         {hint}
@@ -233,7 +311,15 @@ export function StageTabBar() {
           type="button"
           data-testid="stage-jump-back"
           onClick={() => {
-            setActiveStage(pausedStage);
+            // 暂停节点可能在某个 loop body 内：既要切阶段，也要恢复 loop 链
+            const store = useFlowStore.getState();
+            const path =
+              store.flow && pausedNodeUuid ? locateNode(store.flow, pausedNodeUuid) : null;
+            if (path) {
+              store.setScope(path.stage, path.loopPath);
+            } else {
+              setActiveStage(pausedStage);
+            }
             if (pausedNodeUuid) useFlowStore.getState().centerOnNode(pausedNodeUuid);
           }}
           className="flex items-center gap-1.5 rounded-md border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 text-[11px] font-medium text-amber-600 shadow-sm cursor-pointer hover:bg-amber-500/20 animate-in fade-in-0 duration-150"

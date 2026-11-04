@@ -17,6 +17,8 @@ const panelLoaders: Record<string, PanelLoader> = {
   entry: () => import('@/components/panels/EntryConfig').then(m => m.EntryConfig),
   end: () => import('@/components/panels/EndConfigPanel').then(m => m.EndConfigPanel),
   'flow:sub': () => import('@/components/panels/SubFlowConfig').then(m => m.SubFlowConfig),
+  'flow:loop': () => import('@/components/panels/LoopConfig').then(m => m.LoopConfig),
+  'flow:delay': () => import('@/components/panels/DelayConfig').then(m => m.DelayConfig),
   'http:request': () => import('@/components/panels/HttpConfig').then(m => m.HttpConfig),
   'http:ingress': () => import('@/components/panels/HttpIngressConfig').then(m => m.HttpIngressConfig),
   'http:respond': () => import('@/components/panels/HttpRespondConfig').then(m => m.HttpRespondConfig),

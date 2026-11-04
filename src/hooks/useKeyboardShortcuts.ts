@@ -4,8 +4,9 @@
  */
 import { useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
-import { useFlowStore, useUIStore, useAIStore, getStageGraph } from '@/stores';
+import { useFlowStore, useUIStore, useAIStore, resolveScopeGraph } from '@/stores';
 import { flowStorage } from '@/services/storage';
+import { cloneNodeData } from '@/lib/nodeClone';
 import { useZoomStore } from '@/stores/zoom';
 import { getLL } from '@/i18n/i18n-lazy';
 import { isEntryNodeType } from '@/types';
@@ -62,7 +63,9 @@ export function useKeyboardShortcuts() {
       const flowState = getFlowStoreState();
       const selectedNode = flowState.getSelectedNode();
       if (!selectedNode) return;
-      const stageNodes = flowState.flow ? getStageGraph(flowState.flow, flowState.activeStage).nodes : [];
+      const stageNodes = flowState.flow
+        ? resolveScopeGraph(flowState.flow, flowState.activeStage, flowState.loopPath).nodes
+        : [];
       const hasAlternativeEntry = stageNodes.some(
         (n) => n.uuid !== selectedNode.uuid && isEntryNodeType(n.type)
       );
@@ -246,7 +249,7 @@ export function useKeyboardShortcuts() {
               x: selectedNode.position.x + offset,
               y: selectedNode.position.y + offset,
             },
-            data: JSON.parse(JSON.stringify(selectedNode.data)),
+            data: cloneNodeData(selectedNode.data),
           });
           state.selectNode(newUuid);
         }

@@ -709,6 +709,60 @@ export type ProxyConfigFormData = z.infer<typeof proxyConfigSchema>;
 
 
 // ============================================================================
+// Loop / Delay 配置 Schema
+// ============================================================================
+
+/**
+ * 循环来源枚举
+ */
+export const loopSourceSchema = z.enum(['until', 'items', 'count']);
+export type LoopSourceFormData = z.infer<typeof loopSourceSchema>;
+
+/**
+ * Loop 报告裁剪表单 Schema
+ */
+export const loopReportConfigSchema = z.object({
+  detail_iterations: z.number().int().min(0),
+  always_keep_failed: z.boolean(),
+});
+export type LoopReportConfigFormData = z.infer<typeof loopReportConfigSchema>;
+
+/**
+ * Loop 配置表单 Schema
+ *
+ * `body` 是内联子图，由画布下钻编辑，这里透传不校验。
+ */
+export const loopConfigSchema = z.object({
+  type: z.literal('flow:loop'),
+  source: loopSourceSchema,
+  items: z.string().optional(),
+  count: z.number().int().min(0).optional(),
+  until: z.string().optional(),
+  interval_ms: z.number().int().min(0).optional(),
+  interval_backoff: z.number().min(1).optional(),
+  interval_max_ms: z.number().int().min(0).optional(),
+  initial_delay_ms: z.number().int().min(0).optional(),
+  max_iterations: z.number().int().min(1),
+  concurrency: z.number().int().min(1),
+  body: z.unknown(),
+  output_mappings: z.array(z.unknown()).optional(),
+  break_on_error: z.boolean(),
+  timeout_ms: z.number().int().min(0).optional(),
+  report: loopReportConfigSchema,
+});
+export type LoopConfigFormData = z.infer<typeof loopConfigSchema>;
+
+/**
+ * Delay 配置表单 Schema
+ */
+export const delayConfigSchema = z.object({
+  type: z.literal('flow:delay'),
+  duration_ms: z.string().min(1),
+  jitter_ms: z.number().int().min(0),
+});
+export type DelayConfigFormData = z.infer<typeof delayConfigSchema>;
+
+// ============================================================================
 // 未知节点类型 Fallback Schema
 // ============================================================================
 

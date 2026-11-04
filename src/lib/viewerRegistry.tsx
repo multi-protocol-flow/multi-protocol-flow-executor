@@ -17,6 +17,7 @@ import { SseViewer } from '@/components/execution/viewers/SseViewer';
 import { GraphqlViewer } from '@/components/execution/viewers/GraphqlViewer';
 import { PluginIframeViewer } from '@/components/execution/viewers/PluginIframeViewer';
 import { SubFlowViewer } from '@/components/execution/viewers/SubFlowViewer';
+import { LoopViewer } from '@/components/execution/viewers/LoopViewer';
 import { getCachedNodeMeta } from '@/lib/NodeRegistry';
 
 interface ViewerProps {
@@ -50,6 +51,12 @@ export const viewerRegistry: Record<string, ComponentType<ViewerProps>> = {
    */
   get ['flow:sub']() {
     return SubFlowViewer;
+  },
+  /**
+   * LoopViewer 同样经 `NodeExecutionDetails` 渲染 body 节点，使用 getter 规避 TDZ。
+   */
+  get ['flow:loop']() {
+    return LoopViewer;
   },
   'http:request': HttpNodeViewer,
   'http:ingress': GenericViewer,
