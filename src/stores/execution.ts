@@ -119,6 +119,13 @@ const MAX_PLUGIN_EVENTS = 200;
  */
 export const MAX_LIVE_LOOP_REPORT_ROUNDS = 100;
 
+/** 复制 map 并移除指定 key（不修改入参，保持 Zustand 引用稳定语义） */
+function omitKey<T>(map: Record<string, T>, key: string): Record<string, T> {
+  const next = { ...map };
+  delete next[key];
+  return next;
+}
+
 const initialState = {
   isExecuting: false,
   activeFlowUuid: null as string | null,
@@ -311,11 +318,16 @@ export const useExecutionStore = create<ExecutionState>((set, get) => {
         });
       } else if ('nodeStarted' in event) {
         const { nodeUuid, nodeName, parentNodeUuid } = event.nodeStarted;
+        // 同一 UUID 的 loop 节点可被再次执行（子流程 / 循环体重跑），
+        // 重新开始时丢弃上一轮的实时进度，避免新旧迭代混在一起。
         if (parentNodeUuid) {
           // 子流程内部节点开始：SubFlow 节点保持"运行中"，并记录当前子节点名称
           queueEventUpdate((state) => {
             const prev = state.subFlowProgressMap[parentNodeUuid];
             return {
+              ...(state.loopProgressMap[nodeUuid]
+                ? { loopProgressMap: omitKey(state.loopProgressMap, nodeUuid) }
+                : {}),
               subFlowProgressMap: {
                 ...state.subFlowProgressMap,
                 [parentNodeUuid]: {
@@ -328,7 +340,12 @@ export const useExecutionStore = create<ExecutionState>((set, get) => {
           });
           return;
         }
-        queueEventUpdate({ currentNodeUuid: nodeUuid });
+        queueEventUpdate((state) => ({
+          ...(state.loopProgressMap[nodeUuid]
+            ? { loopProgressMap: omitKey(state.loopProgressMap, nodeUuid) }
+            : {}),
+          currentNodeUuid: nodeUuid,
+        }));
         // 自动跟随节点切换画布阶段（Setup / Main / Teardown）
         // 仅当当前画布展示的流程与执行中的流程一致时才自动切换阶段，避免后台流程篡改前台新流程的画布
         const flowState = useFlowStore.getState();
@@ -381,12 +398,6 @@ export const useExecutionStore = create<ExecutionState>((set, get) => {
           return;
         }
         queueEventUpdate((state) => {
-          let loopProgressMap = state.loopProgressMap;
-          if (loopProgressMap[report.node_uuid]) {
-            const next = { ...loopProgressMap };
-            delete next[report.node_uuid];
-            loopProgressMap = next;
-          }
           let nextActiveInteractions = state.activeInteractions;
           if (state.activeInteractions[report.node_uuid]) {
             const next = { ...state.activeInteractions };
@@ -401,7 +412,6 @@ export const useExecutionStore = create<ExecutionState>((set, get) => {
             completedNodeCount: state.completedNodeCount + 1,
             currentNodeUuid: null,
             activeInteractions: nextActiveInteractions,
-            loopProgressMap,
           };
         });
       } else if ('flowCompleted' in event) {

@@ -542,7 +542,7 @@ describe('ExecutionStore', () => {
       expect(progress.reports[progress.reports.length - 1].iteration_index).toBe(rounds - 1);
     });
 
-    it('should drop live loop progress once the loop node report arrives', () => {
+    it('should keep live loop progress after the loop node report arrives until the node restarts', () => {
       useExecutionStore.getState().handleExecutionEvent({
         flowStarted: { flowUuid: 'f1', flowName: 'Loop', totalNodes: 2 },
       });
@@ -550,9 +550,23 @@ describe('ExecutionStore', () => {
         loopIteration: {
           nodeUuid: 'loop-1',
           iteration: { index: 0, status: 'success', duration_ms: 5, wait_ms: 0 },
+          reports: [
+            {
+              node_uuid: 'body-1',
+              node_type: 'script',
+              node_name: 'body',
+              start_time: 1000,
+              end_time: 1005,
+              duration_ms: 5,
+              status: 'success',
+              input_data: null,
+              output_data: { round: 0 },
+              iteration_index: 0,
+              iteration_of: 'loop-1',
+            },
+          ],
         },
       });
-      expect(useExecutionStore.getState().loopProgressMap['loop-1']).toBeDefined();
 
       useExecutionStore.getState().handleExecutionEvent({
         nodeCompleted: {
@@ -566,6 +580,7 @@ describe('ExecutionStore', () => {
             status: 'success',
             input_data: null,
             output_data: null,
+            is_detail_stripped: true,
             iteration_summary: [
               { index: 0, status: 'success', duration_ms: 5, wait_ms: 0 },
             ],
@@ -573,8 +588,36 @@ describe('ExecutionStore', () => {
         },
       });
 
-      expect(useExecutionStore.getState().loopProgressMap['loop-1']).toBeUndefined();
+      // 热通道报告被剥离了 sub_flow_report，保留实时进度以便流程剩余时间内仍可查看每轮结果
       expect(useExecutionStore.getState().nodeReportsMap['loop-1']).toBeDefined();
+      expect(useExecutionStore.getState().loopProgressMap['loop-1']?.reports).toHaveLength(1);
+
+      // 同一节点重新执行（子流程/循环体再次进入）时清空，避免新旧迭代混在一起
+      useExecutionStore.getState().handleExecutionEvent({
+        nodeStarted: {
+          nodeUuid: 'loop-1',
+          nodeName: 'Loop',
+          nodeType: 'flow:loop',
+        },
+      });
+      expect(useExecutionStore.getState().loopProgressMap['loop-1']).toBeUndefined();
+
+      // 嵌套（子流程 / 外层循环体）内重跑时同样清空，避免跨外层迭代累积旧轮次
+      useExecutionStore.getState().handleExecutionEvent({
+        loopIteration: {
+          nodeUuid: 'loop-nested',
+          iteration: { index: 0, status: 'success', duration_ms: 1, wait_ms: 0 },
+        },
+      });
+      useExecutionStore.getState().handleExecutionEvent({
+        nodeStarted: {
+          nodeUuid: 'loop-nested',
+          nodeName: 'Nested',
+          nodeType: 'flow:loop',
+          parentNodeUuid: 'outer-loop',
+        },
+      });
+      expect(useExecutionStore.getState().loopProgressMap['loop-nested']).toBeUndefined();
     });
 
     it('should handle FlowCompleted event', () => {
