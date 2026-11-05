@@ -9,3 +9,5 @@ pub mod http;
 pub mod http_executor;
 /// HTTP 节点插件，实现 `NodePlugin` trait
 pub mod plugin;
+/// 响应媒体类型判定与内联载荷
+pub mod response_media;

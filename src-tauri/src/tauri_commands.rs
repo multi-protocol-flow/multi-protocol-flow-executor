@@ -467,6 +467,148 @@ pub fn export_stress_report_html(
 ) -> Result<(), String> {
     flow_engine::commands::export_stress_report_html(report, &file_path)
 }
+
+/// 媒体保存来源
+#[derive(Debug, Clone, serde::Deserialize)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+pub enum MediaSaveSource {
+    /// 远程 URL，由宿主下载后写盘（webview fetch 会被 CORS 阻塞）
+    Url {
+        /// 媒体地址，仅支持 http(s)
+        url: String,
+    },
+    /// `data:<mime>;base64,<payload>`
+    DataUrl {
+        /// 完整 data URL
+        data_url: String,
+    },
+    /// 原始文本响应体
+    Body {
+        /// 文本内容
+        body: String,
+    },
+}
+
+/// 单次媒体下载的硬上限（512 MB）
+const MAX_MEDIA_DOWNLOAD_BYTES: usize = 512 * 1024 * 1024;
+
+/// 分块读取响应体，超过上限立即中止（不依赖 `Content-Length`，防止 chunked 响应把内存打爆）
+async fn read_body_capped(mut response: reqwest::Response) -> Result<Vec<u8>, String> {
+    if let Some(len) = response.content_length() {
+        if len > MAX_MEDIA_DOWNLOAD_BYTES as u64 {
+            return Err(format!("media too large: {len} bytes"));
+        }
+    }
+
+    let mut bytes: Vec<u8> = Vec::new();
+    while let Some(chunk) = response
+        .chunk()
+        .await
+        .map_err(|e| format!("download failed: {e}"))?
+    {
+        if bytes.len() + chunk.len() > MAX_MEDIA_DOWNLOAD_BYTES {
+            return Err(format!(
+                "media too large: exceeds {} bytes",
+                MAX_MEDIA_DOWNLOAD_BYTES
+            ));
+        }
+        bytes.extend_from_slice(&chunk);
+    }
+    Ok(bytes)
+}
+
+/// 把媒体内容写入用户选择好的路径，返回实际写入路径
+#[tauri::command]
+pub async fn save_response_media(
+    source: MediaSaveSource,
+    file_path: String,
+) -> Result<String, String> {
+    let bytes: Vec<u8> = match source {
+        MediaSaveSource::Url { url } => {
+            if !(url.starts_with("http://") || url.starts_with("https://")) {
+                return Err("only http(s) URLs are supported".to_string());
+            }
+            let _ = rustls::crypto::ring::default_provider().install_default();
+            let client = reqwest::Client::builder()
+                .timeout(Duration::from_secs(120))
+                .build()
+                .map_err(|e| format!("failed to build http client: {e}"))?;
+            let response = client
+                .get(&url)
+                .send()
+                .await
+                .map_err(|e| format!("download failed: {e}"))?
+                .error_for_status()
+                .map_err(|e| format!("download failed: {e}"))?;
+            read_body_capped(response).await?
+        }
+        MediaSaveSource::DataUrl { data_url } => {
+            use base64::Engine;
+            let (meta, payload) = data_url
+                .split_once(',')
+                .ok_or_else(|| "invalid data url".to_string())?;
+            if !meta.ends_with(";base64") {
+                return Err("unsupported data url: base64 required".to_string());
+            }
+            let cleaned: String = payload
+                .chars()
+                .filter(|c| !c.is_ascii_whitespace())
+                .collect();
+            base64::engine::general_purpose::STANDARD
+                .decode(cleaned)
+                .map_err(|e| format!("base64 decode failed: {e}"))?
+        }
+        MediaSaveSource::Body { body } => body.into_bytes(),
+    };
+
+    // 与 report_commands::export_flow_report_html 同形：先建父目录
+    let path = std::path::Path::new(&file_path);
+    if let Some(parent) = path.parent() {
+        if !parent.as_os_str().is_empty() && !parent.exists() {
+            std::fs::create_dir_all(parent)
+                .map_err(|e| format!("failed to create parent directory: {e}"))?;
+        }
+    }
+
+    // 目标路径由前端对话框给出，用户可能重复选择同名文件：
+    // 用 `create_new` 原子占位，避免「先 exists 再 write」的 TOCTOU 覆盖。
+    let parent = path.parent().map(|p| p.to_path_buf()).unwrap_or_default();
+    let stem = path
+        .file_stem()
+        .map(|s| s.to_string_lossy().to_string())
+        .unwrap_or_else(|| "media".to_string());
+    let ext = path.extension().map(|s| s.to_string_lossy().to_string());
+
+    let candidates = std::iter::once(path.to_path_buf()).chain((1..=1000u32).map(|i| match &ext {
+        Some(ext) => parent.join(format!("{stem}-{i}.{ext}")),
+        None => parent.join(format!("{stem}-{i}")),
+    }));
+
+    let mut written = None;
+    for candidate in candidates {
+        match std::fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&candidate)
+        {
+            Ok(mut file) => {
+                use std::io::Write;
+                file.write_all(&bytes)
+                    .map_err(|e| format!("failed to write {}: {}", candidate.display(), e))?;
+                written = Some(candidate);
+                break;
+            }
+            // 已存在 → 继续尝试下一个名字
+            Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => continue,
+            Err(e) => {
+                return Err(format!("failed to write {}: {}", candidate.display(), e));
+            }
+        }
+    }
+
+    let target = written.ok_or_else(|| "too many duplicate file names".to_string())?;
+    Ok(target.display().to_string())
+}
 // ============================================================================
 // SSE 连接测试命令
 // ============================================================================
@@ -3147,5 +3289,140 @@ mod tests {
         let large = vec![b'a'; 33 * 1024];
         let truncated = truncate_ai_cmd_output(&large);
         assert!(truncated.contains("...[output truncated due to 32KB size limit]"));
+    }
+
+    // ========================================================================
+    // 媒体保存命令
+    // ========================================================================
+
+    #[tokio::test]
+    async fn test_save_response_media_body() {
+        let dir = tempfile::TempDir::new().expect("temp dir");
+        let target = dir.path().join("nested").join("body.txt");
+
+        let written = save_response_media(
+            MediaSaveSource::Body {
+                body: "[image/png 8 bytes]".to_string(),
+            },
+            target.display().to_string(),
+        )
+        .await
+        .expect("写盘应成功");
+
+        assert_eq!(
+            std::fs::read_to_string(&written).expect("读取失败"),
+            "[image/png 8 bytes]"
+        );
+        assert!(std::path::Path::new(&written).exists());
+    }
+
+    #[tokio::test]
+    async fn test_save_response_media_data_url_decodes_base64() {
+        let dir = tempfile::TempDir::new().expect("temp dir");
+        let target = dir.path().join("a.png");
+
+        let written = save_response_media(
+            MediaSaveSource::DataUrl {
+                data_url: "data:image/png;base64,iVBORw0KGgo=".to_string(),
+            },
+            target.display().to_string(),
+        )
+        .await
+        .expect("解码应成功");
+
+        let bytes = std::fs::read(&written).expect("读取失败");
+        assert_eq!(bytes, vec![0x89, b'P', b'N', b'G', 0x0d, 0x0a, 0x1a, 0x0a]);
+    }
+
+    #[tokio::test]
+    async fn test_save_response_media_deduplicates_filename() {
+        let dir = tempfile::TempDir::new().expect("temp dir");
+        let target = dir.path().join("dup.txt").display().to_string();
+
+        let first = save_response_media(
+            MediaSaveSource::Body {
+                body: "one".to_string(),
+            },
+            target.clone(),
+        )
+        .await
+        .expect("首次写盘应成功");
+        let second = save_response_media(
+            MediaSaveSource::Body {
+                body: "two".to_string(),
+            },
+            target,
+        )
+        .await
+        .expect("第二次写盘应成功");
+
+        assert!(first.ends_with("dup.txt"));
+        assert!(second.ends_with("dup-1.txt"), "实际路径: {second}");
+        assert_eq!(std::fs::read_to_string(&first).expect("读取失败"), "one");
+        assert_eq!(std::fs::read_to_string(&second).expect("读取失败"), "two");
+    }
+
+    #[tokio::test]
+    async fn test_save_response_media_rejects_non_http_url() {
+        let dir = tempfile::TempDir::new().expect("temp dir");
+        let result = save_response_media(
+            MediaSaveSource::Url {
+                url: "ftp://example.com/a.png".to_string(),
+            },
+            dir.path().join("a.png").display().to_string(),
+        )
+        .await;
+
+        assert!(result.is_err());
+        assert!(result
+            .expect_err("应返回错误")
+            .contains("only http(s) URLs"));
+    }
+
+    /// 起一个只应答一次的本地 HTTP 服务，返回其地址
+    async fn spawn_chunked_response(response: &'static [u8]) -> std::net::SocketAddr {
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
+            .await
+            .expect("本地 TcpListener 绑定失败");
+        let addr = listener.local_addr().expect("获取本地地址失败");
+
+        tokio::spawn(async move {
+            for _ in 0..4 {
+                let Ok((mut socket, _)) = listener.accept().await else {
+                    return;
+                };
+                let mut buf = [0u8; 8192];
+                let _ = socket.read(&mut buf).await;
+                let _ = socket.write_all(response).await;
+                let _ = socket.flush().await;
+                let _ = socket.shutdown().await;
+            }
+        });
+
+        addr
+    }
+
+    #[tokio::test]
+    async fn test_save_response_media_downloads_chunked_url() {
+        // 无 Content-Length 的 chunked 响应，覆盖分块读取路径
+        const CHUNKED: &[u8] = b"HTTP/1.1 200 OK\r\nContent-Type: image/png\r\nTransfer-Encoding: chunked\r\nConnection: close\r\n\r\n4\r\n\x89PNG\r\n4\r\n\x0d\x0a\x1a\x0a\r\n0\r\n\r\n";
+
+        let addr = spawn_chunked_response(CHUNKED).await;
+        let dir = tempfile::TempDir::new().expect("temp dir");
+        let target = dir.path().join("chunked.png");
+
+        let written = save_response_media(
+            MediaSaveSource::Url {
+                url: format!("http://{addr}/a.png"),
+            },
+            target.display().to_string(),
+        )
+        .await
+        .expect("分块下载应成功");
+
+        let bytes = std::fs::read(&written).expect("读取失败");
+        assert_eq!(bytes, vec![0x89, b'P', b'N', b'G', 0x0d, 0x0a, 0x1a, 0x0a]);
     }
 }

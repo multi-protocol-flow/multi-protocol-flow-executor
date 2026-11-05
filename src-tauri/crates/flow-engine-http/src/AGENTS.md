@@ -10,9 +10,10 @@ Layer 1 protocol crate. HTTP client built on hyper 1.x + tokio-rustls (rustls wi
 
 ```
 src/
-├── lib.rs               # Crate root, 3 mod declarations
-├── http_executor.rs     # HTTP node executor (~2,800 lines)
+├── lib.rs               # Crate root, 4 mod declarations
+├── http_executor.rs     # HTTP node executor (~3,000 lines)
 ├── plugin.rs            # HttpPlugin: type_id, ports, config_schema, resolve_port, execute dispatch
+├── response_media.rs    # MediaPayload: image/video Content-Type detection + data: URL inline (4 MB cap)
 └── http/
     ├── mod.rs           # Re-exports public API
     ├── client.rs        # HttpClient: hyper dispatch, timing capture
@@ -31,6 +32,7 @@ src/
 | Task | File |
 |------|------|
 | HTTP node execution / variable resolution / response handling | `http_executor.rs` |
+| Media response classification (image/video → `output_data.media`) | `response_media.rs` |
 | NodePlugin registration, config schema, port resolution | `plugin.rs` |
 | Low-level hyper client, request dispatch | `http/client.rs` |
 | Body type construction (JSON, form-data, urlencoded, binary) | `http/body.rs` |

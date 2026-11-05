@@ -919,24 +919,34 @@ impl NodeExecutor for HttpNodeExecutor {
             .map(|ct| ct.contains("application/json"))
             .unwrap_or(false);
 
-        // 获取响应体
-        let body_text = String::from_utf8(http_result.response.body.clone())
-            .unwrap_or_else(|e| format!("Invalid UTF-8: {}", e));
+        // 媒体响应（image/* | video/*）走后端分流，其余路径保持原有文本/JSON 解析
+        let media = crate::response_media::detect_media(
+            headers_map.get("content-type").map(|v| v.as_str()),
+            &http_result.response.body,
+        );
 
-        // Parse response body as JSON (if Content-Type is application/json)
-        let body_json = if is_json {
-            serde_json::from_str(&body_text).unwrap_or_else(|e| {
-                log::warn!(
-                    "[Flow {}] [Warning] NodeID: {}, NodeName: {}, JSON parse failed: {}",
-                    context.flow_uuid,
-                    node.uuid,
-                    node.name,
-                    e
-                );
-                serde_json::Value::String(body_text)
-            })
-        } else {
-            serde_json::Value::String(body_text)
+        let body_json = match &media {
+            Some(m) => serde_json::Value::String(m.placeholder.clone()),
+            None => {
+                let body_text = String::from_utf8(http_result.response.body.clone())
+                    .unwrap_or_else(|e| format!("Invalid UTF-8: {}", e));
+
+                // Parse response body as JSON (if Content-Type is application/json)
+                if is_json {
+                    serde_json::from_str(&body_text).unwrap_or_else(|e| {
+                        log::warn!(
+                            "[Flow {}] [Warning] NodeID: {}, NodeName: {}, JSON parse failed: {}",
+                            context.flow_uuid,
+                            node.uuid,
+                            node.name,
+                            e
+                        );
+                        serde_json::Value::String(body_text)
+                    })
+                } else {
+                    serde_json::Value::String(body_text)
+                }
+            }
         };
 
         // Determine success (2xx status codes)
@@ -970,7 +980,7 @@ impl NodeExecutor for HttpNodeExecutor {
         let timing = http_result.timing;
 
         // 构建统一输出数据结构
-        let output_data = serde_json::json!({
+        let mut output_data = serde_json::json!({
             "success": is_success,
             "status": status_code,
             "headers": headers_map,
@@ -987,6 +997,22 @@ impl NodeExecutor for HttpNodeExecutor {
             },
             "timing": timing
         });
+
+        // 仅媒体响应附加 `media` 键，非媒体响应保持字节级不变
+        if let Some(m) = &media {
+            let mut media_json = serde_json::json!({
+                "kind": m.kind,
+                "mime": m.mime,
+                "bytes": m.bytes,
+            });
+            if let Some(url) = &m.data_url {
+                media_json["data_url"] = serde_json::Value::String(url.clone());
+            }
+            if m.omitted {
+                media_json["omitted"] = serde_json::Value::Bool(true);
+            }
+            output_data["media"] = media_json;
+        }
 
         // Calculate total execution time
         let _duration_ms = start_time.elapsed().as_millis();
@@ -3630,5 +3656,107 @@ mod tests {
         assert_eq!(output["success"], false);
         assert!(output["status"].is_null(), "网络Error时 status 应该为 null");
         assert!(output["error"].is_string(), "网络Error时应该有 error 字段");
+    }
+
+    // ============================================================================
+    // 测试：媒体响应分流（本地 TcpListener 夹具，无需外部服务）
+    // ============================================================================
+
+    /// 起一个仅应答一次的本地 HTTP 服务，返回其地址
+    ///
+    /// 允许最多 4 次 accept：客户端若因重试/探测再开一条连接，夹具不会挂死，
+    /// 只会多应答一次后退出。
+    async fn spawn_fixed_response(response: &'static [u8]) -> std::net::SocketAddr {
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
+            .await
+            .expect("本地 TcpListener 绑定失败");
+        let addr = listener.local_addr().expect("获取本地地址失败");
+
+        tokio::spawn(async move {
+            for _ in 0..4 {
+                let Ok((mut socket, _)) = listener.accept().await else {
+                    return;
+                };
+                let mut buf = [0u8; 8192];
+                let _ = socket.read(&mut buf).await;
+                let _ = socket.write_all(response).await;
+                let _ = socket.flush().await;
+                let _ = socket.shutdown().await;
+            }
+        });
+
+        addr
+    }
+
+    #[tokio::test]
+    async fn test_http_response_media_split() {
+        const PNG_RESPONSE: &[u8] = b"HTTP/1.1 200 OK\r\nContent-Type: image/png\r\nContent-Length: 8\r\nConnection: close\r\n\r\n\x89PNG\r\n\x1a\n";
+
+        let addr = spawn_fixed_response(PNG_RESPONSE).await;
+        let node = create_http_node(
+            "test-media",
+            "HTTP 图片响应",
+            &format!("http://{addr}/a.png"),
+            HttpMethod::Get,
+            None,
+            None,
+        );
+
+        let mut context = create_context("test-flow", json!({}));
+        let executor = HttpNodeExecutor::new();
+
+        let result = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
+
+        let (_next, output_data) = result.unwrap_or_else(|e| panic!("请求应该返回Ok: {e:?}"));
+        let output = output_data.unwrap_or_else(|| panic!("expected Some"));
+
+        assert_eq!(output["media"]["kind"], "image");
+        assert_eq!(output["media"]["mime"], "image/png");
+        assert_eq!(output["media"]["bytes"], 8);
+        assert!(output["media"].get("omitted").is_none());
+        let data_url = output["media"]["data_url"]
+            .as_str()
+            .expect("媒体响应应有 data_url");
+        assert!(
+            data_url.starts_with("data:image/png;base64,"),
+            "data_url 前缀错误: {data_url}"
+        );
+        assert_eq!(output["body"], "[image/png 8 bytes]");
+
+        // 响应头仍原样保留，供前端判定扩展名
+        assert_eq!(output["headers"]["content-type"], "image/png");
+    }
+
+    #[tokio::test]
+    async fn test_http_non_media_response_has_no_media_key() {
+        const JSON_RESPONSE: &[u8] = b"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 11\r\nConnection: close\r\n\r\n{\"ok\":true}";
+
+        let addr = spawn_fixed_response(JSON_RESPONSE).await;
+        let node = create_http_node(
+            "test-non-media",
+            "HTTP JSON 响应",
+            &format!("http://{addr}/a.json"),
+            HttpMethod::Get,
+            None,
+            None,
+        );
+
+        let mut context = create_context("test-flow", json!({}));
+        let executor = HttpNodeExecutor::new();
+
+        let result = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
+
+        let (_next, output_data) = result.unwrap_or_else(|e| panic!("请求应该返回Ok: {e:?}"));
+        let output = output_data.unwrap_or_else(|| panic!("expected Some"));
+
+        assert!(output.get("media").is_none(), "非媒体响应不应出现 media 键");
+        assert!(output["body"].is_object(), "非媒体响应体应解析为 JSON 对象");
+        assert_eq!(output["body"]["ok"], true);
     }
 }

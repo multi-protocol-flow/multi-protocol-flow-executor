@@ -526,6 +526,10 @@ pub fn generate_flow_report_html(
     report: &FlowExecutionReport,
     env_name: Option<&str>,
 ) -> String {
+    let mut sanitized = report.clone();
+    super::strip_inline_media(&mut sanitized);
+    let report = &sanitized;
+
     let mut html = String::with_capacity(32 * 1024);
 
     let is_success = report.status == ExecutionStatus::Success;
@@ -1244,5 +1248,43 @@ mod tests {
         assert!(html.contains("chart-svg"));
         assert!(html.contains("HTTP Checkout"));
         assert!(html.contains("Connection reset by peer"));
+    }
+
+    #[test]
+    fn test_export_strips_inline_media() {
+        let mut report = make_test_flow_report();
+        let media_output = serde_json::json!({
+            "body": "[image/png 8 bytes]",
+            "media": {
+                "kind": "image",
+                "mime": "image/png",
+                "bytes": 8,
+                "data_url": "data:image/png;base64,iVBORw0KGgo="
+            }
+        });
+        report.stages.main.node_reports[0].output_data = Some(media_output.clone());
+        // 执行器会把整份报告镜像进 `$report` 变量，导出时同样要剥离
+        report.final_variables = Some(serde_json::json!({
+            "$report": {
+                "node_reports": [
+                    { "output_data": media_output }
+                ]
+            }
+        }));
+
+        let html = generate_flow_report_html(&report, None);
+
+        assert!(
+            !html.contains("data:image/png;base64"),
+            "导出 HTML 不应包含内联 base64 载荷"
+        );
+        assert!(html.contains("[media omitted]"), "应替换为占位符");
+        // 原始报告不被修改
+        assert!(report.stages.main.node_reports[0]
+            .output_data
+            .as_ref()
+            .and_then(|v| v["media"]["data_url"].as_str())
+            .map(|s| s.starts_with("data:image/png;base64,"))
+            .unwrap_or(false));
     }
 }

@@ -144,10 +144,28 @@ impl FlowStatistics {
             }
             serde_json::Value::String(s) => s.len() as u64,
             serde_json::Value::Array(arr) => arr.iter().map(Self::estimate_json_size).sum::<u64>(),
-            serde_json::Value::Object(obj) => {
-                obj.values().map(Self::estimate_json_size).sum::<u64>()
-            }
+            serde_json::Value::Object(obj) => obj
+                .iter()
+                .filter(|(k, v)| !(k.as_str() == "media" && Self::is_media_preview(v)))
+                .map(|(_, v)| Self::estimate_json_size(v))
+                .sum::<u64>(),
         }
+    }
+
+    /// 判断值是否为后端媒体预览信封（`{kind, mime, bytes, data_url?}`）
+    ///
+    /// 只排除这类信封，避免把业务 JSON 里恰好叫 `media` 的字段一起漏算。
+    fn is_media_preview(value: &serde_json::Value) -> bool {
+        let Some(obj) = value.as_object() else {
+            return false;
+        };
+        let has_kind = matches!(
+            obj.get("kind").and_then(|v| v.as_str()),
+            Some("image") | Some("video")
+        );
+        has_kind
+            && obj.contains_key("bytes")
+            && (obj.contains_key("mime") || obj.contains_key("data_url"))
     }
 
     /// 获取总执行节点数
@@ -411,6 +429,33 @@ mod tests {
         let obj = json!({"a": 1, "b": 2, "c": 3});
         let size = FlowStatistics::estimate_json_size(&obj);
         assert!(size > 0);
+    }
+
+    #[test]
+    fn test_estimate_json_size_ignores_media() {
+        let value = json!({
+            "status": 200,
+            "media": {
+                "kind": "image",
+                "mime": "image/png",
+                "bytes": 1_000_000,
+                "data_url": "x".repeat(1_000_000),
+            }
+        });
+
+        let size = FlowStatistics::estimate_json_size(&value);
+        assert!(size < 1000, "media 内联载荷不应计入统计大小，实际 {size}");
+    }
+
+    #[test]
+    fn test_estimate_json_size_keeps_business_media_field() {
+        // 业务 JSON 里恰好叫 `media` 的字段不是预览信封，必须照常计入
+        let value = json!({
+            "media": { "title": "x".repeat(2000) }
+        });
+
+        let size = FlowStatistics::estimate_json_size(&value);
+        assert!(size >= 2000, "业务 media 字段不应被漏算，实际 {size}");
     }
 
     #[test]

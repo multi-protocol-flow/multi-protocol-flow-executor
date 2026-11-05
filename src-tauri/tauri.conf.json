@@ -29,7 +29,8 @@
         "script-src": "'self'",
         "style-src": "'self' 'unsafe-inline'",
         "connect-src": "'self' tauri: http: https: ws: wss: data: blob:",
-        "img-src": "'self' data:",
+        "img-src": "'self' data: http: https:",
+        "media-src": "'self' data: http: https:",
         "frame-src": "mpe-plugin: http://mpe-plugin.localhost http://*.mpe-plugin.localhost"
       }
     }

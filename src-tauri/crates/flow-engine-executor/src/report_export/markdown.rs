@@ -25,6 +25,10 @@ pub fn generate_flow_markdown_summary(
     report: &FlowExecutionReport,
     env_name: Option<&str>,
 ) -> String {
+    let mut sanitized = report.clone();
+    super::strip_inline_media(&mut sanitized);
+    let report = &sanitized;
+
     let mut md = String::with_capacity(1024);
 
     let is_success = report.status == ExecutionStatus::Success;
@@ -537,5 +541,34 @@ mod tests {
         assert!(md.contains("Node-level Performance"));
         assert!(md.contains("Error Statistics"));
         assert!(md.contains("Gateway timeout 504"));
+    }
+
+    #[test]
+    fn test_markdown_strips_inline_media() {
+        let mut report = make_test_flow_report(ExecutionStatus::Failed);
+        report.stages.main.node_reports.push(NodeExecutionReport {
+            node_name: "Fetch Image".to_string(),
+            node_type: "http:request".to_string(),
+            status: ExecutionStatus::Failed,
+            duration_ms: 10,
+            output_data: Some(serde_json::json!({
+                "body": "[image/png 8 bytes]",
+                "media": {
+                    "kind": "image",
+                    "mime": "image/png",
+                    "bytes": 8,
+                    "data_url": "data:image/png;base64,iVBORw0KGgo="
+                }
+            })),
+            ..Default::default()
+        });
+
+        let md = generate_flow_markdown_summary(&report, None);
+
+        assert!(
+            !md.contains("data:image/png;base64"),
+            "Markdown 导出不应包含内联 base64 载荷"
+        );
+        assert!(md.contains("[media omitted]"), "应替换为占位符");
     }
 }
