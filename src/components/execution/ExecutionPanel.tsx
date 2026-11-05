@@ -328,10 +328,15 @@ const NodeOutputPane = memo(function NodeOutputPane({
     );
   });
   const hasViewerOrStream = Boolean(nodeMeta?.viewer || hasStreamData);
+  // `flow:loop` 是内置节点，`nodeMeta.viewer` 恒为空；它靠 `LoopIteration`
+  // 实时事件累积迭代进度，必须把这份进度也算作可渲染的详情来源，
+  // 否则运行中只会显示转圈占位，看不到每一轮的结果。
+  const hasLiveLoopProgress = Boolean(loopProgress && loopProgress.iterations.length > 0);
+  const canRenderLiveDetails = hasViewerOrStream || hasLiveLoopProgress;
   const isRunning = status === 'running';
 
   const liveReport = useMemo<NodeExecutionReport | null>(() => {
-    if (!isRunning || !hasViewerOrStream || !nodeUuid) return null;
+    if (!isRunning || !canRenderLiveDetails || !nodeUuid) return null;
     const base: NodeExecutionReport = report ?? {
       node_uuid: nodeUuid,
       node_type: nodeType,
@@ -356,7 +361,7 @@ const NodeOutputPane = memo(function NodeOutputPane({
     };
   }, [
     isRunning,
-    hasViewerOrStream,
+    canRenderLiveDetails,
     nodeUuid,
     report,
     nodeType,
@@ -364,6 +369,24 @@ const NodeOutputPane = memo(function NodeOutputPane({
     node?.data,
     loopProgress,
   ]);
+
+  /**
+   * 循环结束后热通道事件会剥离 `sub_flow_report`（大报文走冷通道），
+   * 但流程可能还要继续执行很久。此时用实时累积的迭代进度补回该轮正文，
+   * 让用户在剩余执行期间仍能查看每一轮的结果；冷通道详情到达后自动让位。
+   */
+  const displayReport = useMemo<NodeExecutionReport | null>(() => {
+    if (!report) return null;
+    if (!loopProgress || report.sub_flow_report) return report;
+    if (!report.is_detail_stripped || loopProgress.reports.length === 0) return report;
+    return {
+      ...report,
+      iteration_summary: report.iteration_summary ?? loopProgress.iterations,
+      truncated_iterations: report.truncated_iterations ?? loopProgress.truncated,
+      sub_flow_report: buildLiveLoopSubFlowReport(report, loopProgress),
+    };
+  }, [report, loopProgress]);
+
   // ===== 冷通道按需拉取完整报文 =====
   useEffect(() => {
     // 关键优化：执行期间自动跟随模式下不预拉取大报文，避免频繁 IPC 与重渲染导致页面卡顿；
@@ -405,14 +428,14 @@ const NodeOutputPane = memo(function NodeOutputPane({
   }
 
   if (isRunning) {
-    if (hasViewerOrStream && liveReport) {
+    if (canRenderLiveDetails && liveReport) {
       return (
         <div className="h-full overflow-y-auto scrollbar-thin">
           <div className="p-3 space-y-3">
             {activeInteraction && (
               <HumanInteractionCard nodeUuid={nodeUuid} interaction={activeInteraction} />
             )}
-            <NodeExecutionDetails report={liveReport} />
+            <NodeExecutionDetails key="node-details" report={liveReport} />
           </div>
         </div>
       );
@@ -437,7 +460,7 @@ const NodeOutputPane = memo(function NodeOutputPane({
   return (
     <div className="h-full overflow-y-auto scrollbar-thin">
       <div className="p-3">
-        <NodeExecutionDetails report={report} />
+        <NodeExecutionDetails key="node-details" report={displayReport ?? report} />
       </div>
     </div>
   );
