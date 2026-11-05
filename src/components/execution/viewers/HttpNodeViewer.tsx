@@ -2,7 +2,7 @@
  * HttpNodeViewer - HTTP 节点执行详情查看器
  * 结构化展示 HTTP 请求配置、响应状态、响应头、响应体和耗时分解
  */
-import { useState, useCallback, memo } from 'react';
+import { useState, useCallback, useMemo, memo } from 'react';
 import {
   ChevronDown,
   ChevronRight,
@@ -11,6 +11,8 @@ import {
   Clock,
   ArrowDownToLine,
   Copy,
+  Download,
+  Film,
 } from 'lucide-react';
 import type { NodeExecutionReport, FormField } from '@/types';
 import { Badge } from '@/components/ui/badge';
@@ -21,6 +23,9 @@ import { getLL } from '@/i18n/i18n-lazy';
 import { generateCurlCommand, type CurlExportOptions } from '@/lib/curlExporter';
 import { toast } from 'sonner';
 import { CopyButton } from '@/components/common';
+import { detectMedia, sanitizeFilename } from './mediaDetection';
+import { MediaPreview } from './MediaPreview';
+import { saveRawBody } from './mediaSave';
 interface HttpNodeViewerProps {
   /** 节点执行报告 */
   report: NodeExecutionReport;
@@ -286,6 +291,14 @@ interface HttpOutputData {
   cookies_received?: Array<{ name: string; value: string; domain?: string; path?: string }>;
   /** 重试次数 */
   retry_count?: number;
+  /** 后端媒体分流结果（`image/*` / `video/*` 响应才有） */
+  media?: {
+    kind: 'image' | 'video';
+    mime: string;
+    bytes: number;
+    data_url?: string;
+    omitted?: boolean;
+  };
 }
 
 export const HttpNodeViewer = memo(function HttpNodeViewer({ report }: HttpNodeViewerProps) {
@@ -311,6 +324,9 @@ export const HttpNodeViewer = memo(function HttpNodeViewer({ report }: HttpNodeV
   const headers = outputData?.headers;
   const body = outputData?.body;
   const timing = outputData?.timing;
+
+  // 媒体预览候选（后端分流 + JSON 中的 URL / base64）
+  const mediaCandidates = useMemo(() => detectMedia(outputData), [outputData]);
 
   // 请求体类型相关计算
   const bodyType = config.body_type || 'body';
@@ -602,6 +618,21 @@ export const HttpNodeViewer = memo(function HttpNodeViewer({ report }: HttpNodeV
         </CollapsibleSection>
       )}
 
+      {/* 媒体预览 */}
+      {mediaCandidates.length > 0 && (
+        <CollapsibleSection
+          title={ll.execution.viewers.media()}
+          icon={<Film className="w-4 h-4" />}
+          defaultOpen={true}
+        >
+          <MediaPreview
+            candidates={mediaCandidates}
+            nodeName={report.node_name}
+            headers={headers}
+          />
+        </CollapsibleSection>
+      )}
+
       {/* 响应体 */}
       {body !== undefined && (
         <CollapsibleSection
@@ -609,12 +640,26 @@ export const HttpNodeViewer = memo(function HttpNodeViewer({ report }: HttpNodeV
           icon={<ArrowDownToLine className="w-4 h-4" />}
           defaultOpen={true}
           extra={
-            <CopyButton
-              value={body}
-              format="json"
-              label={ll.execution.viewers.copy_body()}
-              size="xs"
-            />
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() =>
+                  void saveRawBody(body, sanitizeFilename(`${report.node_name}-body`, 'response'))
+                }
+                title={ll.execution.viewers.save_raw_body()}
+                aria-label={ll.execution.viewers.save_raw_body()}
+                className="p-1 text-xs gap-1 h-6 flex items-center rounded hover:bg-muted"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>{ll.execution.viewers.save_raw_body()}</span>
+              </button>
+              <CopyButton
+                value={body}
+                format="json"
+                label={ll.execution.viewers.copy_body()}
+                size="xs"
+              />
+            </div>
           }
         >
           <div className="bg-muted rounded p-2">

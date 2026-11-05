@@ -360,4 +360,28 @@ describe('GenericViewer', () => {
       expect(screen.getByText('count')).toBeDefined();
     });
   });
+
+  describe('媒体预览', () => {
+    it('识别 base64 载荷并渲染媒体面板', () => {
+      const report = createMockReport({
+        output_data: {
+          inlineData: {
+            mimeType: 'image/png',
+            data: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+          },
+        },
+      });
+      render(<GenericViewer report={report} />);
+
+      expect(screen.getByRole('button', { name: getLL().execution.viewers.media() })).toBeDefined();
+      expect(document.querySelector('img[src^="data:image/png"]')).not.toBeNull();
+    });
+
+    it('无媒体时不渲染媒体面板', () => {
+      const report = createMockReport({ output_data: { message: '开始执行' } });
+      render(<GenericViewer report={report} />);
+
+      expect(screen.queryByText(getLL().execution.viewers.media())).toBeNull();
+    });
+  });
 });

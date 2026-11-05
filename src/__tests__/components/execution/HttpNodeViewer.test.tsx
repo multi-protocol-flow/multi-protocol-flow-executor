@@ -8,6 +8,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { HttpNodeViewer } from '@/components/execution/viewers/HttpNodeViewer';
 import type { NodeExecutionReport } from '@/types';
+import { getLL } from '@/i18n/i18n-lazy';
 
 // Mock react-json-view-lite
 vi.mock('react-json-view-lite', () => ({
@@ -294,6 +295,35 @@ describe('HttpNodeViewer', () => {
       fireEvent.click(screen.getByRole('button', { name: /响应头/ }));
 
       expect(screen.getByText('无数据')).toBeDefined();
+    });
+  });
+
+  describe('媒体预览', () => {
+    it('后端媒体分流结果渲染图片与媒体面板', () => {
+      const report = createMockReport({
+        status: 200,
+        headers: { 'content-type': 'image/png' },
+        body: '[image/png 8 bytes]',
+        media: {
+          kind: 'image',
+          mime: 'image/png',
+          bytes: 8,
+          data_url: 'data:image/png;base64,iVBORw0KGgo=',
+        },
+      });
+      render(<HttpNodeViewer report={report} />);
+
+      const title = getLL().execution.viewers.media();
+      expect(screen.getByRole('button', { name: title })).toBeDefined();
+      const img = document.querySelector('img[src^="data:image/png"]');
+      expect(img).not.toBeNull();
+    });
+
+    it('无媒体时没有媒体面板', () => {
+      const report = createMockReport({ status: 200, body: { ok: true } });
+      render(<HttpNodeViewer report={report} />);
+
+      expect(screen.queryByText(getLL().execution.viewers.media())).toBeNull();
     });
   });
 });

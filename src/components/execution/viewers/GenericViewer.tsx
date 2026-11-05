@@ -3,12 +3,13 @@
  * 用于 Entry、End 及其他未实现专用 Viewer 的节点类型
  * 简洁展示输入数据、输出数据和变量变更
  */
-import { useState, memo } from 'react';
+import { useState, useMemo, memo } from 'react';
 import {
   ChevronDown,
   ChevronRight,
   ArrowDownToLine,
   ArrowUpFromLine,
+  Film,
   Layers,
   Sparkles,
   Terminal,
@@ -16,6 +17,8 @@ import {
 import type { NodeExecutionReport } from '@/types';
 import { RawJsonViewer } from './RawJsonViewer';
 import { VariableChangesCard } from './VariableChangesCard';
+import { detectMedia } from './mediaDetection';
+import { MediaPreview } from './MediaPreview';
 import { getLL } from '@/i18n/i18n-lazy';
 import { useExecutionStore } from '@/stores';
 import { CopyButton } from '@/components/common';
@@ -91,6 +94,7 @@ export const GenericViewer = memo(function GenericViewer({ report }: GenericView
       Boolean(nodeStreamData.fullReasoning) ||
       nodeStreamData.chunks.length > 0);
   const isRunning = (report.status as string) === 'running';
+  const mediaCandidates = useMemo(() => detectMedia(output_data), [output_data]);
   return (
     <div className="space-y-3">
       {hasStreamData && (
@@ -173,6 +177,16 @@ export const GenericViewer = memo(function GenericViewer({ report }: GenericView
       >
         <DataSection data={resolved_config} emptyText={ll.execution.viewers.no_input_data()} />
       </CollapsibleSection>
+
+      {mediaCandidates.length > 0 && (
+        <CollapsibleSection
+          title={ll.execution.viewers.media()}
+          icon={<Film className="w-4 h-4" />}
+          defaultOpen={true}
+        >
+          <MediaPreview candidates={mediaCandidates} nodeName={node_name} />
+        </CollapsibleSection>
+      )}
 
       <CollapsibleSection
         title={ll.execution.viewers.output_data()}
