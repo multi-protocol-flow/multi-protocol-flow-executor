@@ -5075,13 +5075,21 @@ type RootTranslation = {
 			 */
 			report: string
 			/**
-			 * 保​留​完​整​详​情​的​迭​代​数
+			 * 保​留​最​近​几​轮​的​完​整​详​情
 			 */
 			detail_iterations: string
 			/**
 			 * 失​败​轮​始​终​保​留​完​整​详​情
 			 */
 			always_keep_failed: string
+			/**
+			 * 保​留​全​部​迭​代​详​情
+			 */
+			keep_all_details: string
+			/**
+			 * 开​启​后​不​再​按​迭​代​数​裁​剪​（​报​告​体​积​会​随​迭​代​数​增​长​；​运​行​中​列​表​始​终​实​时​显​示​每​一​轮​）
+			 */
+			keep_all_details_hint: string
 			/**
 			 * 可​在​条​件​里​使​用​的​变​量
 			 */
@@ -6112,6 +6120,41 @@ type RootTranslation = {
 			 * 响​应​体
 			 */
 			response_body: string
+			/**
+			 * 媒​体
+			 */
+			media: string
+			/**
+			 * 保​存
+			 */
+			media_save: string
+			/**
+			 * 复​制​链​接
+			 */
+			media_copy_link: string
+			/**
+			 * 无​法​加​载​，​可​能​已​过​期
+			 */
+			media_expired: string
+			/**
+			 * 响​应​ ​{​s​i​z​e​}​，​超​过​ ​{​l​i​m​i​t​}​ ​预​览​上​限​，​未​保​留​内​容
+			 * @param {unknown} limit
+			 * @param {unknown} size
+			 */
+			media_omitted: RequiredParams<'limit' | 'size'>
+			/**
+			 * 展​开​全​部​ ​(​{​c​o​u​n​t​}​)
+			 * @param {unknown} count
+			 */
+			media_show_all: RequiredParams<'count'>
+			/**
+			 * 收​起
+			 */
+			media_show_less: string
+			/**
+			 * 保​存​原​始​响​应
+			 */
+			save_raw_body: string
 			/**
 			 * 耗​时​分​解
 			 */
@@ -21072,13 +21115,21 @@ export type TranslationFunctions = {
 			 */
 			report: () => LocalizedString
 			/**
-			 * 保留完整详情的迭代数
+			 * 保留最近几轮的完整详情
 			 */
 			detail_iterations: () => LocalizedString
 			/**
 			 * 失败轮始终保留完整详情
 			 */
 			always_keep_failed: () => LocalizedString
+			/**
+			 * 保留全部迭代详情
+			 */
+			keep_all_details: () => LocalizedString
+			/**
+			 * 开启后不再按迭代数裁剪（报告体积会随迭代数增长；运行中列表始终实时显示每一轮）
+			 */
+			keep_all_details_hint: () => LocalizedString
 			/**
 			 * 可在条件里使用的变量
 			 */
@@ -22087,6 +22138,38 @@ export type TranslationFunctions = {
 			 * 响应体
 			 */
 			response_body: () => LocalizedString
+			/**
+			 * 媒体
+			 */
+			media: () => LocalizedString
+			/**
+			 * 保存
+			 */
+			media_save: () => LocalizedString
+			/**
+			 * 复制链接
+			 */
+			media_copy_link: () => LocalizedString
+			/**
+			 * 无法加载，可能已过期
+			 */
+			media_expired: () => LocalizedString
+			/**
+			 * 响应 {size}，超过 {limit} 预览上限，未保留内容
+			 */
+			media_omitted: (arg: { limit: unknown, size: unknown }) => LocalizedString
+			/**
+			 * 展开全部 ({count})
+			 */
+			media_show_all: (arg: { count: unknown }) => LocalizedString
+			/**
+			 * 收起
+			 */
+			media_show_less: () => LocalizedString
+			/**
+			 * 保存原始响应
+			 */
+			save_raw_body: () => LocalizedString
 			/**
 			 * 耗时分解
 			 */
