@@ -338,7 +338,10 @@ pub struct IterationSummary {
 - 实时摘要的 `wait_ms` 恒为 `0`：该轮的等待时长要等本轮结束、进入下一轮间隔时才确定，
   为了不拖延推送（否则带 60s 间隔的循环要延迟一分钟才看到本轮结果），事件在轮次完成时立即发送，
   真实的 `wait_ms` 只体现在最终报告的 `iteration_summary` 里；
-- `nodeCompleted` 携带最终报告到达时，`loopProgressMap` 中该节点的条目立即清除。
+- 循环节点的 `NodeCompleted` 报告经热通道推送时会**剥离** `sub_flow_report`（大报文走冷通道），
+  因此 `loopProgressMap` 的条目不会随 `nodeCompleted` 立即清除：详情面板在该报告被剥离时
+  用实时进度补回各轮正文，流程剩余时间内仍可查看每一轮的结果；冷通道详情拉取到位或新一轮执行开始后自动让位；
+- 清理时机：同一 loop 节点重新开始（`nodeStarted`）或新一轮流程开始（`flowStarted`）时清空。
 
 ### 4.3 节点输出
 
