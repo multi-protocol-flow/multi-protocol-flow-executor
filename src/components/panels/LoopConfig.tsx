@@ -429,6 +429,7 @@ export function LoopConfig({ data, onSave }: LoopConfigProps) {
             id="loop-detail-iterations"
             type="number"
             min={0}
+            disabled={config.report?.keep_all_details ?? false}
             value={config.report?.detail_iterations ?? 20}
             onChange={(e) => {
               const value = Number.parseInt(e.target.value, 10);
@@ -436,6 +437,7 @@ export function LoopConfig({ data, onSave }: LoopConfigProps) {
                 report: {
                   detail_iterations: Number.isNaN(value) ? 0 : value,
                   always_keep_failed: configRef.current.report?.always_keep_failed ?? true,
+                  keep_all_details: configRef.current.report?.keep_all_details ?? false,
                 },
               });
             }}
@@ -453,11 +455,31 @@ export function LoopConfig({ data, onSave }: LoopConfigProps) {
                 report: {
                   detail_iterations: configRef.current.report?.detail_iterations ?? 20,
                   always_keep_failed: checked,
+                  keep_all_details: configRef.current.report?.keep_all_details ?? false,
                 },
               })
             }
           />
         </div>
+        <div className="flex items-center justify-between">
+          <Label className="font-medium" htmlFor="loop-keep-all">
+            {ll.keep_all_details()}
+          </Label>
+          <Switch
+            id="loop-keep-all"
+            checked={config.report?.keep_all_details ?? false}
+            onCheckedChange={(checked) =>
+              update({
+                report: {
+                  detail_iterations: configRef.current.report?.detail_iterations ?? 20,
+                  always_keep_failed: configRef.current.report?.always_keep_failed ?? true,
+                  keep_all_details: checked,
+                },
+              })
+            }
+          />
+        </div>
+        <p className="text-xs text-muted-foreground">{ll.keep_all_details_hint()}</p>
       </div>
 
       {/* 6. 循环体 */}

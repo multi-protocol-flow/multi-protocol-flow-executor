@@ -973,10 +973,12 @@ export type LoopSource = 'until' | 'items' | 'count';
  * 循环报告裁剪配置
  */
 export interface LoopReportConfig {
-  /** 保留完整节点详情的迭代数 */
+  /** 保留完整节点详情的**最近**迭代数（有界桶：满桶后丢弃最旧的轮次） */
   detail_iterations: number;
   /** 失败轮是否始终保留完整详情 */
   always_keep_failed: boolean;
+  /** 是否保留全部迭代的完整详情（开启后忽略 detail_iterations） */
+  keep_all_details?: boolean;
 }
 
 /**

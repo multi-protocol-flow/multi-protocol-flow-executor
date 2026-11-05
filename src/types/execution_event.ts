@@ -4,7 +4,7 @@
  * 与 Rust ExecutionEvent 对齐，使用 camelCase 序列化
  */
 
-import type { NodeExecutionReport, FlowExecutionReport } from './report';
+import type { NodeExecutionReport, FlowExecutionReport, IterationSummary } from './report';
 
 /**
  * 插件节点流式事件数据（SidecarPlugin 运行时推送）
@@ -81,6 +81,21 @@ export interface SubFlowProgress {
 }
 
 /**
+ * loop 节点运行中的实时进度（按 loop 节点 UUID 归集）
+ *
+ * 与 Rust `ExecutionEvent::LoopIteration` 对齐：`flow:loop` 的最终报告要等整个
+ * 循环结束才产生，运行中的报告靠这份增量数据渲染迭代列表。
+ */
+export interface LoopLiveProgress {
+  /** 各轮摘要（与最终报告的 `iteration_summary` 同口径，永不裁剪） */
+  iterations: IterationSummary[];
+  /** 各轮保留的 body 节点报告（与 `sub_flow_report.node_reports` 同口径） */
+  reports: NodeExecutionReport[];
+  /** 只保留摘要的轮次数 */
+  truncated: number;
+}
+
+/**
  * 执行事件（正常模式）
  *
  * Rust 使用 #[serde(rename_all = "camelCase")] 序列化为 tagged union
@@ -110,5 +125,17 @@ export type ExecutionEvent =
   | { nodeCompleted: { report: NodeExecutionReport; parentNodeUuid?: string } }
   | { flowCompleted: { report: FlowExecutionReport; parentNodeUuid?: string } }
   | { flowCancelled: { flowUuid: string; reason: string; parentNodeUuid?: string } }
+  | {
+      loopIteration: {
+        /** loop 节点 UUID */
+        nodeUuid: string;
+        /** 该轮摘要 */
+        iteration: IterationSummary;
+        /** 该轮 body 节点报告（被裁剪时缺省） */
+        reports?: NodeExecutionReport[];
+        /** 该轮是否只保留了摘要 */
+        truncated?: boolean;
+      };
+    }
   | { pluginEvent: PluginEventData }
   | { batch: ExecutionEvent[] };

@@ -45,4 +45,17 @@ describe('LoopConfig', () => {
     expect(last.count).toBe(7);
     expect(last.body).toEqual(baseConfig.body);
   });
+
+  it('toggling keep_all_details keeps other report fields', () => {
+    const saved: LoopConfigType[] = [];
+    render(<LoopConfig data={baseConfig} onSave={(data) => saved.push(data)} />);
+
+    fireEvent.click(screen.getByLabelText(/保留全部迭代详情|Keep full detail for every round/i));
+
+    const last = saved[saved.length - 1];
+    expect(last.report.keep_all_details).toBe(true);
+    expect(last.report.detail_iterations).toBe(20);
+    expect(last.report.always_keep_failed).toBe(true);
+    expect(last.body).toEqual(baseConfig.body);
+  });
 });

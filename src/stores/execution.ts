@@ -2,13 +2,14 @@
  * 执行状态和报告管理
  */
 import { create } from 'zustand';
-import type { FlowExecutionReport, NodeExecutionReport } from '@/types';
+import type { ExecutionStatus, FlowExecutionReport, NodeExecutionReport } from '@/types';
 import type {
   ExecutionEvent,
   PluginEventData,
   NodeStreamData,
   NodeStreamChunk,
   SubFlowProgress,
+  LoopLiveProgress,
   PendingInteraction,
   HumanResponsePayload,
 } from '@/types/execution_event';
@@ -52,6 +53,12 @@ interface ExecutionState {
    * `parentNodeUuid` 归属到这里，用于在 SubFlow 节点上展示嵌套进度。
    */
   subFlowProgressMap: Record<string, SubFlowProgress>;
+  /**
+   * loop 节点运行中的实时迭代进度（loop 节点 UUID -> 进度）
+   *
+   * `flow:loop` 的最终报告在循环结束才产生，运行中的报告靠这份增量数据渲染。
+   */
+  loopProgressMap: Record<string, LoopLiveProgress>;
   /** 活跃的人机协同交互请求 (nodeUuid -> PendingInteraction) */
   activeInteractions: Record<string, PendingInteraction>;
 
@@ -103,6 +110,15 @@ const MAX_HISTORY_SIZE = 10;
 /** 插件流事件日志上限（有界内存，P1 消费者再做完整视图） */
 const MAX_PLUGIN_EVENTS = 200;
 
+/**
+ * 运行中 loop 实时保留的最近轮次正文报告数
+ *
+ * 摘要（`iterations`）保留全部轮次；正文报告（`reports`）体积可达每轮数百 KB，
+ * 超出窗口的轮次在本地丢弃，避免长循环把 webview 内存撑爆。
+ * 最终报告仍由后端按 `detail_iterations` 有界桶提供。
+ */
+export const MAX_LIVE_LOOP_REPORT_ROUNDS = 100;
+
 const initialState = {
   isExecuting: false,
   activeFlowUuid: null as string | null,
@@ -118,6 +134,7 @@ const initialState = {
   pluginEvents: [] as PluginEventData[],
   nodeStreamMap: {} as Record<string, NodeStreamData>,
   subFlowProgressMap: {} as Record<string, SubFlowProgress>,
+  loopProgressMap: {} as Record<string, LoopLiveProgress>,
   activeInteractions: {} as Record<string, PendingInteraction>,
 };
 
@@ -289,6 +306,7 @@ export const useExecutionStore = create<ExecutionState>((set, get) => {
           pluginEvents: [],
           nodeStreamMap: {},
           subFlowProgressMap: {},
+          loopProgressMap: {},
           activeInteractions: {},
         });
       } else if ('nodeStarted' in event) {
@@ -321,6 +339,28 @@ export const useExecutionStore = create<ExecutionState>((set, get) => {
             flowState.setActiveStage(stage);
           }
         }
+      } else if ('loopIteration' in event) {
+        const { nodeUuid, iteration, reports, truncated } = event.loopIteration;
+        queueEventUpdate((state) => {
+          const prev = state.loopProgressMap[nodeUuid];
+          // 窗口起点：只保留最近 N 轮的正文报告（摘要全部保留）
+          const windowStart = iteration.index + 1 - MAX_LIVE_LOOP_REPORT_ROUNDS;
+          const prevReports = prev?.reports ?? [];
+          const windowedPrev =
+            windowStart > 0
+              ? prevReports.filter((r) => (r.iteration_index ?? 0) >= windowStart)
+              : prevReports;
+          return {
+            loopProgressMap: {
+              ...state.loopProgressMap,
+              [nodeUuid]: {
+                iterations: [...(prev?.iterations ?? []), iteration],
+                reports: reports?.length ? [...windowedPrev, ...reports] : windowedPrev,
+                truncated: (prev?.truncated ?? 0) + (truncated ? 1 : 0),
+              },
+            },
+          };
+        });
       } else if ('nodeCompleted' in event) {
         const { report, parentNodeUuid } = event.nodeCompleted;
         if (parentNodeUuid) {
@@ -341,6 +381,12 @@ export const useExecutionStore = create<ExecutionState>((set, get) => {
           return;
         }
         queueEventUpdate((state) => {
+          let loopProgressMap = state.loopProgressMap;
+          if (loopProgressMap[report.node_uuid]) {
+            const next = { ...loopProgressMap };
+            delete next[report.node_uuid];
+            loopProgressMap = next;
+          }
           let nextActiveInteractions = state.activeInteractions;
           if (state.activeInteractions[report.node_uuid]) {
             const next = { ...state.activeInteractions };
@@ -355,6 +401,7 @@ export const useExecutionStore = create<ExecutionState>((set, get) => {
             completedNodeCount: state.completedNodeCount + 1,
             currentNodeUuid: null,
             activeInteractions: nextActiveInteractions,
+            loopProgressMap,
           };
         });
       } else if ('flowCompleted' in event) {
@@ -483,6 +530,7 @@ export const useExecutionStore = create<ExecutionState>((set, get) => {
         pluginEvents: [],
         nodeStreamMap: {},
         subFlowProgressMap: {},
+        loopProgressMap: {},
         activeInteractions: {},
       });
     },
@@ -644,8 +692,39 @@ export const selectNodeStreamByUuid = (nodeUuid: string) => (state: ExecutionSta
 /** 工厂选择器：选择特定 SubFlow 节点的嵌套执行进度 */
 export const selectSubFlowProgress = (nodeUuid: string) => (state: ExecutionState) =>
   state.subFlowProgressMap[nodeUuid];
+/** 工厂选择器：选择特定 loop 节点的运行中迭代进度 */
+export const selectLoopProgress = (nodeUuid: string) => (state: ExecutionState) =>
+  state.loopProgressMap[nodeUuid];
 /** 选择活跃的人机交互请求字典 */
 export const selectActiveInteractions = (state: ExecutionState) => state.activeInteractions;
 /** 选择特定节点的人机交互请求 */
 export const selectActiveInteractionByNode = (nodeUuid: string) => (state: ExecutionState) =>
   state.activeInteractions[nodeUuid] ?? null;
+
+/**
+ * 用运行中的迭代进度构造 loop 节点的 `sub_flow_report`
+ *
+ * `LoopViewer` 按 `report.sub_flow_report.node_reports` + `iteration_index` 归组渲染，
+ * 因此实时视图只要补上同口径的数据即可复用同一个 Viewer，无需分支。
+ *
+ * @param base - loop 节点运行中的基础报告
+ * @param progress - 该节点的实时迭代进度
+ */
+export function buildLiveLoopSubFlowReport(
+  base: NodeExecutionReport,
+  progress: LoopLiveProgress,
+): FlowExecutionReport {
+  return {
+    uuid: `${base.node_uuid}-live`,
+    flow_uuid: base.node_uuid,
+    flow_name: base.node_name,
+    start_time: base.start_time,
+    end_time: 0,
+    duration_ms: base.duration_ms,
+    total_nodes: progress.reports.length,
+    executed_count: progress.reports.length,
+    status: 'running' as unknown as ExecutionStatus,
+    node_reports: progress.reports,
+    statistics: { success_count: 0, failed_count: 0 },
+  };
+}

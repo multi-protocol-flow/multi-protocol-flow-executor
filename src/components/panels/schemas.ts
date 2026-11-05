@@ -724,6 +724,7 @@ export type LoopSourceFormData = z.infer<typeof loopSourceSchema>;
 export const loopReportConfigSchema = z.object({
   detail_iterations: z.number().int().min(0),
   always_keep_failed: z.boolean(),
+  keep_all_details: z.boolean().optional(),
 });
 export type LoopReportConfigFormData = z.infer<typeof loopReportConfigSchema>;
 

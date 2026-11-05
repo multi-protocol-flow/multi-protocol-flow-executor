@@ -13,6 +13,7 @@ import {
   selectNodeReportsMap,
   selectCompletedNodeCount,
   selectTotalNodes,
+  MAX_LIVE_LOOP_REPORT_ROUNDS,
 } from '@/stores/execution';
 import type { FlowExecutionReport, NodeExecutionReport } from '@/types';
 import type { ExecutionEvent } from '@/types/execution_event';
@@ -457,6 +458,123 @@ describe('ExecutionStore', () => {
       expect(state.nodeReportsMap['n1']).toBeDefined();
       expect(state.nodeReportsMap['n1'].status).toBe('success');
       expect(state.completedNodeCount).toBe(1);
+    });
+
+    it('should accumulate LoopIteration progress during execution', () => {
+      useExecutionStore.getState().handleExecutionEvent({
+        flowStarted: { flowUuid: 'f1', flowName: 'Loop', totalNodes: 2 },
+      });
+
+      const bodyReport: NodeExecutionReport = {
+        node_uuid: 'body-1',
+        node_type: 'http:request',
+        node_name: 'body',
+        start_time: 1000,
+        end_time: 1100,
+        duration_ms: 100,
+        status: 'success',
+        input_data: null,
+        output_data: null,
+        iteration_index: 0,
+        iteration_of: 'loop-1',
+      };
+
+      useExecutionStore.getState().handleExecutionEvent({
+        loopIteration: {
+          nodeUuid: 'loop-1',
+          iteration: { index: 0, status: 'success', duration_ms: 100, wait_ms: 0 },
+          reports: [bodyReport],
+        },
+      });
+      useExecutionStore.getState().handleExecutionEvent({
+        loopIteration: {
+          nodeUuid: 'loop-1',
+          iteration: { index: 1, status: 'success', duration_ms: 120, wait_ms: 0 },
+          truncated: true,
+        },
+      });
+
+      const progress = useExecutionStore.getState().loopProgressMap['loop-1'];
+      expect(progress).toBeDefined();
+      expect(progress.iterations.map((i) => i.index)).toEqual([0, 1]);
+      expect(progress.reports).toHaveLength(1);
+      expect(progress.truncated).toBe(1);
+      // 实时迭代不参与顶层节点计数
+      expect(useExecutionStore.getState().completedNodeCount).toBe(0);
+    });
+
+    it('should window live loop body reports but keep every summary', () => {
+      useExecutionStore.getState().handleExecutionEvent({
+        flowStarted: { flowUuid: 'f1', flowName: 'Loop', totalNodes: 2 },
+      });
+
+      const rounds = MAX_LIVE_LOOP_REPORT_ROUNDS + 20;
+      for (let i = 0; i < rounds; i++) {
+        useExecutionStore.getState().handleExecutionEvent({
+          loopIteration: {
+            nodeUuid: 'loop-1',
+            iteration: { index: i, status: 'success', duration_ms: 1, wait_ms: 0 },
+            reports: [
+              {
+                node_uuid: 'body-1',
+                node_type: 'script',
+                node_name: 'body',
+                start_time: i,
+                end_time: i + 1,
+                duration_ms: 1,
+                status: 'success',
+                input_data: null,
+                output_data: { i },
+                iteration_index: i,
+                iteration_of: 'loop-1',
+              },
+            ],
+          },
+        });
+      }
+
+      const progress = useExecutionStore.getState().loopProgressMap['loop-1'];
+      // 摘要保留全部轮次
+      expect(progress.iterations).toHaveLength(rounds);
+      // 正文报告按窗口裁剪，且保留的是最近轮次
+      expect(progress.reports).toHaveLength(MAX_LIVE_LOOP_REPORT_ROUNDS);
+      expect(progress.reports[0].iteration_index).toBe(rounds - MAX_LIVE_LOOP_REPORT_ROUNDS);
+      expect(progress.reports[progress.reports.length - 1].iteration_index).toBe(rounds - 1);
+    });
+
+    it('should drop live loop progress once the loop node report arrives', () => {
+      useExecutionStore.getState().handleExecutionEvent({
+        flowStarted: { flowUuid: 'f1', flowName: 'Loop', totalNodes: 2 },
+      });
+      useExecutionStore.getState().handleExecutionEvent({
+        loopIteration: {
+          nodeUuid: 'loop-1',
+          iteration: { index: 0, status: 'success', duration_ms: 5, wait_ms: 0 },
+        },
+      });
+      expect(useExecutionStore.getState().loopProgressMap['loop-1']).toBeDefined();
+
+      useExecutionStore.getState().handleExecutionEvent({
+        nodeCompleted: {
+          report: {
+            node_uuid: 'loop-1',
+            node_type: 'flow:loop',
+            node_name: 'Loop',
+            start_time: 1000,
+            end_time: 1200,
+            duration_ms: 200,
+            status: 'success',
+            input_data: null,
+            output_data: null,
+            iteration_summary: [
+              { index: 0, status: 'success', duration_ms: 5, wait_ms: 0 },
+            ],
+          },
+        },
+      });
+
+      expect(useExecutionStore.getState().loopProgressMap['loop-1']).toBeUndefined();
+      expect(useExecutionStore.getState().nodeReportsMap['loop-1']).toBeDefined();
     });
 
     it('should handle FlowCompleted event', () => {

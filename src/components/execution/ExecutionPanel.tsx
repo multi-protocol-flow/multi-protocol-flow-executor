@@ -31,6 +31,7 @@ import {
   selectTotalNodes,
   selectReport,
   selectActiveInteractions,
+  buildLiveLoopSubFlowReport,
 } from '@/stores/execution';
 import { selectIsDebugging, selectCurrentNodeUuid } from '@/stores/debug';
 import { useWsStreamStore } from '@/stores/wsStream';
@@ -307,6 +308,10 @@ const NodeOutputPane = memo(function NodeOutputPane({
   const activeInteraction = useExecutionStore((state) =>
     nodeUuid ? state.activeInteractions[nodeUuid] ?? null : null,
   );
+  // loop 节点的运行中迭代进度：最终报告要等整个循环结束才产生
+  const loopProgress = useExecutionStore((state) =>
+    nodeUuid ? state.loopProgressMap[nodeUuid] : undefined,
+  );
   const node = useFlowStore((state) =>
     nodeUuid ? findNodeInFlow(state.flow, nodeUuid) : null,
   );
@@ -327,8 +332,7 @@ const NodeOutputPane = memo(function NodeOutputPane({
 
   const liveReport = useMemo<NodeExecutionReport | null>(() => {
     if (!isRunning || !hasViewerOrStream || !nodeUuid) return null;
-    if (report) return report;
-    return {
+    const base: NodeExecutionReport = report ?? {
       node_uuid: nodeUuid,
       node_type: nodeType,
       node_name: nodeName || nodeType,
@@ -342,7 +346,24 @@ const NodeOutputPane = memo(function NodeOutputPane({
       error: undefined,
       is_detail_stripped: false,
     };
-  }, [isRunning, hasViewerOrStream, nodeUuid, report, nodeType, nodeName, node?.data]);
+    // loop 节点：把实时迭代进度补进报告，LoopViewer 直接复用渲染
+    if (!loopProgress) return base;
+    return {
+      ...base,
+      iteration_summary: loopProgress.iterations,
+      truncated_iterations: loopProgress.truncated,
+      sub_flow_report: buildLiveLoopSubFlowReport(base, loopProgress),
+    };
+  }, [
+    isRunning,
+    hasViewerOrStream,
+    nodeUuid,
+    report,
+    nodeType,
+    nodeName,
+    node?.data,
+    loopProgress,
+  ]);
   // ===== 冷通道按需拉取完整报文 =====
   useEffect(() => {
     // 关键优化：执行期间自动跟随模式下不预拉取大报文，避免频繁 IPC 与重渲染导致页面卡顿；
