@@ -303,10 +303,42 @@ pub struct IterationSummary {
 
 ### 4.2 详情裁剪
 
-- 前 `detail_iterations`（默认 20）轮保留完整节点报告；
-- 之后仅保留 `IterationSummary`，并累加 `truncated_iterations`；
-- `always_keep_failed = true` 时，失败轮无论序号一律保留完整详情；
+- 保留**最近** `detail_iterations`（默认 20）轮的完整节点报告——有界桶，满桶后丢弃最旧的轮次（FIFO）；
+- 被挤出桶的轮次只保留 `IterationSummary`，并计入 `truncated_iterations`；
+- `always_keep_failed = true` 时失败轮被**钉住**：既不占桶容量，也不会被后续轮次挤出；
+- `keep_all_details = true` 时**忽略** `detail_iterations`，每轮都保留完整详情（报告体积随迭代数线性增长，默认关闭）；把 `detail_iterations` 调成极大值等价于开启该开关，二者都**没有**上界保护。
+- `iteration_summary` **永不裁剪**：无论保留策略如何，每一轮的序号/状态/耗时/等待/错误都在最终报告里；
 - 裁剪只影响报告体积，不影响 `output_data` 与变量。
+
+### 4.2.1 运行中实时推送
+
+最终报告要等整个循环结束才产生，因此循环节点每轮结束都会推送一条
+`ExecutionEvent::LoopIteration`：
+
+```jsonc
+{
+  "loopIteration": {
+    "nodeUuid": "loop-1",
+    "iteration": { "index": 3, "status": "success", "duration_ms": 120, "wait_ms": 0 },
+    "reports": [ /* 该轮 body 节点报告；按 §4.2 被裁剪时缺省 */ ],
+    "truncated": false
+  }
+}
+```
+
+- 口径与最终报告一致（唯一例外是实时的 `wait_ms`，见下）：`iteration` ↔ `iteration_summary[i]`，
+  `reports` ↔ `sub_flow_report.node_reports` 中该轮的条目（带 `iteration_index` / `iteration_of`）；
+- 前端把它累积进 `useExecutionStore.loopProgressMap`，运行中的 `flow:loop` 节点
+  直接复用 `LoopViewer` 渲染（`iteration_summary` / `truncated_iterations` /
+  `sub_flow_report` 全部由实时数据补全）；
+- 被裁剪的轮次事件不携带 `reports`（`truncated: true`），事件体积与报告裁剪策略一致；
+- 前端 `loopProgressMap` 对**摘要**保留全部轮次，对**正文报告**只保留最近 100 轮
+  （`MAX_LIVE_LOOP_REPORT_ROUNDS`）：长循环下每轮正文可达数百 KB，不设窗口会把 webview 内存撑爆；
+  更早的轮次在实时视图里退化为"仅保留摘要"，最终报告仍由后端有界桶给出；
+- 实时摘要的 `wait_ms` 恒为 `0`：该轮的等待时长要等本轮结束、进入下一轮间隔时才确定，
+  为了不拖延推送（否则带 60s 间隔的循环要延迟一分钟才看到本轮结果），事件在轮次完成时立即发送，
+  真实的 `wait_ms` 只体现在最终报告的 `iteration_summary` 里；
+- `nodeCompleted` 携带最终报告到达时，`loopProgressMap` 中该节点的条目立即清除。
 
 ### 4.3 节点输出
 

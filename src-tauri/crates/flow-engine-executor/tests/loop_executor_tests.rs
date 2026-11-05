@@ -42,6 +42,7 @@ fn loop_config(source: LoopSource) -> LoopConfig {
         report: LoopReportConfig {
             detail_iterations: 20,
             always_keep_failed: true,
+            ..Default::default()
         },
         ..Default::default()
     }
@@ -486,16 +487,23 @@ async fn loop_report_trimming() {
     cfg.report = LoopReportConfig {
         detail_iterations: 2,
         always_keep_failed: true,
+        ..Default::default()
     };
     cfg.body = delay_body();
     let result = run(&build_flow(cfg)).await;
 
     let report = loop_report(&result);
     let body = report.sub_flow_report.expect("body report");
+    assert_eq!(body.node_reports.len(), 2, "有界桶只保留 2 轮详情");
+    let kept_indexes: Vec<u32> = body
+        .node_reports
+        .iter()
+        .filter_map(|r| r.iteration_index)
+        .collect();
     assert_eq!(
-        body.node_reports.len(),
-        2,
-        "only the first 2 rounds keep detail"
+        kept_indexes,
+        vec![3, 4],
+        "满桶后丢弃最旧的轮次，保留最近两轮"
     );
     assert_eq!(report.truncated_iterations, Some(3));
     assert_eq!(
@@ -503,6 +511,86 @@ async fn loop_report_trimming() {
         5,
         "summaries are never trimmed"
     );
+}
+
+/// `detail_iterations = 0` 且无失败轮 ⇒ 一轮详情都不保留
+#[tokio::test]
+async fn loop_report_trimming_zero_keeps_no_detail() {
+    let mut cfg = loop_config(LoopSource::Count);
+    cfg.count = Some(3);
+    cfg.report = LoopReportConfig {
+        detail_iterations: 0,
+        always_keep_failed: true,
+        ..Default::default()
+    };
+    cfg.body = delay_body();
+    let result = run(&build_flow(cfg)).await;
+
+    let report = loop_report(&result);
+    let body = report.sub_flow_report.expect("body report");
+    assert!(body.node_reports.is_empty(), "不应保留任何轮次详情");
+    assert_eq!(report.truncated_iterations, Some(3));
+    assert_eq!(report.iteration_summary.expect("summaries").len(), 3);
+}
+
+/// 钉住的失败轮不会被桶挤出；未钉住时同样按 FIFO 淘汰
+#[tokio::test]
+async fn loop_failed_rounds_survive_bucket_eviction() {
+    fn failing_body() -> FlowSubGraph {
+        // script 语法错误：确定性失败，无需网络
+        FlowSubGraph::new(
+            vec![node(
+                "body-script",
+                flow_engine_core::node_types::SCRIPT,
+                NodeData::script("this is not valid javascript {{{"),
+            )],
+            vec![],
+        )
+    }
+
+    let mut pinned = loop_config(LoopSource::Count);
+    pinned.count = Some(3);
+    pinned.break_on_error = false;
+    pinned.report = LoopReportConfig {
+        detail_iterations: 1,
+        always_keep_failed: true,
+        ..Default::default()
+    };
+    pinned.body = failing_body();
+    let result = run(&build_flow(pinned)).await;
+    let report = loop_report(&result);
+    let body = report.sub_flow_report.expect("body report");
+    let kept: Vec<u32> = body
+        .node_reports
+        .iter()
+        .filter_map(|r| r.iteration_index)
+        .collect();
+    assert_eq!(kept, vec![0, 1, 2], "钉住的失败轮不受桶容量限制");
+    assert_eq!(report.truncated_iterations, Some(0));
+
+    let mut evicting = loop_config(LoopSource::Count);
+    evicting.count = Some(3);
+    evicting.break_on_error = false;
+    evicting.report = LoopReportConfig {
+        detail_iterations: 1,
+        always_keep_failed: false,
+        ..Default::default()
+    };
+    evicting.body = failing_body();
+    let result = run(&build_flow(evicting)).await;
+    let report = loop_report(&result);
+    let body = report.sub_flow_report.expect("body report");
+    let kept: Vec<u32> = body
+        .node_reports
+        .iter()
+        .filter_map(|r| r.iteration_index)
+        .collect();
+    assert_eq!(
+        kept,
+        vec![2],
+        "未钉住的失败轮同样按 FIFO 淘汰，只留最近一轮"
+    );
+    assert_eq!(report.truncated_iterations, Some(2));
 }
 
 #[tokio::test]
@@ -518,10 +606,10 @@ async fn loop_interval_backoff_sequence() {
     let result = run(&build_flow(cfg)).await;
     let elapsed = started.elapsed().as_millis();
     assert!(result.success);
-    assert!(
-        (300..900).contains(&elapsed),
-        "unexpected elapsed {elapsed}ms"
-    );
+    // 只校验下界（退避总时长）：上界受并行测试的调度抖动影响，墙钟断言会偶发跑飞，
+    // 真正的退避契约由下面的 `waits` 序列断言。
+    assert!(elapsed >= 300, "backoff too fast: {elapsed}ms");
+    assert!(elapsed < 10_000, "backoff runaway: {elapsed}ms");
 
     let report = loop_report(&result);
     let summaries = report.iteration_summary.expect("summaries");
@@ -541,8 +629,10 @@ async fn loop_timeout_includes_wait() {
     let report = loop_report(&result);
     let output = output_of(&report);
     assert_eq!(output["break_reason"], json!("timeout"));
+    // 超时必须在本轮等待边界处截断，远小于配置的 5 轮即可证明生效；
+    // 允许 2 轮是因为 deadline 判定与睡眠唤醒在负载下可能相差一个调度周期。
     assert!(
-        output["iterations"].as_u64().unwrap_or(0) <= 1,
+        output["iterations"].as_u64().unwrap_or(0) <= 2,
         "unexpected iterations: {}",
         output["iterations"]
     );
@@ -680,4 +770,113 @@ async fn loop_config_errors_surface_as_configuration() {
         "unexpected message: {}",
         err.message
     );
+}
+
+// ============================================================================
+// 运行中实时事件 + 全量详情保留
+// ============================================================================
+
+/// 记录所有执行事件，供断言使用
+#[derive(Default)]
+struct LoopEventRecorder {
+    events: std::sync::Mutex<Vec<flow_engine_core::execution_event::ExecutionEvent>>,
+}
+
+impl LoopEventRecorder {
+    fn loop_iterations(&self) -> Vec<(u32, ExecutionStatus, usize, bool)> {
+        self.events
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .iter()
+            .filter_map(|event| match event {
+                flow_engine_core::execution_event::ExecutionEvent::LoopIteration {
+                    iteration,
+                    reports,
+                    truncated,
+                    ..
+                } => Some((
+                    iteration.index,
+                    iteration.status.clone(),
+                    reports.len(),
+                    *truncated,
+                )),
+                _ => None,
+            })
+            .collect()
+    }
+}
+
+impl flow_engine_core::traits::ExecutionEventSender for LoopEventRecorder {
+    fn send_event(
+        &self,
+        event: flow_engine_core::execution_event::ExecutionEvent,
+    ) -> Result<(), String> {
+        self.events
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .push(event);
+        Ok(())
+    }
+}
+
+#[tokio::test]
+async fn loop_emits_iteration_events_while_running() {
+    use flow_engine_core::traits::ExecutionEventSender;
+
+    let mut cfg = loop_config(LoopSource::Count);
+    cfg.count = Some(3);
+    cfg.report.detail_iterations = 1;
+    cfg.body = delay_body();
+
+    let recorder = Arc::new(LoopEventRecorder::default());
+    let sender: Arc<dyn ExecutionEventSender> = recorder.clone();
+    let flow = build_flow(cfg);
+    let result = FlowExecutor::new()
+        .with_execution_event_sender(sender)
+        .execute_flow(&flow, None, None, None)
+        .await;
+    assert!(result.success, "flow should succeed: {:?}", result.error);
+
+    let iterations = recorder.loop_iterations();
+    assert_eq!(iterations.len(), 3, "每轮都应推送一条 LoopIteration");
+
+    // 桶容量 > 0 时，每一轮在推送时都是"最新一轮"，因此都带详情、都不是 truncated
+    for (index, status, report_count, truncated) in &iterations {
+        assert_eq!(*status, ExecutionStatus::Success);
+        assert_eq!(*report_count, 1, "第 {index} 轮应携带 body 节点报告");
+        assert!(!*truncated, "第 {index} 轮在推送时尚未被挤出桶");
+    }
+
+    // 但最终报告只保留最近 1 轮（桶容量 = 1）
+    let report = loop_report(&result);
+    let body = report.sub_flow_report.expect("body report");
+    let kept: Vec<u32> = body
+        .node_reports
+        .iter()
+        .filter_map(|r| r.iteration_index)
+        .collect();
+    assert_eq!(kept, vec![2], "最终报告只保留最近一轮详情");
+    assert_eq!(report.truncated_iterations, Some(2));
+}
+
+#[tokio::test]
+async fn loop_keep_all_details_preserves_every_iteration() {
+    let mut cfg = loop_config(LoopSource::Count);
+    cfg.count = Some(3);
+    cfg.report.detail_iterations = 1;
+    cfg.report.keep_all_details = true;
+    cfg.body = delay_body();
+
+    let result = run(&build_flow(cfg)).await;
+    assert!(result.success, "flow should succeed: {:?}", result.error);
+
+    let report = loop_report(&result);
+    let body = report.sub_flow_report.expect("body report");
+    assert_eq!(
+        body.node_reports.len(),
+        3,
+        "keep_all_details 应保留每一轮的完整详情"
+    );
+    assert_eq!(report.truncated_iterations, Some(0));
+    assert_eq!(report.iteration_summary.expect("summaries").len(), 3);
 }

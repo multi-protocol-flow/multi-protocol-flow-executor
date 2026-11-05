@@ -30,7 +30,7 @@ use flow_engine_core::report::{
 };
 use flow_engine_core::statistics::FlowStatistics;
 use serde_json::{json, Value};
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use uuid::Uuid;
@@ -259,8 +259,10 @@ impl NodeExecutor for LoopNodeExecutor {
         let mut break_reason = BreakReason::Exhausted;
         let mut error_message: Option<String> = None;
         let mut summaries: Vec<IterationSummary> = Vec::new();
-        let mut kept_reports: Vec<NodeExecutionReport> = Vec::new();
-        let mut truncated: u32 = 0;
+        // 有界桶：`(是否钉住, 该轮 body 节点报告)`，满桶后丢弃**最旧**的一轮
+        let mut retained: VecDeque<(bool, Vec<NodeExecutionReport>)> = VecDeque::new();
+        // 桶内未被钉住的轮次数（用于 O(1) 判断是否溢出）
+        let mut retained_unpinned: usize = 0;
         let mut index: u32 = 0;
         let mut last_output: Option<Value> = None;
 
@@ -375,20 +377,57 @@ impl NodeExecutor for LoopNodeExecutor {
                 }
 
                 let failed = stage_report.status != ExecutionStatus::Success;
-                summaries.push(IterationSummary {
+                let summary = IterationSummary {
                     index,
                     status: stage_report.status.clone(),
                     duration_ms: stage_report.duration_ms,
                     wait_ms: 0,
                     error: stage_report.error.clone(),
-                });
+                };
+                summaries.push(summary.clone());
 
-                let keep_detail = index < cfg.report.detail_iterations
-                    || (failed && cfg.report.always_keep_failed);
-                if keep_detail {
-                    kept_reports.extend(reports);
+                // 保留策略：失败轮按配置钉住（永不丢弃），其余只保留最近 `detail_iterations` 轮
+                let keep_all = cfg.report.keep_all_details;
+                let pinned = failed && cfg.report.always_keep_failed;
+                let bucket_cap = cfg.report.detail_iterations as usize;
+                let keep_this_round = keep_all || pinned || bucket_cap > 0;
+
+                // 运行中的报告需要本轮详情；没有监听者（CLI / 压测）时不必复制
+                let live_reports = if keep_this_round && context.execution_event_sender.is_some() {
+                    reports.clone()
                 } else {
-                    truncated += 1;
+                    Vec::new()
+                };
+
+                // 每轮结束即推送，前端据此在运行中就能看到循环进度。
+                // 注意 `summary.wait_ms` 此时仍为 0：本轮等待要等进入下一轮间隔时才确定，
+                // 为不拖延推送（长间隔循环否则要延迟一整轮才看到结果），真实值只写进最终报告。
+                context
+                    .emit_execution_event(
+                        flow_engine_core::execution_event::ExecutionEvent::LoopIteration {
+                            node_uuid: node.uuid.clone(),
+                            iteration: summary,
+                            reports: live_reports,
+                            truncated: !keep_this_round,
+                        },
+                    )
+                    .await;
+
+                if keep_this_round {
+                    retained.push_back((pinned, reports));
+                    if !pinned {
+                        retained_unpinned += 1;
+                    }
+                    if !keep_all {
+                        // 满桶：丢弃最旧的可丢弃轮次（钉住的失败轮跳过）
+                        while retained_unpinned > bucket_cap {
+                            let Some(pos) = retained.iter().position(|(pinned, _)| !pinned) else {
+                                break;
+                            };
+                            retained.remove(pos);
+                            retained_unpinned -= 1;
+                        }
+                    }
                 }
 
                 if failed && cfg.break_on_error {
@@ -484,6 +523,12 @@ impl NodeExecutor for LoopNodeExecutor {
         );
 
         // ---- 7. 报告回传 ----
+        // 桶内保留的是**最近**若干轮；被挤出桶的轮次只留摘要
+        let retained_iterations = retained.len() as u32;
+        let mut kept_reports: Vec<NodeExecutionReport> = Vec::new();
+        for (_, reports) in retained {
+            kept_reports.extend(reports);
+        }
         let total_body_nodes = cfg.body.nodes.len() as u32;
         let mut body_report = FlowExecutionReport {
             uuid: Uuid::new_v4().to_string(),
@@ -520,7 +565,7 @@ impl NodeExecutor for LoopNodeExecutor {
         context.current_sub_flow_report = Some(Box::new(body_report));
         context.current_loop_report = Some(LoopReportSummary {
             summaries,
-            truncated_iterations: truncated,
+            truncated_iterations: index.saturating_sub(retained_iterations),
         });
 
         // ---- 8. 输出与端口 ----

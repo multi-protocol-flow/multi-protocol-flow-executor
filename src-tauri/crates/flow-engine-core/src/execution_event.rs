@@ -121,6 +121,26 @@ pub enum ExecutionEvent {
         /// 事件时间戳
         timestamp: String,
     },
+    /// loop 节点单轮迭代完成（运行中实时展示用）
+    ///
+    /// `flow:loop` 在顶层流程中是一个节点，其最终报告要等整个循环结束才产生。
+    /// 该事件在**每轮结束**时推送，使运行中的报告能立刻看到迭代进度；
+    /// 口径与最终报告一致：`iteration` 对应 `iteration_summary` 的一项，
+    /// `reports` 对应 `sub_flow_report.node_reports` 中该轮的节点报告
+    /// （按 `LoopReportConfig` 裁剪策略保留时才非空）。
+    LoopIteration {
+        /// loop 节点 UUID
+        #[serde(rename = "nodeUuid")]
+        node_uuid: String,
+        /// 该轮摘要
+        iteration: crate::report::IterationSummary,
+        /// 该轮 body 节点报告（被裁剪时为空）
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        reports: Vec<NodeExecutionReport>,
+        /// 该轮是否只保留了摘要
+        #[serde(default)]
+        truncated: bool,
+    },
     /// 批量执行事件（用于高频执行合并推送，削减 IPC 调用频次）
     Batch(Vec<ExecutionEvent>),
 }
@@ -499,6 +519,51 @@ mod tests {
                 assert_eq!(events.len(), 2);
             }
             _ => panic!("应当反序列化为 ExecutionEvent::Batch"),
+        }
+    }
+
+    /// `LoopIteration` 必须序列化为 `{"loopIteration": {...}}`，
+    /// 且被裁剪的轮次不携带 `reports`，保持事件体积可控
+    #[test]
+    fn test_loop_iteration_event_shape() {
+        let event = ExecutionEvent::LoopIteration {
+            node_uuid: "loop-1".to_string(),
+            iteration: crate::report::IterationSummary {
+                index: 3,
+                status: ExecutionStatus::Success,
+                duration_ms: 12,
+                wait_ms: 0,
+                error: None,
+            },
+            reports: Vec::new(),
+            truncated: true,
+        };
+
+        let json = serde_json::to_string(&event).unwrap_or_else(|e| panic!("序列化Failed: {e}"));
+        assert!(json.starts_with(r#"{"loopIteration":{"#), "实际: {json}");
+        assert!(json.contains(r#""nodeUuid":"loop-1""#), "实际: {json}");
+        assert!(json.contains(r#""index":3"#), "实际: {json}");
+        assert!(json.contains(r#""truncated":true"#), "实际: {json}");
+        assert!(
+            !json.contains("reports"),
+            "被裁剪的轮次不应携带 reports: {json}"
+        );
+
+        let round_trip: ExecutionEvent =
+            serde_json::from_str(&json).unwrap_or_else(|e| panic!("反序列化Failed: {e}"));
+        match round_trip {
+            ExecutionEvent::LoopIteration {
+                node_uuid,
+                iteration,
+                reports,
+                truncated,
+            } => {
+                assert_eq!(node_uuid, "loop-1");
+                assert_eq!(iteration.index, 3);
+                assert!(reports.is_empty());
+                assert!(truncated);
+            }
+            _ => panic!("应当反序列化为 ExecutionEvent::LoopIteration"),
         }
     }
 }

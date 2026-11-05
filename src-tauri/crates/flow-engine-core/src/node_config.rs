@@ -1468,12 +1468,17 @@ pub enum LoopSource {
 /// 循环报告裁剪配置
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct LoopReportConfig {
-    /// 保留完整节点详情的迭代数
+    /// 保留完整节点详情的**最近**迭代数（有界桶：满桶后丢弃最旧的轮次）
+    ///
+    /// 设为极大值等价于开启 [`Self::keep_all_details`]，两者都无上界保护。
     #[serde(default = "default_detail_iterations")]
     pub detail_iterations: u32,
     /// 失败轮是否始终保留完整详情
     #[serde(default = "default_always_keep_failed")]
     pub always_keep_failed: bool,
+    /// 是否保留**全部**迭代的完整详情（开启后忽略 `detail_iterations`）
+    #[serde(default)]
+    pub keep_all_details: bool,
 }
 
 impl Default for LoopReportConfig {
@@ -1481,6 +1486,7 @@ impl Default for LoopReportConfig {
         Self {
             detail_iterations: 20,
             always_keep_failed: true,
+            keep_all_details: false,
         }
     }
 }
