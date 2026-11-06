@@ -128,9 +128,104 @@ pub struct Cli {
     #[arg(long, global = true, default_value = "json")]
     format: String,
 
+    /// Allow `local:exec` nodes to run local commands
+    #[arg(long, global = true)]
+    allow_exec: bool,
+
+    /// Additional allowed program for `local:exec` (repeatable; empty = no restriction)
+    #[arg(long = "allow-exec-cmd", global = true, value_name = "PROGRAM")]
+    allow_exec_cmd: Vec<String>,
+
+    /// Allow shell mode (`local:exec` with `mode: "shell"`)
+    #[arg(long, global = true)]
+    allow_shell: bool,
+
     /// CLI subcommands
     #[command(subcommand)]
     pub command: Commands,
+}
+
+// ── 本地命令执行策略（`local:exec` 闸门）──────────────────────────
+
+/// `local:exec` 执行策略句柄；`local-exec` 特性关闭时退化为 `()`（最小构建）
+#[cfg(feature = "local-exec")]
+pub(crate) type ExecPolicyHandle = Arc<flow_engine::exec::ExecPolicy>;
+/// `local:exec` 执行策略句柄（特性关闭时的占位类型）
+#[cfg(not(feature = "local-exec"))]
+pub(crate) type ExecPolicyHandle = ();
+
+/// 由 CLI flags 构造执行策略
+#[cfg(feature = "local-exec")]
+pub(crate) fn build_exec_policy(cli: &Cli) -> ExecPolicyHandle {
+    // 只给 --allow-exec-cmd / --allow-shell 而没给 --allow-exec 时，总闸仍关闭，
+    // 节点会返回 E_EXEC_DENIED；显式提示，避免 flag "看起来生效了"
+    if !cli.allow_exec && (!cli.allow_exec_cmd.is_empty() || cli.allow_shell) {
+        eprintln!(
+            "warning: --allow-exec-cmd/--allow-shell take effect only together with --allow-exec; \
+             local:exec nodes stay disabled"
+        );
+    }
+    Arc::new(flow_engine::exec::ExecPolicy::cli(
+        cli.allow_exec,
+        cli.allow_exec_cmd.clone(),
+        cli.allow_shell,
+    ))
+}
+
+/// 由 CLI flags 构造执行策略（`local-exec` 特性关闭时为空句柄）
+#[cfg(not(feature = "local-exec"))]
+pub(crate) fn build_exec_policy(_cli: &Cli) -> ExecPolicyHandle {}
+
+/// 把执行策略挂到流程执行器上
+#[cfg(feature = "local-exec")]
+pub(crate) fn attach_exec_policy(
+    executor: flow_engine::executor::FlowExecutor,
+    policy: &ExecPolicyHandle,
+) -> flow_engine::executor::FlowExecutor {
+    executor.with_provider(flow_engine::exec::EXEC_POLICY_PROVIDER, policy.clone())
+}
+
+/// 把执行策略挂到流程执行器上（特性关闭时空操作）
+#[cfg(not(feature = "local-exec"))]
+pub(crate) fn attach_exec_policy(
+    executor: flow_engine::executor::FlowExecutor,
+    _policy: &ExecPolicyHandle,
+) -> flow_engine::executor::FlowExecutor {
+    executor
+}
+
+/// 把执行策略挂到调试执行器上
+#[cfg(feature = "local-exec")]
+pub(crate) fn attach_debug_exec_policy(
+    executor: flow_engine::debug::DebuggableFlowExecutor,
+    policy: &ExecPolicyHandle,
+) -> flow_engine::debug::DebuggableFlowExecutor {
+    executor.with_provider(flow_engine::exec::EXEC_POLICY_PROVIDER, policy.clone())
+}
+
+/// 把执行策略挂到调试执行器上（特性关闭时空操作）
+#[cfg(not(feature = "local-exec"))]
+pub(crate) fn attach_debug_exec_policy(
+    executor: flow_engine::debug::DebuggableFlowExecutor,
+    _policy: &ExecPolicyHandle,
+) -> flow_engine::debug::DebuggableFlowExecutor {
+    executor
+}
+
+/// 构造 provider 映射（Ingress / 压测 / 数据集透传；特性关闭时为空表）
+#[cfg(feature = "local-exec")]
+pub(crate) fn exec_policy_providers(
+    policy: &ExecPolicyHandle,
+) -> std::collections::HashMap<String, Arc<dyn std::any::Any + Send + Sync>> {
+    flow_engine::exec::policy_providers((**policy).clone())
+}
+
+/// 构造 provider 映射（特性关闭时为空表）
+#[cfg(not(feature = "local-exec"))]
+pub(crate) fn exec_policy_providers(
+    _policy: &ExecPolicyHandle,
+) -> std::collections::HashMap<String, Arc<dyn std::any::Any + Send + Sync>> {
+    std::collections::HashMap::new()
 }
 
 /// CLI subcommand enumeration
@@ -762,6 +857,9 @@ async fn async_main() -> Result<(), CliError> {
         let _ = ctrlc_cancel_tx.send(true);
     });
 
+    // `local:exec` 执行策略（由 CLI flags 决定；未 `--allow-exec` 时节点一律拒绝）
+    let exec_policy = build_exec_policy(&cli);
+
     // 按需构建共享节点注册表（内置节点 + 插件节点）：只有真正执行/验证/调试/
     // 压测/单节点命令需要；flow/report/plugin 管理命令不拉起插件进程。
     match cli.command {
@@ -791,6 +889,7 @@ async fn async_main() -> Result<(), CliError> {
                 registry,
                 plugin_manager,
                 cancel_rx,
+                &exec_policy,
             )
             .await
         }
@@ -811,6 +910,7 @@ async fn async_main() -> Result<(), CliError> {
                 graceful_timeout,
                 registry,
                 cancel_rx,
+                &exec_policy,
             )
             .await
         }
@@ -833,12 +933,13 @@ async fn async_main() -> Result<(), CliError> {
                 &var,
                 registry,
                 cancel_rx,
+                &exec_policy,
             )
             .await
         }
         Commands::Stress { command } => {
             let (registry, _plugin_manager) = build_shared_registry().await;
-            stress::execute(&cli.format, command, registry, cancel_rx).await
+            stress::execute(&cli.format, command, registry, cancel_rx, &exec_policy).await
         }
         Commands::Flow { command } => flow::execute(&cli.format, command).await,
         Commands::Env { command } => env::execute(&cli.format, command).await,
@@ -848,7 +949,7 @@ async fn async_main() -> Result<(), CliError> {
             format,
         } => {
             let (registry, _plugin_manager) = build_shared_registry().await;
-            run_node::execute(&format, &node_json, &var, registry).await
+            run_node::execute(&format, &node_json, &var, registry, &exec_policy).await
         }
         Commands::Report { command } => report::execute(&cli.format, command).await,
         #[cfg(feature = "plugin-manager")]

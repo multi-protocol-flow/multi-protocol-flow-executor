@@ -1,0 +1,70 @@
+{
+  "_version": 1,
+  "flow": {
+    "uuid": "local-exec-smoke",
+    "name": "Local Exec Smoke",
+    "nodes": [
+      {
+        "uuid": "entry-001",
+        "type": "entry",
+        "name": "Entry",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "type": "entry"
+        },
+        "ports": null
+      },
+      {
+        "uuid": "exec-001",
+        "type": "local:exec",
+        "name": "Local Command",
+        "position": {
+          "x": 200,
+          "y": 0
+        },
+        "data": {
+          "type": "local:exec",
+          "mode": "argv",
+          "program": "/bin/sh",
+          "args": ["-c", "echo hi"],
+          "timeout_ms": 30000,
+          "max_output_bytes": 1048576
+        },
+        "ports": null
+      },
+      {
+        "uuid": "end-001",
+        "type": "end",
+        "name": "End",
+        "position": {
+          "x": 400,
+          "y": 0
+        },
+        "data": {
+          "type": "end"
+        },
+        "ports": null
+      }
+    ],
+    "connections": [
+      {
+        "id": "conn-001",
+        "source_node_uuid": "entry-001",
+        "target_node_uuid": "exec-001",
+        "source_port_id": "out",
+        "target_port_id": "in"
+      },
+      {
+        "id": "conn-002",
+        "source_node_uuid": "exec-001",
+        "target_node_uuid": "end-001",
+        "source_port_id": "true",
+        "target_port_id": "in"
+      }
+    ]
+  },
+  "_meta": null
+}

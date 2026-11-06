@@ -91,6 +91,7 @@ pub async fn execute(
     graceful_timeout: u64,
     registry: Arc<NodeRegistry>,
     cancel_rx: tokio::sync::watch::Receiver<bool>,
+    exec_policy: &super::ExecPolicyHandle,
 ) -> Result<(), CliError> {
     let path = PathBuf::from(flow_path);
     if !path.exists() {
@@ -169,8 +170,10 @@ pub async fn execute(
                     flow.name,
                     flow.uuid
                 );
-                let executor =
-                    flow_engine::executor::FlowExecutor::new().with_registry(registry.clone());
+                let executor = super::attach_exec_policy(
+                    flow_engine::executor::FlowExecutor::new().with_registry(registry.clone()),
+                    exec_policy,
+                );
                 let (updated_vars, report) = flow_engine::subgraph_runner::execute_subgraph(
                     setup_subgraph,
                     initial_vars,
@@ -227,6 +230,7 @@ pub async fn execute(
                 registry.clone(),
                 None,
                 Duration::from_secs(60),
+                super::exec_policy_providers(exec_policy),
             )
             .await
             .map_err(CliError::execution)?;
@@ -301,8 +305,10 @@ pub async fn execute(
                     flow.name,
                     flow.uuid
                 );
-                let executor =
-                    flow_engine::executor::FlowExecutor::new().with_registry(registry.clone());
+                let executor = super::attach_exec_policy(
+                    flow_engine::executor::FlowExecutor::new().with_registry(registry.clone()),
+                    exec_policy,
+                );
                 let vars = flow.get_active_variables().unwrap_or_default();
                 match flow_engine::subgraph_runner::execute_subgraph(
                     teardown_subgraph,

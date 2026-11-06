@@ -14,6 +14,7 @@ pub async fn execute(
     command: StressCommands,
     registry: Arc<flow_engine::registry::NodeRegistry>,
     cancel_rx: tokio::sync::watch::Receiver<bool>,
+    exec_policy: &super::ExecPolicyHandle,
 ) -> Result<(), CliError> {
     match command {
         StressCommands::Run {
@@ -39,6 +40,7 @@ pub async fn execute(
                 summary.as_deref(),
                 registry,
                 cancel_rx,
+                exec_policy,
             )
             .await
         }
@@ -60,6 +62,7 @@ async fn execute_run(
     summary: Option<&std::path::Path>,
     registry: Arc<flow_engine::registry::NodeRegistry>,
     cancel_rx: tokio::sync::watch::Receiver<bool>,
+    exec_policy: &super::ExecPolicyHandle,
 ) -> Result<(), CliError> {
     let path = PathBuf::from(flow_path);
     if !path.exists() {
@@ -107,7 +110,8 @@ async fn execute_run(
         event_tx,
         registry,
     )
-    .with_variables(variables);
+    .with_variables(variables)
+    .with_providers(Arc::new(super::exec_policy_providers(exec_policy)));
 
     // 启动执行器
     executor

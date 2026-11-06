@@ -41,6 +41,7 @@ workspace-hack = { version = "0.1", path = "../workspace-hack" }
 default = ["all-protocols", "plugin-manager"]
 all-protocols = [
     "flow-engine/all-protocols",
+    "local-exec",
 ]
 protocol-http = ["flow-engine/protocol-http"]
 protocol-ws = ["flow-engine/protocol-ws"]
@@ -49,6 +50,7 @@ protocol-assertion = ["flow-engine/protocol-assertion"]
 protocol-tcp = ["flow-engine/protocol-tcp"]
 protocol-sse = ["flow-engine/protocol-sse"]
 protocol-graphql = ["flow-engine/protocol-graphql"]
+local-exec = ["flow-engine/local-exec"]
 # Proves the CLI gets plugins despite `default-features = false` on its
 # flow-engine dependency: plugin-manager is forwarded explicitly and is
 # independent of protocol-*.

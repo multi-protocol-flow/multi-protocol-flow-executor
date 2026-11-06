@@ -46,6 +46,7 @@ pub async fn execute(
     registry: Arc<flow_engine::registry::NodeRegistry>,
     plugin_manager: super::PluginManagerHandle,
     cancel_rx: tokio::sync::watch::Receiver<bool>,
+    exec_policy: &super::ExecPolicyHandle,
 ) -> Result<(), CliError> {
     let path = PathBuf::from(flow_path);
     if !path.exists() {
@@ -79,9 +80,17 @@ pub async fn execute(
 
     // Execute flow
     let result = if stream {
-        execute_with_streaming(path, &flow, variables, Arc::clone(&registry), cancel_rx).await?
+        execute_with_streaming(
+            path,
+            &flow,
+            variables,
+            Arc::clone(&registry),
+            cancel_rx,
+            exec_policy,
+        )
+        .await?
     } else {
-        execute_simple(path, &flow, variables, registry, cancel_rx).await?
+        execute_simple(path, &flow, variables, registry, cancel_rx, exec_policy).await?
     };
 
     // 通知所有活跃插件：本次执行已结束（fire-and-forget）。
@@ -306,6 +315,7 @@ async fn execute_simple(
     variables: Option<serde_json::Value>,
     registry: Arc<flow_engine::registry::NodeRegistry>,
     cancel_rx: tokio::sync::watch::Receiver<bool>,
+    exec_policy: &super::ExecPolicyHandle,
 ) -> Result<flow_engine::executor::ExecutionResult, CliError> {
     let default_timeout = std::env::var("MPE_DEFAULT_TIMEOUT_MS")
         .ok()
@@ -316,6 +326,7 @@ async fn execute_simple(
         .with_registry(registry)
         .with_flow_file_path(path)
         .with_cancel_receiver(cancel_rx);
+    executor = super::attach_exec_policy(executor, exec_policy);
     if let Some(timeout) = default_timeout {
         executor = executor.with_fallback_timeout(timeout);
     }
@@ -329,6 +340,7 @@ async fn execute_with_streaming(
     variables: Option<serde_json::Value>,
     registry: Arc<flow_engine::registry::NodeRegistry>,
     cancel_rx: tokio::sync::watch::Receiver<bool>,
+    exec_policy: &super::ExecPolicyHandle,
 ) -> Result<flow_engine::executor::ExecutionResult, CliError> {
     let (event_tx, mut event_rx) = tokio::sync::mpsc::unbounded_channel();
 
@@ -344,6 +356,7 @@ async fn execute_with_streaming(
         .with_flow_file_path(path)
         .with_execution_event_sender(sender)
         .with_cancel_receiver(cancel_rx);
+    executor = super::attach_exec_policy(executor, exec_policy);
     if let Some(timeout) = default_timeout {
         executor = executor.with_fallback_timeout(timeout);
     }

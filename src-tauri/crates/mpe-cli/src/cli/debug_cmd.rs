@@ -40,6 +40,7 @@ pub async fn execute(
     vars: &[String],
     registry: std::sync::Arc<flow_engine::registry::NodeRegistry>,
     cancel_rx: tokio::sync::watch::Receiver<bool>,
+    exec_policy: &super::ExecPolicyHandle,
 ) -> Result<(), super::CliError> {
     // 1. 验证文件存在
     let path = PathBuf::from(flow_path);
@@ -76,10 +77,12 @@ pub async fn execute(
     // 5. 启动调试会话（后台任务）
     let bp_list = breakpoints.to_vec();
     let flow_clone = flow.clone();
+    let exec_policy_for_task = exec_policy.clone();
     let debug_handle = tokio::spawn(async move {
         let executor = flow_engine::debug::DebuggableFlowExecutor::new()
             .with_flow_file_path(path)
             .with_registry(registry);
+        let executor = super::attach_debug_exec_policy(executor, &exec_policy_for_task);
         executor
             .start_debug(
                 &flow_clone,
