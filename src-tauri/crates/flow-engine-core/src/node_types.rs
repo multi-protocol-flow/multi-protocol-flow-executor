@@ -66,6 +66,10 @@ pub const DELAY: &str = "flow:delay";
 pub const HTTP_INGRESS: &str = "http:ingress";
 /// HTTP Respond 响应节点（Mock 服务出口）
 pub const HTTP_RESPOND: &str = "http:respond";
+/// 本地命令节点
+pub const LOCAL_EXEC: &str = "local:exec";
+/// 本机信息节点
+pub const LOCAL_SYSINFO: &str = "local:sysinfo";
 
 /// 判断节点类型是否可作为流程执行入口
 ///

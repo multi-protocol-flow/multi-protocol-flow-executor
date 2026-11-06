@@ -7,6 +7,7 @@ members = [
     "crates/flow-engine-ws",
     "crates/flow-engine-script",
     "crates/flow-engine-assertion",
+    "crates/flow-engine-exec",
     "crates/flow-engine-executor",
     "crates/flow-engine-tcp",
     "crates/flow-engine-sse",
@@ -150,6 +151,7 @@ all-protocols = [
     "protocol-tcp",
     "protocol-sse",
     "protocol-graphql",
+    "local-exec",
 ]
 protocol-http = ["flow-engine/protocol-http"]
 protocol-ws = ["flow-engine/protocol-ws"]
@@ -158,6 +160,7 @@ protocol-assertion = ["flow-engine/protocol-assertion"]
 protocol-tcp = ["flow-engine/protocol-tcp"]
 protocol-sse = ["flow-engine/protocol-sse"]
 protocol-graphql = ["flow-engine/protocol-graphql"]
+local-exec = ["flow-engine/local-exec"]
 plugin-manager = ["flow-engine/plugin-manager"]
 
 # Windows API（FreeConsole 用于分离控制台）

@@ -1604,6 +1604,126 @@ impl Default for DelayConfig {
 }
 
 // ============================================================================
+// 本地命令 / 本机信息节点配置
+// ============================================================================
+
+/// 命令构造方式
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ExecMode {
+    /// 直接 argv 传参，不经过 shell（默认）
+    #[default]
+    Argv,
+    /// 经由 shell 执行脚本
+    Shell,
+}
+
+/// 产物捕获配置
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ExecCaptureConfig {
+    /// 产物路径（支持变量），相对路径以流程文件目录为基准
+    pub path: String,
+    /// 读取上限（字节），默认 4 MiB，上限 64 MiB
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_bytes: Option<usize>,
+}
+
+/// 本地命令节点配置
+///
+/// 变量注入规则：`program` / `args` / `env` 的值 / `cwd` / `capture.path`
+/// 逐字段做变量替换；`script` **禁止**出现 `{{ }}`（校验期拒绝），
+/// shell 模式访问变量只能通过注入的环境变量 `MPE_VAR_<NAME>`。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct LocalExecConfig {
+    /// argv / shell
+    #[serde(default)]
+    pub mode: ExecMode,
+    /// 可执行文件（支持变量）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub program: Option<String>,
+    /// 参数列表，逐参数做变量替换（不经过 shell，不拆词）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub args: Option<Vec<String>>,
+    /// bash | sh | cmd | powershell | pwsh
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub shell: Option<String>,
+    /// 脚本正文，禁止 `{{ }}`
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub script: Option<String>,
+    /// 变量映射：值可含变量模板，注入为环境变量 `MPE_VAR_<NAME>`
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub env: Option<HashMap<String, String>>,
+    /// 除默认白名单外额外继承的环境变量名
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub inherit_env: Option<Vec<String>>,
+    /// 工作目录（支持变量），默认流程文件所在目录
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cwd: Option<String>,
+    /// 超时（毫秒），默认 600000
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub timeout_ms: Option<u64>,
+    /// stdout / stderr 各自上限，默认 1 MiB
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_output_bytes: Option<usize>,
+    /// 产物捕获
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub capture: Option<ExecCaptureConfig>,
+}
+
+impl Default for LocalExecConfig {
+    fn default() -> Self {
+        Self {
+            mode: ExecMode::Argv,
+            program: None,
+            args: None,
+            shell: None,
+            script: None,
+            env: None,
+            inherit_env: None,
+            cwd: None,
+            timeout_ms: None,
+            max_output_bytes: None,
+            capture: None,
+        }
+    }
+}
+
+/// 本机信息节点配置
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct LocalSysinfoConfig {
+    /// 采集项：os / cpu / mem / disk / ffmpeg
+    #[serde(default = "default_sysinfo_checks")]
+    pub checks: Vec<String>,
+    /// 磁盘探测路径（支持变量），默认当前工作目录
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub disk_path: Option<String>,
+}
+
+fn default_sysinfo_checks() -> Vec<String> {
+    vec![
+        "os".to_string(),
+        "cpu".to_string(),
+        "mem".to_string(),
+        "ffmpeg".to_string(),
+    ]
+}
+
+impl Default for LocalSysinfoConfig {
+    fn default() -> Self {
+        Self {
+            checks: default_sysinfo_checks(),
+            disk_path: None,
+        }
+    }
+}
+
+/// `local:exec` 执行器超时相对插件超时的宽限余量（毫秒）
+///
+/// 插件在阻塞线程内做 TERM → 宽限期 → SIGKILL 的进程组回收，需要额外时间；
+/// 让执行器的节点超时晚于插件超时，才能拿到插件返回的部分输出。
+const LOCAL_EXEC_TIMEOUT_GRACE_MS: u64 = 5_000;
+
+// ============================================================================
 // 节点数据配置统一枚举
 // ============================================================================
 
@@ -1709,6 +1829,12 @@ pub enum NodeData {
     /// 延时节点配置
     #[serde(rename = "flow:delay")]
     Delay(DelayConfig),
+    /// 本地命令节点配置
+    #[serde(rename = "local:exec")]
+    LocalExec(LocalExecConfig),
+    /// 本机信息节点配置
+    #[serde(rename = "local:sysinfo")]
+    LocalSysinfo(LocalSysinfoConfig),
     /// 插件节点配置（未知类型的兜底捕获）
     ///
     /// 当反序列化遇到不认识的 `type` 值时，整个 JSON 对象会被保留在此变体中。
@@ -1830,6 +1956,12 @@ impl<'de> serde::Deserialize<'de> for NodeData {
             "flow:delay" => serde_json::from_value::<DelayConfig>(value.clone())
                 .map(NodeData::Delay)
                 .map_err(serde::de::Error::custom),
+            "local:exec" => serde_json::from_value::<LocalExecConfig>(value.clone())
+                .map(NodeData::LocalExec)
+                .map_err(serde::de::Error::custom),
+            "local:sysinfo" => serde_json::from_value::<LocalSysinfoConfig>(value.clone())
+                .map(NodeData::LocalSysinfo)
+                .map_err(serde::de::Error::custom),
             // 未知 type → 兜底到 Plugin
             _ => Ok(NodeData::Plugin(value)),
         }
@@ -1873,6 +2005,8 @@ impl NodeData {
             NodeData::SubFlow(_) => "flow:sub".to_string(),
             NodeData::Loop(_) => "flow:loop".to_string(),
             NodeData::Delay(_) => "flow:delay".to_string(),
+            NodeData::LocalExec(_) => "local:exec".to_string(),
+            NodeData::LocalSysinfo(_) => "local:sysinfo".to_string(),
             NodeData::Plugin(val) => val
                 .get("type")
                 .and_then(|v| v.as_str())
@@ -1911,6 +2045,17 @@ impl NodeData {
             NodeData::WsSendCollect(cfg) => Some(cfg.send_timeout_ms),
             // WsClose - close_timeout_ms: u64
             NodeData::WsClose(cfg) => Some(cfg.close_timeout_ms),
+            // LocalExec - timeout_ms: Option<u64>（默认 10 分钟，避免被 30s 兜底超时误杀）
+            //
+            // 执行器的节点超时要比插件自身的超时**更晚**触发：插件超时会在阻塞线程内
+            // 走 TERM → 宽限期 → SIGKILL 并返回带 stdout/stderr 的 `E_TIMEOUT`；执行器
+            // 超时则是直接 drop future，会把诊断信息一并丢掉。这里留出进程组回收的余量，
+            // 让执行器的超时只作为兜底。
+            NodeData::LocalExec(cfg) => Some(
+                cfg.timeout_ms
+                    .unwrap_or(600_000)
+                    .saturating_add(LOCAL_EXEC_TIMEOUT_GRACE_MS),
+            ),
             // 其他节点类型没有明确的"整体执行超时"语义
             _ => None,
         }

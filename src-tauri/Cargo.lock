@@ -1407,6 +1407,7 @@ dependencies = [
  "assert_cmd",
  "chrono",
  "flow-engine-core",
+ "flow-engine-exec",
  "flow-engine-executor",
  "flow-engine-plugin",
  "flow-engine-plugin-marketplace",
@@ -1464,6 +1465,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "flow-engine-exec"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "base64 0.22.1",
+ "flow-engine-core",
+ "log",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tempfile",
+ "tokio",
+ "uuid",
+ "workspace-hack",
+]
+
+[[package]]
 name = "flow-engine-executor"
 version = "0.1.0"
 dependencies = [
@@ -1475,6 +1493,7 @@ dependencies = [
  "evalexpr",
  "flow-engine-assertion",
  "flow-engine-core",
+ "flow-engine-exec",
  "flow-engine-graphql",
  "flow-engine-http",
  "flow-engine-plugin",

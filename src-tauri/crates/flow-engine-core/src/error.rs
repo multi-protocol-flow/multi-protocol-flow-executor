@@ -414,6 +414,14 @@ pub enum ErrorCode {
     /// Proxy node execution failed.
     E_PROXY_FAILED,
 
+    // ===== Local command (local:exec) errors =====
+    /// Local command execution denied by policy or approval.
+    E_EXEC_DENIED,
+    /// Local command failed to spawn (executable not resolvable / spawn error).
+    E_EXEC_SPAWN_FAILED,
+    /// Local command artifact capture failed.
+    E_EXEC_CAPTURE_FAILED,
+
     // ===== Plugin errors =====
     /// Sidecar plugin process crashed or exited abnormally.
     ///
@@ -496,6 +504,10 @@ impl ErrorCode {
             // Non-protocol nodes
             Self::E_VARIABLE_EXTRACTOR_FAILED => &["expression", "message"],
             Self::E_PROXY_FAILED => &["message"],
+            // Local command
+            Self::E_EXEC_DENIED => &["program", "message"],
+            Self::E_EXEC_SPAWN_FAILED => &["program", "message"],
+            Self::E_EXEC_CAPTURE_FAILED => &["path", "message"],
             // Plugin
             Self::PluginCrashed => &["plugin_name", "message"],
         }
@@ -559,6 +571,9 @@ impl ErrorCode {
             Self::E_GRAPHQL_CLOSE => "E_GRAPHQL_CLOSE",
             Self::E_VARIABLE_EXTRACTOR_FAILED => "E_VARIABLE_EXTRACTOR_FAILED",
             Self::E_PROXY_FAILED => "E_PROXY_FAILED",
+            Self::E_EXEC_DENIED => "E_EXEC_DENIED",
+            Self::E_EXEC_SPAWN_FAILED => "E_EXEC_SPAWN_FAILED",
+            Self::E_EXEC_CAPTURE_FAILED => "E_EXEC_CAPTURE_FAILED",
             Self::PluginCrashed => "E_PLUGIN_CRASHED",
         }
     }
@@ -621,6 +636,9 @@ impl ErrorCode {
             Self::E_GRAPHQL_CLOSE => ErrorKind::GraphqlClose,
             Self::E_VARIABLE_EXTRACTOR_FAILED => ErrorKind::Execution,
             Self::E_PROXY_FAILED => ErrorKind::Execution,
+            Self::E_EXEC_DENIED => ErrorKind::Execution,
+            Self::E_EXEC_SPAWN_FAILED => ErrorKind::Execution,
+            Self::E_EXEC_CAPTURE_FAILED => ErrorKind::Execution,
             Self::PluginCrashed => ErrorKind::Execution,
         }
     }
@@ -684,6 +702,9 @@ impl std::fmt::Display for ErrorCode {
             Self::E_GRAPHQL_CLOSE => write!(f, "GraphQL close error"),
             Self::E_VARIABLE_EXTRACTOR_FAILED => write!(f, "Variable extractor failed"),
             Self::E_PROXY_FAILED => write!(f, "Proxy node execution failed"),
+            Self::E_EXEC_DENIED => write!(f, "Local command execution denied"),
+            Self::E_EXEC_SPAWN_FAILED => write!(f, "Local command failed to start"),
+            Self::E_EXEC_CAPTURE_FAILED => write!(f, "Local command artifact capture failed"),
             Self::PluginCrashed => write!(f, "Plugin process crashed"),
         }
     }
