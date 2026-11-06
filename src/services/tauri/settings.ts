@@ -45,6 +45,9 @@ export async function loadSettings(): Promise<Settings> {
     const pluginQueueCapacity = await store.get<number>('pluginQueueCapacity');
     const defaultIngressPort = await store.get<number>('defaultIngressPort');
     const defaultMcpPort = await store.get<number>('defaultMcpPort');
+    const execEnabled = await store.get<boolean>('execEnabled');
+    const execAllowShell = await store.get<boolean>('execAllowShell');
+    const execAllowedPrograms = await store.get<string[]>('execAllowedPrograms');
     const theme = await store.get<string>('theme');
     const locale = await store.get<string>('locale');
     const aiProviders = await store.get<AIProviderConfig[]>('aiProviders');
@@ -68,6 +71,9 @@ export async function loadSettings(): Promise<Settings> {
       pluginQueueCapacity,
       defaultIngressPort: defaultIngressPort ?? 9527,
       defaultMcpPort: defaultMcpPort ?? DEFAULT_MCP_PORT,
+      execEnabled: execEnabled ?? false,
+      execAllowShell: execAllowShell ?? false,
+      execAllowedPrograms: execAllowedPrograms ?? [],
       theme: (theme as ThemeMode) ?? 'system',
       locale: (locale as Locale) ?? 'en-US',
       aiProviders: aiProviders ?? [],
@@ -127,6 +133,15 @@ export async function saveSettings(settings: Partial<Settings>): Promise<void> {
     }
     if (settings.defaultMcpPort !== undefined) {
       await store.set('defaultMcpPort', settings.defaultMcpPort);
+    }
+    if (settings.execEnabled !== undefined) {
+      await store.set('execEnabled', settings.execEnabled);
+    }
+    if (settings.execAllowShell !== undefined) {
+      await store.set('execAllowShell', settings.execAllowShell);
+    }
+    if (settings.execAllowedPrograms !== undefined) {
+      await store.set('execAllowedPrograms', settings.execAllowedPrograms);
     }
     if (settings.theme !== undefined) {
       await store.set('theme', settings.theme);

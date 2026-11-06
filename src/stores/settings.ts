@@ -40,6 +40,9 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
   pluginQueueCapacity: undefined,
   defaultIngressPort: 9527,
   defaultMcpPort: DEFAULT_MCP_PORT,
+  execEnabled: false,
+  execAllowShell: false,
+  execAllowedPrograms: [],
   theme: 'system' as ThemeMode,
   locale: 'en-US' as Locale,
   aiProviders: [],
@@ -70,6 +73,9 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
         pluginQueueCapacity: settings.pluginQueueCapacity,
         defaultIngressPort: settings.defaultIngressPort ?? 9527,
         defaultMcpPort: settings.defaultMcpPort ?? DEFAULT_MCP_PORT,
+        execEnabled: settings.execEnabled ?? false,
+        execAllowShell: settings.execAllowShell ?? false,
+        execAllowedPrograms: settings.execAllowedPrograms ?? [],
         theme: settings.theme,
         locale: settings.locale,
         aiProviders: settings.aiProviders ?? [],
@@ -215,6 +221,36 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
       const service = await getSettingsService();
       await service.saveSettings({ defaultMcpPort: port });
       set({ defaultMcpPort: port });
+    } catch (e) {
+      set({ error: formatErrorMessage(e) });
+    }
+  },
+
+  setExecEnabled: async (enabled: boolean) => {
+    try {
+      const service = await getSettingsService();
+      await service.saveSettings({ execEnabled: enabled });
+      set({ execEnabled: enabled });
+    } catch (e) {
+      set({ error: formatErrorMessage(e) });
+    }
+  },
+
+  setExecAllowShell: async (allowShell: boolean) => {
+    try {
+      const service = await getSettingsService();
+      await service.saveSettings({ execAllowShell: allowShell });
+      set({ execAllowShell: allowShell });
+    } catch (e) {
+      set({ error: formatErrorMessage(e) });
+    }
+  },
+
+  setExecAllowedPrograms: async (programs: string[]) => {
+    try {
+      const service = await getSettingsService();
+      await service.saveSettings({ execAllowedPrograms: programs });
+      set({ execAllowedPrograms: programs });
     } catch (e) {
       set({ error: formatErrorMessage(e) });
     }

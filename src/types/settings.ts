@@ -46,6 +46,12 @@ export interface Settings {
   defaultIngressPort?: number;
   /** 全局 MCP 共享网关默认端口（未设置时兜底 9528） */
   defaultMcpPort?: number;
+  /** 是否允许执行本地命令节点（`local:exec`），默认关闭 */
+  execEnabled?: boolean;
+  /** 是否允许 `local:exec` 的 shell 模式，默认关闭 */
+  execAllowShell?: boolean;
+  /** `local:exec` 允许的程序白名单（空数组 = 不限制） */
+  execAllowedPrograms?: string[];
   /** 主题模式 */
   theme: ThemeMode;
   /** 语言区域 */
@@ -100,6 +106,12 @@ export interface SettingsState {
   defaultIngressPort: number;
   /** 全局 MCP 共享网关默认端口 */
   defaultMcpPort: number;
+  /** 是否允许执行本地命令节点（`local:exec`） */
+  execEnabled: boolean;
+  /** 是否允许 `local:exec` 的 shell 模式 */
+  execAllowShell: boolean;
+  /** `local:exec` 允许的程序白名单（空数组 = 不限制） */
+  execAllowedPrograms: string[];
   /** 主题模式 */
   theme: ThemeMode;
   /** 语言区域 */
@@ -164,6 +176,12 @@ export interface SettingsActions {
   setDefaultIngressPort: (port: number) => Promise<void>;
   /** 设置全局 MCP 共享网关默认端口 */
   setDefaultMcpPort: (port: number) => Promise<void>;
+  /** 设置是否允许执行本地命令节点 */
+  setExecEnabled: (enabled: boolean) => Promise<void>;
+  /** 设置是否允许 `local:exec` 的 shell 模式 */
+  setExecAllowShell: (allowShell: boolean) => Promise<void>;
+  /** 设置 `local:exec` 程序白名单 */
+  setExecAllowedPrograms: (programs: string[]) => Promise<void>;
   /** 打开报告目录 */
   openReportDir: () => Promise<void>;
   /** 打开日志目录 */

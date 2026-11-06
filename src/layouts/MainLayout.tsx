@@ -32,6 +32,7 @@ import {
 import { AICopilotPanel, AISpotlightDialog } from '@/components/ai';
 import { useAIStore } from '@/stores/ai';
 import { useStressTestStore, selectIsStressTestRunning } from '@/stores/stressTest';
+import { ExecApprovalDialog } from '@/components/dialogs/ExecApprovalDialog';
 import { useUIStore, useDebugStore, selectIsDebugging, selectIsDebugDataReadOnly } from '@/stores';
 import { useSettingsStore } from '@/stores/settings';
 import { useConsoleStore } from '@/stores/console';
@@ -138,6 +139,7 @@ const GlobalDialogs = memo(function GlobalDialogs() {
       <NewFlowDialog />
       <PluginSettingsDialog />
       <SettingsDialog />
+      <ExecApprovalDialog />
       <ConfirmDialogHandler />
       <ShortcutsDialog />
       <ScriptHelpDialog
