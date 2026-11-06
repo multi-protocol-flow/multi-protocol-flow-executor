@@ -17,6 +17,7 @@ all-protocols = [
     "protocol-tcp",
     "protocol-sse",
     "protocol-graphql",
+    "local-exec",
 ]
 protocol-http = ["dep:flow-engine-http"]
 protocol-ws = ["dep:flow-engine-ws"]
@@ -25,6 +26,8 @@ protocol-assertion = ["dep:flow-engine-assertion"]
 protocol-tcp = ["dep:flow-engine-tcp"]
 protocol-sse = ["dep:flow-engine-sse"]
 protocol-graphql = ["dep:flow-engine-graphql"]
+# Local command / machine-info nodes (`local:exec`, `local:sysinfo`)
+local-exec = ["dep:flow-engine-exec"]
 # Plugin manager feature — independent of protocol-*; the sidecar plugin
 # system is not a protocol executor.
 plugin-manager = ["dep:flow-engine-plugin"]
@@ -39,6 +42,7 @@ flow-engine-tcp = { path = "../flow-engine-tcp", optional = true }
 flow-engine-sse = { path = "../flow-engine-sse", optional = true }
 flow-engine-graphql = { path = "../flow-engine-graphql", optional = true }
 flow-engine-plugin = { path = "../flow-engine-plugin", optional = true }
+flow-engine-exec = { path = "../flow-engine-exec", optional = true }
 async-trait = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }

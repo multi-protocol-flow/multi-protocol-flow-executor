@@ -85,6 +85,8 @@ pub const SUPPORTED_SINGLE_NODE_TYPES: &[&str] = &[
     "sse:connect",
     "graphql:connect",
     "tcp:connect",
+    "local:exec",
+    "local:sysinfo",
 ];
 
 /// Whether a node type may run via the single-node path.

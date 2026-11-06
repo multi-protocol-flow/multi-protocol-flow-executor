@@ -129,6 +129,8 @@ pub struct StressTestExecutor {
     variables: Option<Arc<serde_json::Value>>,
     /// 内部状态（线程安全）
     state: Arc<RwLock<StressTestState>>,
+    /// 透传给每个虚拟用户执行器的 provider 表（如 `exec_policy`）
+    providers: Arc<HashMap<String, Arc<dyn std::any::Any + Send + Sync>>>,
 }
 
 impl StressTestExecutor {
@@ -155,7 +157,17 @@ impl StressTestExecutor {
             registry,
             variables: None,
             state: Arc::new(RwLock::new(StressTestState::default())),
+            providers: Arc::new(HashMap::new()),
         }
+    }
+
+    /// 附加 provider 表（如 `exec_policy`），透传给每个虚拟用户执行器
+    pub fn with_providers(
+        mut self,
+        providers: Arc<HashMap<String, Arc<dyn std::any::Any + Send + Sync>>>,
+    ) -> Self {
+        self.providers = providers;
+        self
     }
 
     /// 注入执行前置变量层（流程兜底变量 + 环境文件 + 运行时覆盖的合并结果）
@@ -221,6 +233,7 @@ impl StressTestExecutor {
         let state = Arc::clone(&self.state);
         let registry = Arc::clone(&self.registry);
         let variables = self.variables.clone();
+        let providers = Arc::clone(&self.providers);
 
         // 启动主控任务
         tokio::spawn(async move {
@@ -233,6 +246,7 @@ impl StressTestExecutor {
                 state,
                 registry,
                 variables,
+                providers,
             )
             .await;
         });
@@ -317,6 +331,7 @@ impl StressTestExecutor {
         state: Arc<RwLock<StressTestState>>,
         registry: Arc<flow_engine_core::registry::NodeRegistry>,
         variables: Option<Arc<serde_json::Value>>,
+        providers: Arc<HashMap<String, Arc<dyn std::any::Any + Send + Sync>>>,
     ) {
         let start_time = Instant::now();
         let duration = Duration::from_secs(config.duration_seconds as u64);
@@ -341,7 +356,9 @@ impl StressTestExecutor {
         let mut setup_stage_report: Option<flow_engine_core::report::StageExecutionReport> = None;
         if let Some(setup_subgraph) = &flow.setup {
             if !setup_subgraph.is_empty() {
-                let setup_executor = FlowExecutor::new().with_registry(Arc::clone(&registry));
+                let setup_executor = FlowExecutor::new()
+                    .with_registry(Arc::clone(&registry))
+                    .with_extra_providers((*providers).clone());
                 match crate::subgraph_runner::execute_subgraph(
                     setup_subgraph,
                     global_vars.clone(),
@@ -470,6 +487,7 @@ impl StressTestExecutor {
                         let registry_clone = Arc::clone(&registry);
                         let virtual_user_id = current_active + user_id;
                         let variables_clone = variables.clone();
+                        let providers_clone = Arc::clone(&providers);
 
                         let handle = tokio::spawn(async move {
                             Self::run_virtual_user(
@@ -482,6 +500,7 @@ impl StressTestExecutor {
                                 virtual_user_id,
                                 registry_clone,
                                 variables_clone,
+                                providers_clone,
                             )
                             .await;
                         });
@@ -580,7 +599,9 @@ impl StressTestExecutor {
                 let report_val = serde_json::to_value(&report).unwrap_or(serde_json::json!({}));
                 teardown_vars.insert("$report".to_string(), report_val);
 
-                let teardown_executor = FlowExecutor::new().with_registry(Arc::clone(&registry));
+                let teardown_executor = FlowExecutor::new()
+                    .with_registry(Arc::clone(&registry))
+                    .with_extra_providers((*providers).clone());
                 match crate::subgraph_runner::execute_subgraph(
                     teardown_subgraph,
                     teardown_vars,
@@ -653,8 +674,11 @@ impl StressTestExecutor {
         virtual_user_id: u32,
         registry: Arc<flow_engine_core::registry::NodeRegistry>,
         variables: Option<Arc<serde_json::Value>>,
+        providers: Arc<HashMap<String, Arc<dyn std::any::Any + Send + Sync>>>,
     ) {
-        let executor = FlowExecutor::new().with_registry(registry);
+        let executor = FlowExecutor::new()
+            .with_registry(registry)
+            .with_extra_providers((*providers).clone());
         let mut iteration_index: u64 = 0;
         // 前置变量层（流程兜底 + 环境 + 运行时覆盖）在每个虚拟用户内克隆一次，
         // 迭代时仅按需复制，避免热路径重复深拷贝。

@@ -81,6 +81,9 @@ pub struct StressTestSessionManager {
     /// 正在运行的压测会话沿用启动时克隆的 Arc，不受影响。锁仅用于克隆 Arc，
     /// 不跨 await 持有。
     registry: std::sync::RwLock<Arc<flow_engine_core::registry::NodeRegistry>>,
+    /// 透传给压测执行器的 provider 表（如 `exec_policy`）
+    providers:
+        std::sync::RwLock<std::collections::HashMap<String, Arc<dyn std::any::Any + Send + Sync>>>,
 }
 
 impl Default for StressTestSessionManager {
@@ -95,6 +98,7 @@ impl StressTestSessionManager {
         Self {
             session: RwLock::new(None),
             registry: std::sync::RwLock::new(Arc::new(crate::default_registry::default_registry())),
+            providers: std::sync::RwLock::new(std::collections::HashMap::new()),
         }
     }
 
@@ -107,6 +111,20 @@ impl StressTestSessionManager {
     ) -> Self {
         self.registry = std::sync::RwLock::new(registry);
         self
+    }
+
+    /// 设置压测会话使用的 provider 表（如 `exec_policy`）
+    ///
+    /// 在 `start()` 前调用；启动时快照写入各虚拟用户的执行器。
+    pub fn set_providers(
+        &self,
+        providers: std::collections::HashMap<String, Arc<dyn std::any::Any + Send + Sync>>,
+    ) {
+        let mut guard = self
+            .providers
+            .write()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        *guard = providers;
     }
 
     /// 运行时替换共享节点插件注册表（插件目录热重载）
@@ -163,9 +181,15 @@ impl StressTestSessionManager {
                 .read()
                 .unwrap_or_else(|poisoned| poisoned.into_inner()),
         );
+        let providers = self
+            .providers
+            .read()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .clone();
         let executor = Arc::new(
             StressTestExecutor::new(flow, config, event_sender.clone(), registry)
-                .with_variables(variables),
+                .with_variables(variables)
+                .with_providers(Arc::new(providers)),
         );
 
         // 启动执行器（在持有锁的情况下启动，确保状态一致性）

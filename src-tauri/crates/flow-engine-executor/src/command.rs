@@ -61,6 +61,9 @@ pub struct ExecuteFlowCommandInput {
     /// 目标激活环境名称（可选，从环境目录读取并叠加）
     #[serde(default)]
     pub environment_name: Option<String>,
+    /// 流程文件绝对路径（可选；用于 `local:exec` 的信任范围与相对路径解析）
+    #[serde(default)]
+    pub flow_path: Option<String>,
 }
 
 impl ExecuteFlowCommandInput {
@@ -71,6 +74,7 @@ impl ExecuteFlowCommandInput {
             variables: None,
             reports_dir: None,
             environment_name: None,
+            flow_path: None,
         }
     }
 
@@ -89,6 +93,12 @@ impl ExecuteFlowCommandInput {
     /// 设置执行环境名称
     pub fn with_environment_name(mut self, environment_name: Option<String>) -> Self {
         self.environment_name = environment_name;
+        self
+    }
+
+    /// 设置流程文件绝对路径（`local:exec` 信任范围 / 相对路径基准）
+    pub fn with_flow_path(mut self, flow_path: Option<String>) -> Self {
+        self.flow_path = flow_path;
         self
     }
 }

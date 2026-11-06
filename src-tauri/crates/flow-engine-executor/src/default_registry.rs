@@ -47,6 +47,8 @@ use flow_engine_plugin::manager::PluginManager;
 /// | Tools | EndPlugin | `end` |
 /// | Utility | VariableExtractorPlugin | `variable:extractor` |
 /// | Utility | ProxyPlugin | `proxy` |
+/// | Tools | LocalExecPlugin | `local:exec` |
+/// | Tools | LocalSysinfoPlugin | `local:sysinfo` |
 pub fn default_registry() -> NodeRegistry {
     let mut registry = NodeRegistry::new();
 
@@ -105,6 +107,16 @@ pub fn default_registry() -> NodeRegistry {
 
     // Proxy (flow-engine-executor 内置)
     registry.register(std::sync::Arc::new(crate::plugin_proxy::ProxyPlugin));
+
+    // Local command / machine info (flow-engine-exec)
+    #[cfg(feature = "local-exec")]
+    registry.register(std::sync::Arc::new(
+        flow_engine_exec::exec_plugin::LocalExecPlugin,
+    ));
+    #[cfg(feature = "local-exec")]
+    registry.register(std::sync::Arc::new(
+        flow_engine_exec::sysinfo_plugin::LocalSysinfoPlugin,
+    ));
 
     // HTTP Ingress & Respond (flow-engine-executor 内置 Mock 服务)
     registry.register(std::sync::Arc::new(crate::ingress::HttpIngressPlugin));
@@ -204,6 +216,10 @@ mod tests {
         {
             expected += 5;
         }
+        #[cfg(feature = "local-exec")]
+        {
+            expected += 2;
+        } // local:exec + local:sysinfo
 
         assert_eq!(
             count, expected,
@@ -262,6 +278,17 @@ mod tests {
         #[cfg(not(feature = "protocol-script"))]
         {
             assert!(!type_ids.contains(&"script"));
+        }
+
+        #[cfg(feature = "local-exec")]
+        {
+            assert!(type_ids.contains(&"local:exec"));
+            assert!(type_ids.contains(&"local:sysinfo"));
+        }
+        #[cfg(not(feature = "local-exec"))]
+        {
+            assert!(!type_ids.contains(&"local:exec"));
+            assert!(!type_ids.contains(&"local:sysinfo"));
         }
     }
 

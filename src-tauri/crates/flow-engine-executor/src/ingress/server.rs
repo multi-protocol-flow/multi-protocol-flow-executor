@@ -362,6 +362,8 @@ pub struct IngressListenerConfig {
     pub debug_launcher: Option<Arc<dyn IngressDebugLauncher>>,
     /// 客户端等待响应的上限
     pub request_timeout: Duration,
+    /// 透传给流程执行器的 provider 表（如 `exec_policy`）
+    pub providers: HashMap<String, Arc<dyn std::any::Any + Send + Sync>>,
 }
 
 impl IngressListenerConfig {
@@ -378,7 +380,17 @@ impl IngressListenerConfig {
             registry,
             debug_launcher,
             request_timeout,
+            providers: HashMap::new(),
         }
+    }
+
+    /// 附加 provider 表（如 `exec_policy`），透传给每次请求的流程执行器
+    pub fn with_providers(
+        mut self,
+        providers: HashMap<String, Arc<dyn std::any::Any + Send + Sync>>,
+    ) -> Self {
+        self.providers = providers;
+        self
     }
 
     /// 对外部请求进行路由决议
@@ -536,6 +548,7 @@ impl IngressManager {
         registry: Arc<NodeRegistry>,
         debug_launcher: Option<Arc<dyn IngressDebugLauncher>>,
         request_timeout: Duration,
+        providers: HashMap<String, Arc<dyn std::any::Any + Send + Sync>>,
     ) -> Result<(), String> {
         let dummy_flow = router
             .routes
@@ -548,6 +561,7 @@ impl IngressManager {
             registry,
             debug_launcher,
             request_timeout,
+            providers,
         };
         self.start_listener(port, config).await.map(|_| ())
     }
@@ -948,9 +962,14 @@ async fn handle_http_connection(
             log::info!("[Ingress] Debug session busy, falling back to plain execution");
         }
         let flow_exec = flow.clone();
+        // 响应通道与外部 provider（如 `exec_policy`）必须合并到同一张表：
+        // `with_extra_providers` 是整体替换语义，先 with_provider 再替换会丢掉响应通道，
+        // 导致 http:respond 找不到发送端、客户端拿到 500。
+        let mut providers = ctx.providers.clone();
+        providers.insert(INGRESS_RESPONSE_PROVIDER.to_string(), response_channel);
         let executor = crate::executor::FlowExecutor::new()
             .with_registry(ctx.registry.clone())
-            .with_provider(INGRESS_RESPONSE_PROVIDER, response_channel);
+            .with_extra_providers(providers);
         let outcome = outcome.clone();
         tokio::spawn(async move {
             let result = executor
@@ -1245,6 +1264,7 @@ mod tests {
                     registry,
                     debug_launcher: None,
                     request_timeout: Duration::from_secs(60),
+                    providers: Default::default(),
                 },
             )
             .await;
@@ -1373,6 +1393,7 @@ mod tests {
                     registry,
                     debug_launcher: None,
                     request_timeout: Duration::from_secs(60),
+                    providers: Default::default(),
                 },
             )
             .await
@@ -1502,6 +1523,7 @@ mod tests {
                     registry,
                     debug_launcher: None,
                     request_timeout: Duration::from_secs(60),
+                    providers: Default::default(),
                 },
             )
             .await;
@@ -1644,6 +1666,7 @@ mod tests {
                     registry,
                     debug_launcher: Some(launcher),
                     request_timeout: Duration::from_secs(20),
+                    providers: Default::default(),
                 },
             )
             .await
@@ -1776,6 +1799,7 @@ mod tests {
                     registry,
                     debug_launcher: Some(launcher.clone()),
                     request_timeout: Duration::from_secs(60),
+                    providers: Default::default(),
                 },
             )
             .await;
@@ -1916,6 +1940,7 @@ mod tests {
                     registry,
                     debug_launcher: None,
                     request_timeout: Duration::from_secs(30),
+                    providers: Default::default(),
                 },
             )
             .await
@@ -1955,6 +1980,7 @@ mod tests {
                     registry,
                     debug_launcher: None,
                     request_timeout: Duration::from_secs(30),
+                    providers: Default::default(),
                 },
             )
             .await
@@ -2006,6 +2032,7 @@ mod tests {
                         registry: registry.clone(),
                         debug_launcher: None,
                         request_timeout: Duration::from_secs(10),
+                        providers: Default::default(),
                     },
                 )
                 .await
@@ -2240,6 +2267,7 @@ mod tests {
                     registry: registry.clone(),
                     debug_launcher: None,
                     request_timeout: Duration::from_secs(10),
+                    providers: Default::default(),
                 },
             )
             .await
@@ -2256,6 +2284,7 @@ mod tests {
                     registry: registry.clone(),
                     debug_launcher: None,
                     request_timeout: Duration::from_secs(10),
+                    providers: Default::default(),
                 },
             )
             .await

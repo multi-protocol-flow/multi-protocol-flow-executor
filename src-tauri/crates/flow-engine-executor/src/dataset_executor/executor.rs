@@ -27,12 +27,26 @@ use super::types::{DatasetExecutionConfig, FailureStrategy};
 pub struct DatasetExecutor {
     /// 节点插件注册表（共享，注入到每行的 `FlowExecutor`）
     registry: Arc<flow_engine_core::registry::NodeRegistry>,
+    /// 透传给每行执行器的 provider 表（如 `exec_policy`）
+    providers: Arc<HashMap<String, Arc<dyn std::any::Any + Send + Sync>>>,
 }
 
 impl DatasetExecutor {
     /// 创建新的数据驱动执行器
     pub fn new(registry: Arc<flow_engine_core::registry::NodeRegistry>) -> Self {
-        Self { registry }
+        Self {
+            registry,
+            providers: Arc::new(HashMap::new()),
+        }
+    }
+
+    /// 附加 provider 表（如 `exec_policy`），透传给每行的执行器
+    pub fn with_providers(
+        mut self,
+        providers: Arc<HashMap<String, Arc<dyn std::any::Any + Send + Sync>>>,
+    ) -> Self {
+        self.providers = providers;
+        self
     }
 
     /// 执行数据驱动流程
@@ -87,7 +101,9 @@ impl DatasetExecutor {
 
         if let Some(setup_subgraph) = &flow.setup {
             if !setup_subgraph.is_empty() {
-                let setup_executor = FlowExecutor::new().with_registry(Arc::clone(&self.registry));
+                let setup_executor = FlowExecutor::new()
+                    .with_registry(Arc::clone(&self.registry))
+                    .with_extra_providers((*self.providers).clone());
                 match crate::subgraph_runner::execute_subgraph(
                     setup_subgraph,
                     setup_vars.clone(),
@@ -175,8 +191,9 @@ impl DatasetExecutor {
                             serde_json::to_value(&report).unwrap_or(serde_json::json!({}));
                         teardown_vars.insert("$report".to_string(), report_val);
 
-                        let teardown_executor =
-                            FlowExecutor::new().with_registry(Arc::clone(&self.registry));
+                        let teardown_executor = FlowExecutor::new()
+                            .with_registry(Arc::clone(&self.registry))
+                            .with_extra_providers((*self.providers).clone());
                         let _ = crate::subgraph_runner::execute_subgraph(
                             teardown_subgraph,
                             teardown_vars,
@@ -234,7 +251,9 @@ impl DatasetExecutor {
         let mut results: Vec<RowSummary> = Vec::new();
         let mut failed_details: HashMap<u32, FlowExecutionReport> = HashMap::new();
         let mut row_index: u32 = 0;
-        let executor = FlowExecutor::new().with_registry(Arc::clone(&self.registry));
+        let executor = FlowExecutor::new()
+            .with_registry(Arc::clone(&self.registry))
+            .with_extra_providers((*self.providers).clone());
         let mut cancelled = false;
 
         while let Some(row_result) = csv_reader.next_row() {
@@ -414,6 +433,7 @@ impl DatasetExecutor {
         let mut handles: Vec<tokio::task::JoinHandle<()>> = Vec::new();
         let mut cancelled = false;
         let shared_registry = Arc::clone(&self.registry);
+        let shared_providers = Arc::clone(&self.providers);
 
         for (row_index, csv_row) in all_rows {
             // 检查取消信号
@@ -440,6 +460,7 @@ impl DatasetExecutor {
             let flow = Arc::clone(&flow);
             let dataset_name = dataset_name.clone();
             let registry = Arc::clone(&shared_registry);
+            let providers = Arc::clone(&shared_providers);
             let mut stop_rx = stop_tx_check.subscribe();
             let stop_tx_task = stop_tx_check.clone();
             let failure_strategy = failure_strategy.clone();
@@ -466,7 +487,9 @@ impl DatasetExecutor {
                     &dataset_name,
                 );
 
-                let executor = FlowExecutor::new().with_registry(registry);
+                let executor = FlowExecutor::new()
+                    .with_registry(registry)
+                    .with_extra_providers((*providers).clone());
                 let row_start = Instant::now();
                 let execution_result = executor
                     .execute_flow(&flow, None, Some(row_vars), None)

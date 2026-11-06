@@ -78,6 +78,10 @@ pub use flow_engine_executor::flow_engine_graphql::{
     graphql_introspect_executor, graphql_query_executor, graphql_subscribe_executor,
 };
 
+// Local command / machine info (flow-engine-exec)
+#[cfg(feature = "local-exec")]
+pub use flow_engine_exec as exec;
+
 // Script (flow-engine-script)
 #[cfg(feature = "protocol-script")]
 pub use flow_engine_executor::flow_engine_script;

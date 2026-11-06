@@ -70,6 +70,8 @@ pub use tool_bridge::{ToolBridgeHandle, ToolBridgeServer};
 // ============================================================================
 #[cfg(feature = "protocol-assertion")]
 pub use flow_engine_assertion;
+#[cfg(feature = "local-exec")]
+pub use flow_engine_exec;
 #[cfg(feature = "protocol-graphql")]
 pub use flow_engine_graphql;
 #[cfg(feature = "protocol-http")]
