@@ -70,9 +70,15 @@ const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
             'flex items-center justify-center h-4 w-4 rounded border transition-colors shrink-0',
             // 焦点环无障碍规范
             'peer-focus-visible:outline-none peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-background',
-            // 未选中状态：在浅色与深色背景下均保持清晰边框与底色
-            'border-zinc-300 bg-white hover:border-zinc-400 dark:border-zinc-600 dark:bg-zinc-800/80 dark:hover:border-zinc-500',
-            // 选中或半选状态：主题主色背景与前景色对勾（暗黑模式下为白底黑勾，对比度极高）
+            // 未选中状态：在浅色与深色背景下均保持清晰边框与底色。
+            // 必须与选中态互斥（而不是同时在两类里写 bg-*）：`dark:bg-*` 的
+            // 选择器特异性高于单类的 `bg-primary`，两者并存时暗黑模式会一直
+            // 显示未选中的深色底，勾选后的对勾（近黑色前景）就贴在深色底上，
+            // 对比度几乎为零。
+            !isChecked &&
+              !indeterminate &&
+              'border-zinc-300 bg-white hover:border-zinc-400 dark:border-zinc-600 dark:bg-zinc-800/80 dark:hover:border-zinc-500',
+            // 选中或半选状态：主题主色背景 + 前景色对勾
             (isChecked || indeterminate) && [
               'bg-primary border-primary text-primary-foreground',
               'hover:bg-primary/90 hover:border-primary/90',
