@@ -13,6 +13,7 @@ use tokio::sync::Mutex;
 pub use mpe_cli::cli;
 
 // Tauri 特有模块
+pub mod exec_trust;
 pub mod gui_ipc;
 mod plugin_protocol;
 mod tauri_adapters;
@@ -538,6 +539,9 @@ pub fn run() {
                     .with_registry(stress_registry),
             ));
 
+            // 注册 `local:exec` 审批状态（信任库 + 待回填请求）
+            app.manage(Arc::new(exec_trust::ExecApprovalState::default()));
+
             // 注册执行会话管理器状态（用于取消流程执行）
             app.manage(ExecutionSessionManager::new());
 
@@ -737,6 +741,11 @@ pub fn run() {
             mcp_restore_servers,
             mcp_inspect_flow_tools,
             mcp_get_client_config,
+            // 本地命令审批命令（local:exec）
+            exec_trust::respond_exec_approval,
+            exec_trust::list_exec_approvals,
+            exec_trust::revoke_exec_approval,
+            exec_trust::clear_exec_approvals,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

@@ -107,6 +107,7 @@ pub async fn execute_flow(
     on_ws_event: Channel<DebugEvent>,
     state: State<'_, ExecutionSessionManager>,
     node_registry: State<'_, NodeRegistryState>,
+    exec_state: State<'_, Arc<crate::exec_trust::ExecApprovalState>>,
 ) -> Result<ExecuteFlowCommandOutput, String> {
     // 多层变量合并与预检：基底兜底(flow.initial_variables) -> 环境(input.environment_name) -> 显式覆盖(input.variables)
     // 在注册会话与启动 Worker 前校验，避免参数校验失败导致会话/Worker 泄漏
@@ -191,7 +192,17 @@ pub async fn execute_flow(
     if let Some(rx) = Some(cancel_rx) {
         executor = executor.with_cancel_receiver(rx);
     }
-
+    // local:exec 策略（未启用时节点返回 E_EXEC_DENIED）
+    executor = executor.with_provider(
+        flow_engine::exec::EXEC_POLICY_PROVIDER,
+        Arc::new(crate::exec_trust::build_exec_policy(
+            &app,
+            exec_state.inner(),
+        )),
+    );
+    if let Some(path) = input.flow_path.as_deref() {
+        executor = executor.with_flow_file_path(std::path::PathBuf::from(path));
+    }
 
     let result = executor
         .execute_flow(&flow, resolved_variables, None, Some(log_sender))
@@ -815,6 +826,7 @@ pub async fn start_debug(
     state: State<'_, Arc<Mutex<DebugSessionManager>>>,
     node_registry: State<'_, NodeRegistryState>,
     app: tauri::AppHandle,
+    exec_state: State<'_, Arc<crate::exec_trust::ExecApprovalState>>,
 ) -> Result<(), String> {
     // 检查是否已有调试会话
     let mut manager = state.lock().await;
@@ -857,9 +869,15 @@ pub async fn start_debug(
 
     // 启动调试会话（在后台任务中）
     let debug_registry = Arc::clone(&node_registry.snapshot().registry);
+    // 调试路径没有流程文件路径，信任范围退化为 `session:<flow_uuid>`（会话内有效）
+    let exec_policy = Arc::new(crate::exec_trust::build_exec_policy(
+        &app,
+        exec_state.inner(),
+    ));
     tokio::spawn(async move {
-        let executor =
-            flow_engine::debug::DebuggableFlowExecutor::new().with_registry(debug_registry);
+        let executor = flow_engine::debug::DebuggableFlowExecutor::new()
+            .with_registry(debug_registry)
+            .with_provider(flow_engine::exec::EXEC_POLICY_PROVIDER, exec_policy);
         let _ = executor
             .start_debug(
                 &flow,
@@ -959,10 +977,16 @@ pub async fn start_stress_test(
     input: StartStressTestInput,
     environment_name: Option<String>,
     state: State<'_, Arc<StressTestSessionManager>>,
+    exec_state: State<'_, Arc<crate::exec_trust::ExecApprovalState>>,
 ) -> Result<(), String> {
     // 子流程按 ID 解析需要与前端列表同一流程目录
     crate::sync_flows_dir_override(&app_handle);
     crate::sync_environments_dir_override(&app_handle);
+
+    // local:exec 策略随会话透传给每个虚拟用户
+    state.set_providers(flow_engine::exec::policy_providers(
+        crate::exec_trust::build_exec_policy(&app_handle, exec_state.inner()),
+    ));
 
     // 与 execute_flow / start_debug 一致：显式指定环境却加载失败时直接报错，
     // 避免压测静默跑在流程兜底变量指向的端点上。
@@ -1910,6 +1934,7 @@ pub async fn execute_flow_with_dataset(
     input: ExecuteDatasetInput,
     state: State<'_, DatasetExecutionSessionManager>,
     node_registry: State<'_, NodeRegistryState>,
+    exec_state: State<'_, Arc<crate::exec_trust::ExecApprovalState>>,
 ) -> Result<(), String> {
     // 子流程按 ID 解析需要与前端列表同一流程目录
     crate::sync_flows_dir_override(&app);
@@ -1946,9 +1971,14 @@ pub async fn execute_flow_with_dataset(
     let state_cancel = state.cancel_senders.clone();
     let session_id_clone = session_id.clone();
     let registry = Arc::clone(&node_registry.snapshot().registry);
+    // local:exec 策略透传给每行执行器
+    let exec_providers = Arc::new(flow_engine::exec::policy_providers(
+        crate::exec_trust::build_exec_policy(&app, exec_state.inner()),
+    ));
     // 在后台启动执行
     tokio::spawn(async move {
-        let executor = flow_engine::dataset_executor::DatasetExecutor::new(registry);
+        let executor = flow_engine::dataset_executor::DatasetExecutor::new(registry)
+            .with_providers(exec_providers);
         let result = executor
             .execute(&config, &flow, Some(cancel_rx), Some(event_sender))
             .await;
@@ -2711,8 +2741,13 @@ pub async fn start_ingress_listener(
     ingress_manager: State<'_, Arc<flow_engine::ingress::IngressManager>>,
     debug_state: State<'_, Arc<tokio::sync::Mutex<DebugSessionManager>>>,
     node_registry: State<'_, NodeRegistryState>,
+    exec_state: State<'_, Arc<crate::exec_trust::ExecApprovalState>>,
 ) -> Result<Option<String>, String> {
     let registry = node_registry.snapshot().registry.clone();
+    let exec_providers = flow_engine::exec::policy_providers(crate::exec_trust::build_exec_policy(
+        &app,
+        exec_state.inner(),
+    ));
 
     let (debug_launcher, request_timeout) = if debug {
         let launcher = Arc::new(TauriIngressDebugLauncher {
@@ -2720,6 +2755,7 @@ pub async fn start_ingress_listener(
             logs: on_log,
             debug_state: debug_state.inner().clone(),
             app: app.clone(),
+            exec_state: Arc::clone(exec_state.inner()),
         });
         // 调试模式等待人工单步，放宽客户端等待上限
         (
@@ -2745,6 +2781,7 @@ pub async fn start_ingress_listener(
                 registry,
                 debug_launcher,
                 request_timeout,
+                providers: exec_providers,
             },
         )
         .await
@@ -2759,6 +2796,7 @@ struct TauriIngressDebugLauncher {
     logs: Channel<LogEvent>,
     debug_state: Arc<tokio::sync::Mutex<DebugSessionManager>>,
     app: tauri::AppHandle,
+    exec_state: Arc<crate::exec_trust::ExecApprovalState>,
 }
 
 #[async_trait::async_trait]
@@ -2807,6 +2845,13 @@ impl flow_engine::ingress::IngressDebugLauncher for TauriIngressDebugLauncher {
             .with_provider(
                 flow_engine::ingress::INGRESS_RESPONSE_PROVIDER,
                 request.response_channel.clone(),
+            )
+            .with_provider(
+                flow_engine::exec::EXEC_POLICY_PROVIDER,
+                Arc::new(crate::exec_trust::build_exec_policy(
+                    &self.app,
+                    &self.exec_state,
+                )),
             );
 
         executor
