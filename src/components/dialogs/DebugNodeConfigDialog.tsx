@@ -16,6 +16,7 @@ import { getLL } from '@/i18n/i18n-lazy';
 import { getPanelLoader, isSchemaDriven } from '@/lib/configPanelRegistry';
 import { SchemaConfigPanel } from '@/components/panels/SchemaConfigPanel';
 import { NODE_META } from '@/lib/nodeMeta';
+import { createLogger } from '@/lib/logger';
 
 // 类型
 import type { NodeData } from '@/types';
@@ -38,27 +39,41 @@ function DebugLazyConfigPanel({ nodeType, data, onSave: onConfigSave }: { nodeTy
   const loader = getPanelLoader(nodeType);
   const [Component, setComponent] = useState<React.ComponentType<any> | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     if (!loader) {
       setComponent(null);
       setIsLoading(false);
+      setLoadError(false);
       return;
     }
 
     setIsLoading(true);
-    loader().then(comp => {
-      if (!cancelled) {
-        setComponent(() => comp);
+    setLoadError(false);
+    // 动态导入失败（模块脚本加载失败）必须捕获，否则冒泡为 Unhandled Promise Rejection
+    loader()
+      .then(comp => {
+        if (!cancelled) {
+          setComponent(() => comp);
+          setIsLoading(false);
+        }
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        createLogger('ConfigPanel').error(`Failed to load debug panel for ${nodeType}`, err as Error);
+        setComponent(null);
+        setLoadError(true);
         setIsLoading(false);
-      }
-    });
+      });
 
     return () => { cancelled = true; };
   }, [nodeType, loader]);
 
   if (!loader) return <div className="text-muted-foreground">{getLL().flow.debug_config_unsupported()}</div>;
+
+  if (loadError) return <div className="text-red-600 text-xs">{getLL().panels.load_failed()}</div>;
 
   if (isLoading || !Component) {
     return <div className="space-y-4 p-4 animate-pulse"><div className="h-24 bg-muted rounded-md" /></div>;

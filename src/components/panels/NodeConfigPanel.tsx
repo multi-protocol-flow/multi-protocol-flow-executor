@@ -95,6 +95,7 @@ import { startInteractiveSliceExecution } from '@/services/tauri';
 import { useExecutionStore, selectIsExecuting } from '@/stores/execution';
 import { HelpDrawer } from './HelpDrawer';
 import { cn } from '@/lib/utils';
+import { createLogger } from '@/lib/logger';
 import { getLL } from '@/i18n/i18n-lazy';
 import { useSettingsStore } from '@/stores/settings';
 import { toast } from 'sonner';
@@ -116,6 +117,9 @@ interface NodeConfigPanelProps {
 function LazyConfigPanel({ nodeType, data, onSave, nodeUuid }: { nodeType: string; data: NodeData; onSave: (data: NodeData) => void; nodeUuid: string | null }) {
   const [Component, setComponent] = useState<React.ComponentType<any> | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [loadError, setLoadError] = useState<Error | null>(null);
+  // 重试计数：点击「重试」重新触发 effect（模块脚本加载失败后浏览器会重新请求）
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -123,19 +127,48 @@ function LazyConfigPanel({ nodeType, data, onSave, nodeUuid }: { nodeType: strin
     if (!loader) {
       setComponent(null);
       setIsLoading(false);
+      setLoadError(null);
       return;
     }
 
     setIsLoading(true);
-    loader().then(comp => {
-      if (!cancelled) {
-        setComponent(() => comp);
+    setLoadError(null);
+    // 动态导入必须带 catch：dev server 依赖重优化、网络中断或产物缺失时
+    // 模块脚本会加载失败，未捕获会冒泡成 Unhandled Promise Rejection
+    // （WebKit: "Importing a module script failed."）并让面板永久空白。
+    loader()
+      .then(comp => {
+        if (!cancelled) {
+          setComponent(() => comp);
+          setIsLoading(false);
+        }
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        const error = err instanceof Error ? err : new Error(String(err));
+        createLogger('ConfigPanel').error(`Failed to load panel for ${nodeType}`, error);
+        setComponent(null);
+        setLoadError(error);
         setIsLoading(false);
-      }
-    });
+      });
 
     return () => { cancelled = true; };
-  }, [nodeType]);
+  }, [nodeType, attempt]);
+
+  if (loadError) {
+    return (
+      <div className="space-y-2 rounded-lg border border-red-200 bg-red-50 p-4 text-xs text-red-700">
+        <p>{getLL().panels.load_failed()}</p>
+        <button
+          type="button"
+          className="rounded-md border border-red-300 px-2 py-1 font-medium hover:bg-red-100"
+          onClick={() => setAttempt((n) => n + 1)}
+        >
+          {getLL().panels.retry()}
+        </button>
+      </div>
+    );
+  }
 
   if (isLoading || !Component) {
     return (
