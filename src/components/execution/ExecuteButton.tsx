@@ -12,7 +12,7 @@ import { useConsoleStore } from '@/stores/console';
 import { notifyError } from '@/lib/notify';
 import { useSettingsStore } from '@/stores/settings';
 import { useWsStreamStore } from '@/stores/wsStream';
-import { executeFlowWithChannel } from '@/services/tauri';
+import { executeFlowWithChannel, getActiveFlowFilePath } from '@/services/tauri';
 import { cn } from '@/lib/utils';
 import type { LogEvent } from '@/types/events';
 import { isEntryNodeType } from '@/types';
@@ -66,7 +66,8 @@ export function ExecuteButton() {
         handleExecutionEvent,
         handleWsEvent,
         undefined,
-        reportDir
+        reportDir,
+        getActiveFlowFilePath()
       );
 
       if (result.flow_report) {

@@ -7,7 +7,7 @@ import { invoke, Channel } from '@tauri-apps/api/core';
 import type { Flow } from '@/types/flow';
 import type { Node } from '@/types/node';
 import type { Connection } from '@/types/connection';
-import { locateNode, resolveScopeGraph, type FlowStage } from '@/stores/flow';
+import { locateNode, resolveScopeGraph, useFlowStore, type FlowStage } from '@/stores/flow';
 import type { FlowExecutionReport, NodeExecutionReport } from '@/types/report';
 import type {
   CreateFlowCommandInput,
@@ -138,7 +138,8 @@ export async function executeFlowWithChannel(
   onExecutionEvent: (event: ExecutionEvent) => void = () => {},
   onWsEvent: (event: import('@/types/debug').DebugEvent) => void = () => {},
   variables?: Record<string, unknown>,
-  reportsDir?: string
+  reportsDir?: string,
+  flowPath?: string
 ): Promise<ExecuteFlowCommandOutput> {
   try {
     // Channel 1: Log events
@@ -163,6 +164,7 @@ export async function executeFlowWithChannel(
         variables: variables || null,
         ...(reportsDir ? { reports_dir: reportsDir } : {}),
         ...(environmentName ? { environment_name: environmentName } : {}),
+        ...(flowPath ? { flow_path: flowPath } : {}),
       } as ExecuteFlowCommandInput,
       flow,
       onEvent: logChannel,
@@ -172,6 +174,18 @@ export async function executeFlowWithChannel(
   } catch (error) {
     throw formatError(error, 'execute_flow');
   }
+}
+
+/**
+ * 当前激活标签的流程文件路径（未保存流程返回 `undefined`）
+ *
+ * `local:exec` 的信任范围以流程文件绝对路径为键：路径变化即视为另一份流程，
+ * 需要重新审批；未保存流程退化为 `session:<flow_uuid>`（仅本次会话有效）。
+ */
+export function getActiveFlowFilePath(): string | undefined {
+  const state = useFlowStore.getState();
+  const tab = state.tabs.find((item) => item.uuid === state.activeTabUuid);
+  return tab?.filePath;
 }
 
 /**
@@ -336,12 +350,14 @@ export async function startInteractiveSliceExecution(
       ? executeFlowWithChannel
       : (await import('./mock')).executeFlowWithChannel;
 
+    // 切片执行没有流程文件路径（未保存流程）→ 信任范围退化为 `session:<flow_uuid>`
     const result = await executeFn(
       sliceFlow,
       handleLog,
       handleExecutionEvent,
       handleWsEvent,
       flowVariables,
+      undefined,
       undefined
     );
 

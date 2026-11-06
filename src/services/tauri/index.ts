@@ -91,6 +91,8 @@ function localizeDefaultNodeNames(flow: Flow): Flow {
  * @param onExecutionEvent - 执行事件回调函数（实时节点报告）
  * @param onWsEvent - WS 流事件回调函数（DebugEvent 中的 WS 变体）
  * @param variables - 可选的执行变量
+ * @param reportsDir - 可选报告目录
+ * @param flowPath - 可选流程文件绝对路径（`local:exec` 信任范围）
  * @returns 执行结果
  */
 export async function executeFlowWithChannel(
@@ -99,20 +101,37 @@ export async function executeFlowWithChannel(
   onExecutionEvent: (event: import('@/types/execution_event').ExecutionEvent) => void = () => {},
   onWsEvent: (event: import('@/types/debug').DebugEvent) => void = () => {},
   variables?: Record<string, unknown>,
-  reportsDir?: string
+  reportsDir?: string,
+  flowPath?: string
 ): Promise<ExecuteFlowCommandOutput> {
   // 检测是否在 Tauri 环境中
   if (isTauriEnv()) {
     const { executeFlowWithChannel: executeFlowWithChannelImpl } = await import('./flow');
-    return executeFlowWithChannelImpl(flow, onLog, onExecutionEvent, onWsEvent, variables, reportsDir);
+    return executeFlowWithChannelImpl(
+      flow,
+      onLog,
+      onExecutionEvent,
+      onWsEvent,
+      variables,
+      reportsDir,
+      flowPath
+    );
   } else {
     // Mock 环境
     const { executeFlowWithChannel: executeFlowWithChannelImpl } = await import('./mock');
-    return executeFlowWithChannelImpl(flow, onLog, onExecutionEvent, onWsEvent, variables, reportsDir);
+    return executeFlowWithChannelImpl(
+      flow,
+      onLog,
+      onExecutionEvent,
+      onWsEvent,
+      variables,
+      reportsDir,
+      flowPath
+    );
   }
 }
 
-export { buildFlowSlice, startInteractiveSliceExecution } from './flow';
+export { buildFlowSlice, startInteractiveSliceExecution, getActiveFlowFilePath } from './flow';
 // ============================================================================
 // 报告存储命令
 // ============================================================================
@@ -642,3 +661,12 @@ export { getFlowReportMarkdown, exportFlowReportHtml } from './flow';
 export { getStressReportMarkdown, exportStressReportHtml } from './stressTest';
 export { pluginUiCall } from './plugins';
 export { saveResponseMedia, type MediaSaveSource } from './media';
+export {
+  EXEC_APPROVAL_EVENT,
+  respondExecApproval,
+  listExecApprovals,
+  revokeExecApproval,
+  clearExecApprovals,
+  type ExecApprovalRecord,
+  type ExecApprovalRequest,
+} from './execTrust';

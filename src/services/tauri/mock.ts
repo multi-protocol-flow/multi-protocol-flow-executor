@@ -71,7 +71,8 @@ export async function executeFlowWithChannel(
   onExecutionEvent: (event: ExecutionEvent) => void = () => {},
   _onWsEvent: (event: import('@/types/debug').DebugEvent) => void = () => {},
   _variables?: Record<string, unknown>,
-  _reportsDir?: string
+  _reportsDir?: string,
+  _flowPath?: string
 ): Promise<ExecuteFlowCommandOutput> {
   const startTime = Date.now();
 

@@ -26,7 +26,7 @@ import { useConsoleStore } from '@/stores/console';
 import { useSettingsStore } from '@/stores/settings';
 import { useWsStreamStore } from '@/stores/wsStream';
 import { useStressTestStore, selectIsStressTestRunning } from '@/stores/stressTest';
-import { executeFlowWithChannel, validateFlow } from '@/services/tauri';
+import { executeFlowWithChannel, validateFlow, getActiveFlowFilePath } from '@/services/tauri';
 import { startIngressListener, stopIngressListener, getActiveIngressPorts } from '@/services/tauri/flow';
 import { isHttpIngressConfig, isEntryNodeType } from '@/types';
 import { cn } from '@/lib/utils';
@@ -212,7 +212,8 @@ export function CanvasToolbar() {
         handleExecutionEvent,
         handleWsEvent,
         undefined,
-        reportDir
+        reportDir,
+        getActiveFlowFilePath()
       );
 
       if (result.flow_report) {

@@ -84,6 +84,8 @@ export interface ExecuteFlowCommandInput {
   reports_dir?: string;
   /** 激活的全局环境名称（可选，后端按其优先级叠加到流程内置变量之上） */
   environment_name?: string;
+  /** 流程文件绝对路径（可选；`local:exec` 的信任范围与相对路径基准） */
+  flow_path?: string;
 }
 
 /**
