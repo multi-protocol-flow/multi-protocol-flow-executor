@@ -227,6 +227,11 @@ const zh_CN_execution: BaseTranslation = {
   },
   viewers: {
     no_data: '无数据',
+    stdout: '标准输出',
+    stderr: '标准错误',
+    truncated: '已截断',
+    empty_output: '（空）',
+    artifact: '产物',
     node_info: '节点信息',
     name_label: '名称',
     type_label: '类型',

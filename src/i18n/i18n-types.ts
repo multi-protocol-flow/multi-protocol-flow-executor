@@ -285,6 +285,14 @@ type RootTranslation = {
 		 */
 		delay: string
 		/**
+		 * 本​地​命​令
+		 */
+		local_exec: string
+		/**
+		 * 本​机​信​息
+		 */
+		local_sysinfo: string
+		/**
 		 * 此​节​点​无​需​配​置​，​仅​用​于​标​记​流​程​终​点​。
 		 */
 		end_config_hint: string
@@ -430,6 +438,10 @@ type RootTranslation = {
 			 */
 			core_network: string
 			/**
+			 * 本​地​能​力
+			 */
+			core_local: string
+			/**
 			 * {​n​a​m​e​}​ ​插​件
 			 * @param {unknown} name
 			 */
@@ -525,6 +537,14 @@ type RootTranslation = {
 			 * 等​待​指​定​时​长​（​支​持​变​量​模​板​与​随​机​抖​动​）​，​等​待​期​间​可​被​取​消
 			 */
 			delay: string
+			/**
+			 * 在​本​机​执​行​命​令​（​a​r​g​v​ ​或​ ​s​h​e​l​l​）​，​捕​获​ ​s​t​d​o​u​t​/​s​t​d​e​r​r​ ​与​产​物​；​首​次​执​行​需​人​工​批​准
+			 */
+			local_exec: string
+			/**
+			 * 只​读​采​集​本​机​信​息​（​系​统​ ​/​ ​C​P​U​ ​/​ ​内​存​ ​/​ ​磁​盘​ ​/​ ​f​f​m​p​e​g​）​，​无​需​审​批
+			 */
+			local_sysinfo: string
 			/**
 			 * 建​立​ ​W​e​b​S​o​c​k​e​t​ ​客​户​端​长​连​接​会​话
 			 */
@@ -662,6 +682,14 @@ type RootTranslation = {
 		 * 加​载​中​.​.​.
 		 */
 		loading: string
+		/**
+		 * 面​板​加​载​失​败​，​请​重​试​或​刷​新​页​面
+		 */
+		load_failed: string
+		/**
+		 * 重​试
+		 */
+		retry: string
 		/**
 		 * 未​知
 		 */
@@ -5150,6 +5178,186 @@ type RootTranslation = {
 			 */
 			jitter_ms: string
 		}
+		localExec: {
+			/**
+			 * 命​令​构​造​方​式
+			 */
+			mode: string
+			/**
+			 * 参​数​列​表​ ​(​a​r​g​v​)
+			 */
+			mode_argv: string
+			/**
+			 * S​h​e​l​l​ ​脚​本
+			 */
+			mode_shell: string
+			/**
+			 * 逐​参​数​传​递​，​不​经​ ​s​h​e​l​l​，​不​存​在​注​入​与​拆​词
+			 */
+			argv_hint: string
+			/**
+			 * 交​由​系​统​ ​s​h​e​l​l​ ​执​行​；​脚​本​内​禁​止​双​花​括​号​模​板​，​只​能​读​取​ ​M​P​E​_​V​A​R​_​*​ ​环​境​变​量
+			 */
+			shell_hint: string
+			/**
+			 * 可​执​行​文​件
+			 */
+			program: string
+			/**
+			 * 支​持​变​量​模​板​，​按​ ​P​A​T​H​ ​解​析​为​绝​对​路​径
+			 */
+			program_hint: string
+			/**
+			 * 参​数
+			 */
+			args: string
+			/**
+			 * 参​数​值
+			 */
+			arg_placeholder: string
+			/**
+			 * 上​移
+			 */
+			move_up: string
+			/**
+			 * 下​移
+			 */
+			move_down: string
+			/**
+			 * 参​数​顺​序​即​实​际​传​参​顺​序​，​可​用​上​移​/​下​移​调​整
+			 */
+			args_order_hint: string
+			/**
+			 * 添​加​参​数
+			 */
+			add_arg: string
+			/**
+			 * 删​除
+			 */
+			remove_arg: string
+			/**
+			 * S​h​e​l​l
+			 */
+			shell: string
+			/**
+			 * 脚​本​正​文
+			 */
+			script: string
+			/**
+			 * 脚​本​内​禁​止​使​用​双​花​括​号​模​板​，​请​改​用​ ​e​n​v​ ​注​入​并​读​取​ ​M​P​E​_​V​A​R​_​*​ ​环​境​变​量
+			 */
+			script_template_error: string
+			/**
+			 * 注​入​变​量
+			 */
+			env: string
+			/**
+			 * 值​支​持​变​量​模​板​，​注​入​为​ ​M​P​E​_​V​A​R​_​<​N​A​M​E​>​ ​环​境​变​量​；​审​批​弹​窗​只​显​示​变​量​名
+			 */
+			env_hint: string
+			/**
+			 * 变​量​名
+			 */
+			env_name: string
+			/**
+			 * 值
+			 */
+			env_value: string
+			/**
+			 * 添​加​变​量
+			 */
+			add_env: string
+			/**
+			 * 额​外​继​承​的​环​境​变​量
+			 */
+			inherit_env: string
+			/**
+			 * 逗​号​分​隔​；​宿​主​内​部​ ​M​P​E​_​*​ ​变​量​一​律​不​继​承
+			 */
+			inherit_env_hint: string
+			/**
+			 * 工​作​目​录
+			 */
+			cwd: string
+			/**
+			 * 支​持​变​量​；​留​空​为​流​程​文​件​所​在​目​录
+			 */
+			cwd_hint: string
+			/**
+			 * 超​时​ ​(​m​s​)
+			 */
+			timeout_ms: string
+			/**
+			 * 默​认​ ​6​0​0​0​0​0​，​上​限​ ​3​6​0​0​0​0​0
+			 */
+			timeout_hint: string
+			/**
+			 * 输​出​上​限​ ​(​字​节​)
+			 */
+			max_output_bytes: string
+			/**
+			 * s​t​d​o​u​t​ ​/​ ​s​t​d​e​r​r​ ​各​自​上​限​，​默​认​ ​1​M​i​B​，​最​大​ ​1​6​M​i​B
+			 */
+			max_output_bytes_hint: string
+			/**
+			 * 产​物​捕​获
+			 */
+			capture: string
+			/**
+			 * 产​物​路​径
+			 */
+			capture_path: string
+			/**
+			 * 支​持​变​量​；​相​对​路​径​以​流​程​文​件​目​录​为​基​准
+			 */
+			capture_path_hint: string
+			/**
+			 * 读​取​上​限​ ​(​字​节​)
+			 */
+			capture_max_bytes: string
+			/**
+			 * 默​认​ ​4​M​i​B​，​最​大​ ​6​4​M​i​B​；​超​限​时​只​记​录​大​小​不​内​联
+			 */
+			capture_max_bytes_hint: string
+		}
+		localSysinfo: {
+			/**
+			 * 采​集​项
+			 */
+			checks: string
+			/**
+			 * 只​读​探​测​，​不​需​要​审​批​；​不​可​得​的​项​返​回​ ​n​u​l​l
+			 */
+			checks_hint: string
+			/**
+			 * 系​统​信​息
+			 */
+			check_os: string
+			/**
+			 * C​P​U
+			 */
+			check_cpu: string
+			/**
+			 * 内​存
+			 */
+			check_mem: string
+			/**
+			 * 磁​盘
+			 */
+			check_disk: string
+			/**
+			 * f​f​m​p​e​g​ ​工​具​链
+			 */
+			check_ffmpeg: string
+			/**
+			 * 磁​盘​探​测​路​径
+			 */
+			disk_path: string
+			/**
+			 * 支​持​变​量​；​留​空​为​流​程​文​件​所​在​目​录
+			 */
+			disk_path_hint: string
+		}
 	}
 	execution: {
 		node_types: {
@@ -5999,6 +6207,26 @@ type RootTranslation = {
 			 * 无​数​据
 			 */
 			no_data: string
+			/**
+			 * 标​准​输​出
+			 */
+			stdout: string
+			/**
+			 * 标​准​错​误
+			 */
+			stderr: string
+			/**
+			 * 已​截​断
+			 */
+			truncated: string
+			/**
+			 * （​空​）
+			 */
+			empty_output: string
+			/**
+			 * 产​物
+			 */
+			artifact: string
 			/**
 			 * 节​点​信​息
 			 */
@@ -8078,6 +8306,86 @@ type RootTranslation = {
 		 * M​C​P​ ​服​务​治​理
 		 */
 		tab_mcp: string
+		/**
+		 * 本​地​命​令
+		 */
+		tab_local_exec: string
+		/**
+		 * 允​许​执​行​本​地​命​令​节​点
+		 */
+		exec_enabled: string
+		/**
+		 * 关​闭​时​ ​l​o​c​a​l​:​e​x​e​c​ ​节​点​一​律​返​回​ ​E​_​E​X​E​C​_​D​E​N​I​E​D
+		 */
+		exec_enabled_desc: string
+		/**
+		 * 允​许​ ​s​h​e​l​l​ ​模​式
+		 */
+		exec_allow_shell: string
+		/**
+		 * a​r​g​v​ ​模​式​按​参​数​逐​个​传​递​、​不​可​注​入​；​s​h​e​l​l​ ​模​式​交​由​系​统​ ​s​h​e​l​l​ ​解​释​，​风​险​更​高
+		 */
+		exec_allow_shell_desc: string
+		/**
+		 * 程​序​白​名​单
+		 */
+		exec_allowed_programs: string
+		/**
+		 * 逗​号​分​隔​；​留​空​表​示​不​限​制​。​可​写​文​件​名​（​按​ ​P​A​T​H​ ​解​析​）​或​绝​对​路​径
+		 */
+		exec_allowed_programs_desc: string
+		/**
+		 * 已​批​准​的​命​令
+		 */
+		exec_approvals: string
+		/**
+		 * 暂​无​已​批​准​的​命​令
+		 */
+		exec_approvals_empty: string
+		/**
+		 * 撤​销
+		 */
+		exec_revoke: string
+		/**
+		 * 清​空​全​部
+		 */
+		exec_clear_all: string
+		/**
+		 * 确​定​清​空​全​部​已​批​准​命​令​？​下​次​执​行​将​重​新​要​求​审​批​。
+		 */
+		exec_clear_confirm: string
+		/**
+		 * 确​认​执​行​本​地​命​令
+		 */
+		exec_approval_title: string
+		/**
+		 * 该​命​令​可​以​读​写​你​有​权​限​访​问​的​任​意​文​件​，​并​且​可​以​访​问​网​络​。​M​P​E​ ​不​提​供​沙​箱​隔​离​。
+		 */
+		exec_approval_warning: string
+		/**
+		 * 继​承​的​宿​主​环​境​变​量​名​（​值​不​会​显​示​）
+		 */
+		exec_approval_inherit_names: string
+		/**
+		 * 将​注​入​的​环​境​变​量
+		 */
+		exec_approval_env_names: string
+		/**
+		 * 批​准​并​执​行
+		 */
+		exec_approval_approve: string
+		/**
+		 * 拒​绝
+		 */
+		exec_approval_deny: string
+		/**
+		 * 工​作​目​录
+		 */
+		exec_approval_cwd: string
+		/**
+		 * 该​审​批​请​求​已​失​效
+		 */
+		exec_approval_unknown: string
 		/**
 		 * 管​理​由​宿​主​监​管​的​ ​M​C​P​ ​服​务​实​例​，​监​控​运​行​状​态​、​端​口​探​针​与​热​重​载​。
 		 */
@@ -14685,6 +14993,23 @@ type RootTranslation = {
 		 */
 		E_PROXY_FAILED: RequiredParams<'host'>
 		/**
+		 * 本​地​命​令​被​拒​绝​:​ ​{​m​e​s​s​a​g​e​}
+		 * @param {unknown} message
+		 */
+		E_EXEC_DENIED: RequiredParams<'message'>
+		/**
+		 * 本​地​命​令​启​动​失​败​:​ ​{​p​r​o​g​r​a​m​}​ ​-​ ​{​m​e​s​s​a​g​e​}
+		 * @param {unknown} message
+		 * @param {unknown} program
+		 */
+		E_EXEC_SPAWN_FAILED: RequiredParams<'message' | 'program'>
+		/**
+		 * 产​物​读​取​失​败​:​ ​{​p​a​t​h​}​ ​-​ ​{​m​e​s​s​a​g​e​}
+		 * @param {unknown} message
+		 * @param {unknown} path
+		 */
+		E_EXEC_CAPTURE_FAILED: RequiredParams<'message' | 'path'>
+		/**
 		 * 插​件​进​程​崩​溃​:​ ​{​p​l​u​g​i​n​_​n​a​m​e​}​ ​-​ ​{​m​e​s​s​a​g​e​}
 		 * @param {unknown} message
 		 * @param {unknown} plugin_name
@@ -16363,6 +16688,14 @@ export type TranslationFunctions = {
 		 */
 		delay: () => LocalizedString
 		/**
+		 * 本地命令
+		 */
+		local_exec: () => LocalizedString
+		/**
+		 * 本机信息
+		 */
+		local_sysinfo: () => LocalizedString
+		/**
 		 * 此节点无需配置，仅用于标记流程终点。
 		 */
 		end_config_hint: () => LocalizedString
@@ -16508,6 +16841,10 @@ export type TranslationFunctions = {
 			 */
 			core_network: () => LocalizedString
 			/**
+			 * 本地能力
+			 */
+			core_local: () => LocalizedString
+			/**
 			 * {name} 插件
 			 */
 			plugin_suffix: (arg: { name: unknown }) => LocalizedString
@@ -16601,6 +16938,14 @@ export type TranslationFunctions = {
 			 * 等待指定时长（支持变量模板与随机抖动），等待期间可被取消
 			 */
 			delay: () => LocalizedString
+			/**
+			 * 在本机执行命令（argv 或 shell），捕获 stdout/stderr 与产物；首次执行需人工批准
+			 */
+			local_exec: () => LocalizedString
+			/**
+			 * 只读采集本机信息（系统 / CPU / 内存 / 磁盘 / ffmpeg），无需审批
+			 */
+			local_sysinfo: () => LocalizedString
 			/**
 			 * 建立 WebSocket 客户端长连接会话
 			 */
@@ -16736,6 +17081,14 @@ export type TranslationFunctions = {
 		 * 加载中...
 		 */
 		loading: () => LocalizedString
+		/**
+		 * 面板加载失败，请重试或刷新页面
+		 */
+		load_failed: () => LocalizedString
+		/**
+		 * 重试
+		 */
+		retry: () => LocalizedString
 		/**
 		 * 未知
 		 */
@@ -21189,6 +21542,186 @@ export type TranslationFunctions = {
 			 */
 			jitter_ms: () => LocalizedString
 		}
+		localExec: {
+			/**
+			 * 命令构造方式
+			 */
+			mode: () => LocalizedString
+			/**
+			 * 参数列表 (argv)
+			 */
+			mode_argv: () => LocalizedString
+			/**
+			 * Shell 脚本
+			 */
+			mode_shell: () => LocalizedString
+			/**
+			 * 逐参数传递，不经 shell，不存在注入与拆词
+			 */
+			argv_hint: () => LocalizedString
+			/**
+			 * 交由系统 shell 执行；脚本内禁止双花括号模板，只能读取 MPE_VAR_* 环境变量
+			 */
+			shell_hint: () => LocalizedString
+			/**
+			 * 可执行文件
+			 */
+			program: () => LocalizedString
+			/**
+			 * 支持变量模板，按 PATH 解析为绝对路径
+			 */
+			program_hint: () => LocalizedString
+			/**
+			 * 参数
+			 */
+			args: () => LocalizedString
+			/**
+			 * 参数值
+			 */
+			arg_placeholder: () => LocalizedString
+			/**
+			 * 上移
+			 */
+			move_up: () => LocalizedString
+			/**
+			 * 下移
+			 */
+			move_down: () => LocalizedString
+			/**
+			 * 参数顺序即实际传参顺序，可用上移/下移调整
+			 */
+			args_order_hint: () => LocalizedString
+			/**
+			 * 添加参数
+			 */
+			add_arg: () => LocalizedString
+			/**
+			 * 删除
+			 */
+			remove_arg: () => LocalizedString
+			/**
+			 * Shell
+			 */
+			shell: () => LocalizedString
+			/**
+			 * 脚本正文
+			 */
+			script: () => LocalizedString
+			/**
+			 * 脚本内禁止使用双花括号模板，请改用 env 注入并读取 MPE_VAR_* 环境变量
+			 */
+			script_template_error: () => LocalizedString
+			/**
+			 * 注入变量
+			 */
+			env: () => LocalizedString
+			/**
+			 * 值支持变量模板，注入为 MPE_VAR_<NAME> 环境变量；审批弹窗只显示变量名
+			 */
+			env_hint: () => LocalizedString
+			/**
+			 * 变量名
+			 */
+			env_name: () => LocalizedString
+			/**
+			 * 值
+			 */
+			env_value: () => LocalizedString
+			/**
+			 * 添加变量
+			 */
+			add_env: () => LocalizedString
+			/**
+			 * 额外继承的环境变量
+			 */
+			inherit_env: () => LocalizedString
+			/**
+			 * 逗号分隔；宿主内部 MPE_* 变量一律不继承
+			 */
+			inherit_env_hint: () => LocalizedString
+			/**
+			 * 工作目录
+			 */
+			cwd: () => LocalizedString
+			/**
+			 * 支持变量；留空为流程文件所在目录
+			 */
+			cwd_hint: () => LocalizedString
+			/**
+			 * 超时 (ms)
+			 */
+			timeout_ms: () => LocalizedString
+			/**
+			 * 默认 600000，上限 3600000
+			 */
+			timeout_hint: () => LocalizedString
+			/**
+			 * 输出上限 (字节)
+			 */
+			max_output_bytes: () => LocalizedString
+			/**
+			 * stdout / stderr 各自上限，默认 1MiB，最大 16MiB
+			 */
+			max_output_bytes_hint: () => LocalizedString
+			/**
+			 * 产物捕获
+			 */
+			capture: () => LocalizedString
+			/**
+			 * 产物路径
+			 */
+			capture_path: () => LocalizedString
+			/**
+			 * 支持变量；相对路径以流程文件目录为基准
+			 */
+			capture_path_hint: () => LocalizedString
+			/**
+			 * 读取上限 (字节)
+			 */
+			capture_max_bytes: () => LocalizedString
+			/**
+			 * 默认 4MiB，最大 64MiB；超限时只记录大小不内联
+			 */
+			capture_max_bytes_hint: () => LocalizedString
+		}
+		localSysinfo: {
+			/**
+			 * 采集项
+			 */
+			checks: () => LocalizedString
+			/**
+			 * 只读探测，不需要审批；不可得的项返回 null
+			 */
+			checks_hint: () => LocalizedString
+			/**
+			 * 系统信息
+			 */
+			check_os: () => LocalizedString
+			/**
+			 * CPU
+			 */
+			check_cpu: () => LocalizedString
+			/**
+			 * 内存
+			 */
+			check_mem: () => LocalizedString
+			/**
+			 * 磁盘
+			 */
+			check_disk: () => LocalizedString
+			/**
+			 * ffmpeg 工具链
+			 */
+			check_ffmpeg: () => LocalizedString
+			/**
+			 * 磁盘探测路径
+			 */
+			disk_path: () => LocalizedString
+			/**
+			 * 支持变量；留空为流程文件所在目录
+			 */
+			disk_path_hint: () => LocalizedString
+		}
 	}
 	execution: {
 		node_types: {
@@ -22020,6 +22553,26 @@ export type TranslationFunctions = {
 			 * 无数据
 			 */
 			no_data: () => LocalizedString
+			/**
+			 * 标准输出
+			 */
+			stdout: () => LocalizedString
+			/**
+			 * 标准错误
+			 */
+			stderr: () => LocalizedString
+			/**
+			 * 已截断
+			 */
+			truncated: () => LocalizedString
+			/**
+			 * （空）
+			 */
+			empty_output: () => LocalizedString
+			/**
+			 * 产物
+			 */
+			artifact: () => LocalizedString
 			/**
 			 * 节点信息
 			 */
@@ -24059,6 +24612,86 @@ export type TranslationFunctions = {
 		 * MCP 服务治理
 		 */
 		tab_mcp: () => LocalizedString
+		/**
+		 * 本地命令
+		 */
+		tab_local_exec: () => LocalizedString
+		/**
+		 * 允许执行本地命令节点
+		 */
+		exec_enabled: () => LocalizedString
+		/**
+		 * 关闭时 local:exec 节点一律返回 E_EXEC_DENIED
+		 */
+		exec_enabled_desc: () => LocalizedString
+		/**
+		 * 允许 shell 模式
+		 */
+		exec_allow_shell: () => LocalizedString
+		/**
+		 * argv 模式按参数逐个传递、不可注入；shell 模式交由系统 shell 解释，风险更高
+		 */
+		exec_allow_shell_desc: () => LocalizedString
+		/**
+		 * 程序白名单
+		 */
+		exec_allowed_programs: () => LocalizedString
+		/**
+		 * 逗号分隔；留空表示不限制。可写文件名（按 PATH 解析）或绝对路径
+		 */
+		exec_allowed_programs_desc: () => LocalizedString
+		/**
+		 * 已批准的命令
+		 */
+		exec_approvals: () => LocalizedString
+		/**
+		 * 暂无已批准的命令
+		 */
+		exec_approvals_empty: () => LocalizedString
+		/**
+		 * 撤销
+		 */
+		exec_revoke: () => LocalizedString
+		/**
+		 * 清空全部
+		 */
+		exec_clear_all: () => LocalizedString
+		/**
+		 * 确定清空全部已批准命令？下次执行将重新要求审批。
+		 */
+		exec_clear_confirm: () => LocalizedString
+		/**
+		 * 确认执行本地命令
+		 */
+		exec_approval_title: () => LocalizedString
+		/**
+		 * 该命令可以读写你有权限访问的任意文件，并且可以访问网络。MPE 不提供沙箱隔离。
+		 */
+		exec_approval_warning: () => LocalizedString
+		/**
+		 * 继承的宿主环境变量名（值不会显示）
+		 */
+		exec_approval_inherit_names: () => LocalizedString
+		/**
+		 * 将注入的环境变量
+		 */
+		exec_approval_env_names: () => LocalizedString
+		/**
+		 * 批准并执行
+		 */
+		exec_approval_approve: () => LocalizedString
+		/**
+		 * 拒绝
+		 */
+		exec_approval_deny: () => LocalizedString
+		/**
+		 * 工作目录
+		 */
+		exec_approval_cwd: () => LocalizedString
+		/**
+		 * 该审批请求已失效
+		 */
+		exec_approval_unknown: () => LocalizedString
 		/**
 		 * 管理由宿主监管的 MCP 服务实例，监控运行状态、端口探针与热重载。
 		 */
@@ -30500,6 +31133,18 @@ export type TranslationFunctions = {
 		 * 代理失败: {host}
 		 */
 		E_PROXY_FAILED: (arg: { host: unknown }) => LocalizedString
+		/**
+		 * 本地命令被拒绝: {message}
+		 */
+		E_EXEC_DENIED: (arg: { message: unknown }) => LocalizedString
+		/**
+		 * 本地命令启动失败: {program} - {message}
+		 */
+		E_EXEC_SPAWN_FAILED: (arg: { message: unknown, program: unknown }) => LocalizedString
+		/**
+		 * 产物读取失败: {path} - {message}
+		 */
+		E_EXEC_CAPTURE_FAILED: (arg: { message: unknown, path: unknown }) => LocalizedString
 		/**
 		 * 插件进程崩溃: {plugin_name} - {message}
 		 */

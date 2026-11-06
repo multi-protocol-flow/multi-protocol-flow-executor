@@ -78,6 +78,11 @@ const zh_CN_errors: BaseTranslation = {
   E_VARIABLE_EXTRACTOR_FAILED: '变量提取失败: {path}',
   E_PROXY_FAILED: '代理失败: {host}',
 
+  // Local command
+  E_EXEC_DENIED: '本地命令被拒绝: {message}',
+  E_EXEC_SPAWN_FAILED: '本地命令启动失败: {program} - {message}',
+  E_EXEC_CAPTURE_FAILED: '产物读取失败: {path} - {message}',
+
   // Plugin
   E_PLUGIN_CRASHED: '插件进程崩溃: {plugin_name} - {message}',
 

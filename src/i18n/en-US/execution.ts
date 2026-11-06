@@ -225,6 +225,11 @@ const en_US_execution = {
   },
   viewers: {
     no_data: 'No data',
+    stdout: 'stdout',
+    stderr: 'stderr',
+    truncated: 'Truncated',
+    empty_output: '(empty)',
+    artifact: 'Artifact',
     node_info: 'Node Info',
     name_label: 'Name',
     type_label: 'Type',

@@ -76,6 +76,11 @@ const en_US_errors = {
   E_VARIABLE_EXTRACTOR_FAILED: 'Variable extraction failed: {path}',
   E_PROXY_FAILED: 'Proxy failed: {host}',
 
+  // Local command
+  E_EXEC_DENIED: 'Local command denied: {message}',
+  E_EXEC_SPAWN_FAILED: 'Failed to start local command: {program} - {message}',
+  E_EXEC_CAPTURE_FAILED: 'Failed to read artifact: {path} - {message}',
+
   // Plugin
   E_PLUGIN_CRASHED: 'Plugin process crashed: {plugin_name} - {message}',
 
