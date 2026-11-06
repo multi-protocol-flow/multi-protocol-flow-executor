@@ -1,11 +1,12 @@
 # Workspace Crates
-**Generated:** 2026-08-05 | **Branch:** feature/plugins | **Crates:** 14
+**Generated:** 2026-11-05 | **Branch:** dev | **Crates:** 15
 
 ## OVERVIEW
-14 crate dirs across 4 layers + CLI + workspace-hack（插件系统已独立为公开仓库，不在 workspace 内）:
+15 crate dirs across 4 layers + CLI + workspace-hack（插件系统已独立为公开仓库，不在 workspace 内）:
 - **L0 (Leaves):** `flow-engine-core`
 - **L1 (Protocols):** 7 optional crates (http, ws, script, assertion, tcp, sse, graphql) — redis/db/mongo/kafka/smtp/mcp/grpc 已移出宿主，为独立仓库插件（清单见根 `CONTRIBUTING.md`）。mqtt/imap/amqp 无公开仓库，MQTT 与 IMAP 能力没有对应实现
 - **L2 (Orchestration):** `flow-engine-executor`
+- **L2.5 (本地能力):** `flow-engine-exec`（`local:exec` / `local:sysinfo` 节点，由 executor 以 feature `local-exec` 依赖，默认随 `all-protocols` 启用）
 - **L3 (Facade):** `flow-engine`
 - **CLI:** `mpe-cli` (纯 Rust, 无 Tauri 依赖)
 - **Extra:** `workspace-hack` (cargo-hakari)
@@ -16,6 +17,7 @@ All L1 crates are feature-gated (`protocol-*`). Default `all-protocols` enables 
 ## DEPENDENCY GRAPH
 ```
 app/mpe -> flow-engine -> flow-engine-executor -> 7 L1 crates -> flow-engine-core
+                            flow-engine-executor -> flow-engine-exec (feature `local-exec`) -> flow-engine-core
 mpe-cli -> flow-engine (default-features = false, 按需 feature)
 mpe-plugin-sdk (独立公开仓库, git+tag; 宿主以 default-features = false 取 wire 类型) <- flow-engine-plugin <- flow-engine-executor
 ```
@@ -32,6 +34,7 @@ mpe-plugin-sdk (独立公开仓库, git+tag; 宿主以 default-features = false 
 | flow-engine-sse | 1 | 7 | 3,003 | Server-Sent Events | reqwest |
 | flow-engine-graphql | 1 | 9 | 6,111 | GraphQL query/sub | reqwest, tungstenite |
 | flow-engine-executor | 2 | 39 | 18,557 | Execution engine, plugin sys | evalexpr, csv |
+| flow-engine-exec | 2.5 | 9 | ~1,900 | `local:exec` / `local:sysinfo` 节点（策略闸门、审批、进程组终止、产物捕获、本机探测） | std::process, sha2, base64 |
 | flow-engine | 3 | 2 | 286 | Facade / re-exports | - |
 | mpe-cli | CLI | 14 | ~2,500 | 纯 CLI 二进制 (run/validate/debug/stress/flow/report) | clap, flow-engine |
 | flow-engine-plugin | 插件 | 32 | ~4,200 | 宿主侧插件管理: discovery/lifecycle/transport/registration | mpe-plugin-sdk (git), executor |
@@ -53,6 +56,7 @@ cargo check --workspace                 # full workspace
 | core | all 14 workspace crates + app |
 | Any L1 | executor, facade, app |
 | executor | facade, app, flow-engine-plugin |
+| flow-engine-exec | executor, facade, app, mpe-cli |
 | facade | app, mpe-cli |
 | mpe-plugin-sdk (git 依赖) | 宿主侧不参与增量重编译（tag 固定；升级 tag 才重拉） |
 | workspace-hack | full rebuild |

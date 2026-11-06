@@ -6,14 +6,14 @@
 
 多协议流程编排与执行引擎。Tauri 2.x 桌面应用 + CLI 模式（同一二进制 `mpe`）。
 - **前端:** React 19 + TypeScript + Vite 6 + TailwindCSS 4 + Zustand 5 + @xyflow/react
-- **后端:** Rust Workspace (14 crates + app) + Tauri 2.x — 双二进制: `mpe` (GUI+CLI 二合一) + `mpe-cli` (纯 CLI)
+- **后端:** Rust Workspace (15 crates + app) + Tauri 2.x — 双二进制: `mpe` (GUI+CLI 二合一) + `mpe-cli` (纯 CLI)
 
 ## 结构
 
 ```
 root/
 ├── src/                  # 前端 (React 19 + TypeScript)
-├── src-tauri/            # 后端 (Rust workspace, 14 crates)
+├── src-tauri/            # 后端 (Rust workspace, 15 crates)
 ├── tests/                # CLI 测试夹具 (JSON flow files)
 ├── docs/                 # 架构文档
 ├── plugins/              # 本地检出副本（.gitignore 排除；各插件为独立仓库）
@@ -55,6 +55,7 @@ root/
 Layer 0 (叶子):     flow-engine-core
 Layer 1 (协议):     7 个协议 crate (http, ws, script, assertion, tcp, sse, graphql) — redis/db/mongo 与 smtp/kafka 及 mcp/grpc 已移出宿主，变为独立仓插件（见 `CONTRIBUTING.md` 的插件仓库列表）；mqtt/imap/amqp 无公开仓库，尚无实现
 Layer 2 (编排):     flow-engine-executor (依赖 Layer 0 + 可选 Layer 1)
+Layer 2.5 (本地):   flow-engine-exec (local:exec / local:sysinfo, feature `local-exec`)
 Layer 3 (门面):     flow-engine (re-export 全部)
 Layer 4 (应用):     app (src-tauri/) 仅依赖 flow-engine
 CLI 独立:           mpe-cli (纯 Rust 二进制, 无 Tauri/GUI 依赖)
@@ -82,9 +83,9 @@ CLI 实现位于 `crates/mpe-cli/src/`；`src-tauri/src/lib.rs` 通过 `pub use 
 | Dataset | 8 | 数据集执行 |
 | 其他 | 16 | MCP/GraphQL/TCP/CSV/Registry 等 |
 
-### 节点类型 (37 variants)
+### 节点类型
 
-定义在 `flow-engine-core/src/node.rs`。涵盖：entry, end, http, conditional, ws(3), script, assertion, tcp(4), udp(4), sse(3), graphql(5), variable_extractor, proxy。（redis/db/mongo 与 smtp/kafka 及 mcp/grpc 已移出宿主，位于独立插件仓库——插件节点以 `<proto>:*` 命名空间提供，仓库清单见 `CONTRIBUTING.md`；mqtt/imap/amqp 无公开仓库）
+定义在 `flow-engine-core/src/node.rs`。涵盖：entry, end, http, conditional, ws(3), script, assertion, tcp(4), udp(4), sse(3), graphql(5), variable_extractor, proxy, local(2: `local:exec` / `local:sysinfo`)。（redis/db/mongo 与 smtp/kafka 及 mcp/grpc 已移出宿主，位于独立插件仓库——插件节点以 `<proto>:*` 命名空间提供，仓库清单见 `CONTRIBUTING.md`；mqtt/imap/amqp 无公开仓库）
 
 ### 流程生命周期阶段 (Setup / Main / Teardown)
 
@@ -194,6 +195,7 @@ npm run tauri build             # 构建安装包
 - [src-tauri/crates/flow-engine/src/AGENTS.md](./src-tauri/crates/flow-engine/src/AGENTS.md) — 门面 crate
 - [src-tauri/crates/flow-engine-core/src/AGENTS.md](./src-tauri/crates/flow-engine-core/src/AGENTS.md) — 基础类型
 - [src-tauri/crates/flow-engine-executor/src/AGENTS.md](./src-tauri/crates/flow-engine-executor/src/AGENTS.md) — 执行器
+- [src-tauri/crates/flow-engine-exec/src/AGENTS.md](./src-tauri/crates/flow-engine-exec/src/AGENTS.md) — 本地命令 / 本机信息节点
 - [src-tauri/crates/flow-engine-http/src/AGENTS.md](./src-tauri/crates/flow-engine-http/src/AGENTS.md) — HTTP
 - [src-tauri/crates/flow-engine-ws/src/AGENTS.md](./src-tauri/crates/flow-engine-ws/src/AGENTS.md) — WebSocket
 - [src-tauri/crates/flow-engine-script/src/AGENTS.md](./src-tauri/crates/flow-engine-script/src/AGENTS.md) — 脚本
