@@ -49,6 +49,8 @@ vi.mock('@/stores/wsStream', () => ({
 vi.mock('@/services/tauri', () => ({
   executeFlowWithChannel: vi.fn(),
   saveFlowReport: vi.fn(),
+  // 执行时会上报当前标签的流程文件路径（local:exec 信任范围），测试里没有文件路径
+  getActiveFlowFilePath: vi.fn(() => undefined),
 }));
 
 // Mock lucide-react icons
