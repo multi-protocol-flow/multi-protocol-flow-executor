@@ -276,6 +276,22 @@ export function createDefaultNodeData(type: AnyNodeType): NodeData {
       };
     case 'flow:delay':
       return { type: 'flow:delay', duration_ms: '1000', jitter_ms: 0 };
+    case 'local:exec':
+      return {
+        type: 'local:exec',
+        mode: 'argv',
+        program: '',
+        args: [],
+        env: {},
+        timeout_ms: 600000,
+        max_output_bytes: 1048576,
+      };
+    case 'local:sysinfo':
+      return {
+        type: 'local:sysinfo',
+        checks: ['os', 'cpu', 'mem', 'ffmpeg'],
+        disk_path: '',
+      };
     case 'entry':
       return { type: 'entry' };
     default:

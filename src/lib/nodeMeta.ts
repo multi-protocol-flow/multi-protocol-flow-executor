@@ -35,6 +35,8 @@ import {
   LogOut,
   Repeat,
   Timer,
+  Terminal,
+  Cpu,
 } from 'lucide-react';
 import { getCachedDisplayName } from '@/lib/NodeRegistry';
 import { getLL } from '@/i18n/i18n-lazy';
@@ -63,6 +65,8 @@ export const ICON_MAP: Record<string, { icon: LucideIcon; iconBg: string; labelC
   'flow:sub': { icon: Workflow, iconBg: 'bg-violet-500', labelColor: 'text-violet-600', badge: 'bg-violet-100 text-violet-700' },
   'flow:loop': { icon: Repeat, iconBg: 'bg-sky-500', labelColor: 'text-sky-600', badge: 'bg-sky-100 text-sky-700' },
   'flow:delay': { icon: Timer, iconBg: 'bg-slate-500', labelColor: 'text-slate-600', badge: 'bg-slate-100 text-slate-700' },
+  'local:exec': { icon: Terminal, iconBg: 'bg-sky-500', labelColor: 'text-sky-600', badge: 'bg-sky-100 text-sky-700' },
+  'local:sysinfo': { icon: Cpu, iconBg: 'bg-sky-500', labelColor: 'text-sky-600', badge: 'bg-sky-100 text-sky-700' },
   script: { icon: Code, iconBg: 'bg-indigo-500', labelColor: 'text-indigo-600', badge: 'bg-indigo-100 text-indigo-700' },
   assertion: { icon: CheckCircle, iconBg: 'bg-purple-500', labelColor: 'text-purple-600', badge: 'bg-purple-100 text-purple-700' },
   'ws:connect': { icon: Wifi, iconBg: 'bg-amber-500', labelColor: 'text-amber-600', badge: 'bg-amber-100 text-amber-700' },
@@ -145,6 +149,8 @@ function getStaticDisplayNames(): Record<string, string> {
     'flow:sub': LL.nodes.sub_flow(),
     'flow:loop': LL.nodes.loop(),
     'flow:delay': LL.nodes.delay(),
+    'local:exec': LL.nodes.local_exec(),
+    'local:sysinfo': LL.nodes.local_sysinfo(),
   };
 }
 
@@ -164,6 +170,8 @@ export function getNodeDescription(typeId: string): string {
     'flow:sub': () => LL.nodes.descriptions.sub_flow(),
     'flow:loop': () => LL.nodes.descriptions.loop(),
     'flow:delay': () => LL.nodes.descriptions.delay(),
+    'local:exec': () => LL.nodes.descriptions.local_exec(),
+    'local:sysinfo': () => LL.nodes.descriptions.local_sysinfo(),
     script: () => LL.nodes.descriptions.script(),
     assertion: () => LL.nodes.descriptions.assertion(),
     'variable:extractor': () => LL.nodes.descriptions.variable_extractor(),

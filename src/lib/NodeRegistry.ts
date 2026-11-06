@@ -12,6 +12,7 @@ import {
   Sparkles,
   Clock,
   Puzzle,
+  Terminal,
 } from 'lucide-react';
 import { resolveBackendIcon, BACKEND_ICON_MAP } from '@/lib/nodeIcons';
 import { getNodeDisplayName, getNodeDescription, ICON_MAP } from '@/lib/nodeMeta';
@@ -321,6 +322,9 @@ const CORE_LOGIC_TYPES = [
   'end',
 ];
 
+/** 内置本地能力节点类型列表（`local:exec` / `local:sysinfo`） */
+const CORE_LOCAL_TYPES = ['local:exec', 'local:sysinfo'];
+
 /** 内置网络协议节点类型列表 */
 const CORE_NETWORK_TYPES = [
   'http:request',
@@ -380,6 +384,8 @@ export const BUILTIN_FALLBACK_METADATA: NodeMetadata[] = [
   { type_id: 'udp:send_to', display_name: 'UDP 发送', category: 'udp', icon: 'arrow-up-right', color: '#F97316', ports: [{ id: 'flow_in', label: 'In', position: 'top' }, { id: 'true', label: 'True', position: 'right' }], default_config: {} },
   { type_id: 'udp:recv_from', display_name: 'UDP 接收', category: 'udp', icon: 'arrow-down-left', color: '#F97316', ports: [{ id: 'flow_in', label: 'In', position: 'top' }, { id: 'true', label: 'True', position: 'right' }], default_config: {} },
   { type_id: 'udp:close', display_name: 'UDP 关闭', category: 'udp', icon: 'unplug', color: '#F97316', ports: [{ id: 'flow_in', label: 'In', position: 'top' }, { id: 'true', label: 'True', position: 'right' }], default_config: {} },
+  { type_id: 'local:exec', display_name: '本地命令', category: 'tools', icon: 'terminal', color: '#0EA5E9', ports: [{ id: 'flow_in', label: 'In', position: 'top' }, { id: 'true', label: 'True', position: 'right' }, { id: 'false', label: 'False', position: 'bottom' }], default_config: { mode: 'argv', program: '', args: [], env: {}, timeout_ms: 600000, max_output_bytes: 1048576 } },
+  { type_id: 'local:sysinfo', display_name: '本机信息', category: 'tools', icon: 'cpu', color: '#0EA5E9', ports: [{ id: 'flow_in', label: 'In', position: 'top' }, { id: 'out', label: 'Output', position: 'right' }], default_config: { checks: ['os', 'cpu', 'mem', 'ffmpeg'], disk_path: '' } },
 ];
 
 /**
@@ -390,7 +396,9 @@ export function convertToCatalogItem(meta: NodeMetadata): CatalogItem {
   // 内置节点 `http:ingress` / `http:respond` 同样带 `:`，不能据此判为插件
   // （否则会在选择器里被标成插件并显示插件徽章）。
   const isPlugin =
-    !CORE_LOGIC_TYPES.includes(meta.type_id) && !CORE_NETWORK_TYPES.includes(meta.type_id);
+    !CORE_LOGIC_TYPES.includes(meta.type_id) &&
+    !CORE_NETWORK_TYPES.includes(meta.type_id) &&
+    !CORE_LOCAL_TYPES.includes(meta.type_id);
   let pluginId: string | undefined;
   let pluginName: string | undefined;
 
@@ -495,7 +503,20 @@ export function buildCatalogGroups(
     });
   }
 
-  // 5. 动态插件分组 (Plugin Groups)
+  // 5. 本地能力（local:exec / local:sysinfo）
+  const localItems = allItems.filter((item) => CORE_LOCAL_TYPES.includes(item.typeId));
+  if (localItems.length > 0) {
+    groups.push({
+      id: 'core_local',
+      name: getLL().nodes.palette.core_local(),
+      icon: Terminal,
+      kind: 'core',
+      count: localItems.length,
+      items: localItems,
+    });
+  }
+
+  // 6. 动态插件分组 (Plugin Groups)
   const pluginMap = new Map<string, CatalogItem[]>();
   for (const item of allItems) {
     if (item.isPlugin && item.pluginId) {

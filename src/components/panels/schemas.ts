@@ -764,6 +764,80 @@ export const delayConfigSchema = z.object({
 export type DelayConfigFormData = z.infer<typeof delayConfigSchema>;
 
 // ============================================================================
+// 本地命令 / 本机信息节点 Schema
+// ============================================================================
+
+/** 本地命令节点的最大超时（毫秒）：1 小时，与后端 `MAX_TIMEOUT_MS` 一致 */
+export const LOCAL_EXEC_MAX_TIMEOUT_MS = 3_600_000;
+/** 本地命令节点 stdout/stderr 上限的最大值：16 MiB */
+export const LOCAL_EXEC_MAX_OUTPUT_BYTES = 16 * 1024 * 1024;
+/** 本地命令节点产物读取上限的最大值：64 MiB */
+export const LOCAL_EXEC_MAX_CAPTURE_BYTES = 64 * 1024 * 1024;
+
+/**
+ * 本地命令节点配置表单 Schema
+ *
+ * 安全约束：shell 模式的 `script` 不允许出现 `{{ }}`——变量只能通过
+ * 注入的环境变量 `MPE_VAR_*` 访问，避免变量值被拼进 shell 字符串。
+ */
+export const localExecConfigSchema = z
+  .object({
+    type: z.literal('local:exec'),
+    mode: z.enum(['argv', 'shell']).default('argv'),
+    program: z.string().optional(),
+    args: z.array(z.string()).max(256).optional(),
+    shell: z.string().optional(),
+    script: z.string().max(65536).optional(),
+    env: z.record(z.string(), z.string()).optional(),
+    inherit_env: z.array(z.string()).optional(),
+    cwd: z.string().optional(),
+    timeout_ms: z.number().int().min(1).max(LOCAL_EXEC_MAX_TIMEOUT_MS).optional(),
+    max_output_bytes: z.number().int().min(1).max(LOCAL_EXEC_MAX_OUTPUT_BYTES).optional(),
+    capture: z
+      .object({
+        path: z.string(),
+        max_bytes: z.number().int().min(1).max(LOCAL_EXEC_MAX_CAPTURE_BYTES).optional(),
+      })
+      .optional(),
+  })
+  .superRefine((value, ctx) => {
+    if (value.mode === 'argv') {
+      if (!value.program || value.program.trim() === '') {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['program'],
+          message: 'program is required for argv mode',
+        });
+      }
+      return;
+    }
+    if (!value.script || value.script.trim() === '') {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['script'],
+        message: 'script is required for shell mode',
+      });
+    } else if (value.script.includes('{{')) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['script'],
+        message: 'script must not contain {{ }} templates; use MPE_VAR_* environment variables',
+      });
+    }
+  });
+export type LocalExecConfigFormData = z.infer<typeof localExecConfigSchema>;
+
+/**
+ * 本机信息节点配置表单 Schema
+ */
+export const localSysinfoConfigSchema = z.object({
+  type: z.literal('local:sysinfo'),
+  checks: z.array(z.enum(['os', 'cpu', 'mem', 'disk', 'ffmpeg'])),
+  disk_path: z.string().optional(),
+});
+export type LocalSysinfoConfigFormData = z.infer<typeof localSysinfoConfigSchema>;
+
+// ============================================================================
 // 未知节点类型 Fallback Schema
 // ============================================================================
 

@@ -47,6 +47,8 @@ export type NodeType =
   | 'graphql:disconnect'
   | 'variable:extractor'
   | 'proxy'
+  | 'local:exec'
+  | 'local:sysinfo'
   | 'http:ingress'
   | 'http:respond';
 
@@ -1057,6 +1059,64 @@ export interface HttpRespondConfig {
   body: string;
 }
 /**
+ * 本地命令节点的命令构造方式
+ */
+export type ExecMode = 'argv' | 'shell';
+
+/**
+ * 本地命令节点的产物捕获配置
+ */
+export interface ExecCaptureConfig {
+  /** 产物路径（支持变量），相对路径以流程文件目录为基准 */
+  path: string;
+  /** 读取上限（字节），默认 4 MiB，上限 64 MiB */
+  max_bytes?: number;
+}
+
+/**
+ * 本地命令节点配置（`local:exec`）
+ *
+ * 安全语义：`program` / `args` / `env` 的值 / `cwd` / `capture.path` 会做变量替换；
+ * `script` **禁止**出现 `{{ }}`，shell 模式只能通过 `MPE_VAR_*` 环境变量取值。
+ */
+export interface LocalExecConfig {
+  type: 'local:exec';
+  /** argv（默认）/ shell */
+  mode?: ExecMode;
+  /** 可执行文件（支持变量） */
+  program?: string;
+  /** 参数列表，逐参数替换（不经 shell，不拆词） */
+  args?: string[];
+  /** bash | sh | cmd | powershell | pwsh */
+  shell?: string;
+  /** 脚本正文，禁止 `{{ }}` */
+  script?: string;
+  /** 变量映射：值可含变量模板，注入为 `MPE_VAR_<NAME>` */
+  env?: Record<string, string>;
+  /** 除默认白名单外额外继承的环境变量名 */
+  inherit_env?: string[];
+  /** 工作目录（支持变量），默认流程文件所在目录 */
+  cwd?: string;
+  /** 超时（毫秒），默认 600000 */
+  timeout_ms?: number;
+  /** stdout / stderr 各自上限，默认 1 MiB */
+  max_output_bytes?: number;
+  /** 产物捕获 */
+  capture?: ExecCaptureConfig;
+}
+
+/**
+ * 本机信息节点配置（`local:sysinfo`）
+ */
+export interface LocalSysinfoConfig {
+  type: 'local:sysinfo';
+  /** 采集项：os / cpu / mem / disk / ffmpeg */
+  checks: string[];
+  /** 磁盘探测路径（支持变量） */
+  disk_path?: string;
+}
+
+/**
  * 节点数据配置（判别联合类型）
  */
 export type NodeData =
@@ -1091,7 +1151,9 @@ export type NodeData =
   | LoopConfig
   | DelayConfig
   | HttpIngressConfig
-  | HttpRespondConfig;
+  | HttpRespondConfig
+  | LocalExecConfig
+  | LocalSysinfoConfig;
 
 // ============================================================================
 // 节点结构体

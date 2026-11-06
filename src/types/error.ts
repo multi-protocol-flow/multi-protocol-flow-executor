@@ -96,6 +96,10 @@ export type ErrorCode =
   // Non-protocol
   | 'E_VARIABLE_EXTRACTOR_FAILED'
   | 'E_PROXY_FAILED'
+  // Local command (local:exec)
+  | 'E_EXEC_DENIED'
+  | 'E_EXEC_SPAWN_FAILED'
+  | 'E_EXEC_CAPTURE_FAILED'
   // Plugin
   | 'E_PLUGIN_CRASHED';
 

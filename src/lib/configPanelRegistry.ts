@@ -46,6 +46,8 @@ const panelLoaders: Record<string, PanelLoader> = {
   'graphql:disconnect': () => import('@/components/panels/GraphqlDisconnectConfig').then(m => m.GraphqlDisconnectConfig),
   'variable:extractor': () => import('@/components/panels/VariableExtractorConfig').then(m => m.VariableExtractorConfig),
   proxy: () => import('@/components/panels/ProxyConfig').then(m => m.ProxyConfig),
+  'local:exec': () => import('@/components/panels/LocalExecConfig').then(m => m.LocalExecConfig),
+  'local:sysinfo': () => import('@/components/panels/LocalSysinfoConfig').then(m => m.LocalSysinfoConfig),
 };
 
 /** 根据节点类型获取对应的面板加载器 */

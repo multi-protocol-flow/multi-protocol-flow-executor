@@ -18,6 +18,7 @@ import { GraphqlViewer } from '@/components/execution/viewers/GraphqlViewer';
 import { PluginIframeViewer } from '@/components/execution/viewers/PluginIframeViewer';
 import { SubFlowViewer } from '@/components/execution/viewers/SubFlowViewer';
 import { LoopViewer } from '@/components/execution/viewers/LoopViewer';
+import { LocalExecViewer } from '@/components/execution/viewers/LocalExecViewer';
 import { getCachedNodeMeta } from '@/lib/NodeRegistry';
 
 interface ViewerProps {
@@ -84,6 +85,8 @@ export const viewerRegistry: Record<string, ComponentType<ViewerProps>> = {
   'graphql:disconnect': GraphqlViewer,
   'variable:extractor': GenericViewer,
   proxy: GenericViewer,
+  'local:exec': LocalExecViewer,
+  'local:sysinfo': GenericViewer,
 };
 
 /**
